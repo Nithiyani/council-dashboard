@@ -4,6 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LayoutDashboard, Users, Calendar, Bell, Building2, Settings, Crown, BarChart3 } from 'lucide-react';
 
 export default function Home() {
+  // Redirect to login instead of showing the landing page
+  // This will be handled by middleware, but we can also redirect here
+  if (typeof window !== 'undefined') {
+    window.location.href = '/login';
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       {/* Hero Section */}
