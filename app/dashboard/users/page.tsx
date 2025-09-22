@@ -47,7 +47,29 @@ import {
   Users,
 } from "lucide-react";
 
-const usersData = [
+// Types
+type Role = "Super Admin" | "Manager" | "Editor" | "Staff" | "Viewer";
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: Role;
+  status: "Active" | "Inactive";
+  lastLogin: string;
+  createdDate: string;
+  permissions: string[];
+}
+
+interface NewUser {
+  name: string;
+  email: string;
+  role: Role;
+  password: string;
+}
+
+// Sample Data
+const usersData: User[] = [
   {
     id: 1,
     name: "John Admin",
@@ -102,30 +124,21 @@ const usersData = [
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState("all"); // default to "all"
+  const [selectedRole, setSelectedRole] = useState<Role | "all">("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [users, setUsers] = useState(usersData);
-  const [newUser, setNewUser] = useState({
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(usersData);
+  const [newUser, setNewUser] = useState<NewUser>({
     name: "",
     email: "",
     role: "Viewer",
     password: "",
   });
 
-  const roles = ["Super Admin", "Manager", "Editor", "Staff", "Viewer"];
-  const permissions = [
-    "All Access",
-    "Events",
-    "Notices",
-    "Members",
-    "Gallery",
-    "Documents",
-    "View Only",
-  ];
+  const roles: Role[] = ["Super Admin", "Manager", "Editor", "Staff", "Viewer"];
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -135,21 +148,7 @@ export default function UsersPage() {
     return matchesSearch && matchesRole;
   });
 
-  const handleAddUser = () => {
-    const user = {
-      id: users.length + 1,
-      ...newUser,
-      status: "Active",
-      lastLogin: "Never",
-      createdDate: new Date().toISOString().split("T")[0],
-      permissions: getDefaultPermissions(newUser.role),
-    };
-    setUsers([...users, user]);
-    setNewUser({ name: "", email: "", role: "Viewer", password: "" });
-    setIsAddDialogOpen(false);
-  };
-
-  const getDefaultPermissions = (role) => {
+  const getDefaultPermissions = (role: Role) => {
     switch (role) {
       case "Super Admin":
         return ["All Access"];
@@ -164,26 +163,41 @@ export default function UsersPage() {
     }
   };
 
-  const handleEditUser = (user) => {
+  const handleAddUser = () => {
+    const user: User = {
+      id: users.length + 1,
+      ...newUser,
+      status: "Active",
+      lastLogin: "Never",
+      createdDate: new Date().toISOString().split("T")[0],
+      permissions: getDefaultPermissions(newUser.role),
+    };
+    setUsers([...users, user]);
+    setNewUser({ name: "", email: "", role: "Viewer", password: "" });
+    setIsAddDialogOpen(false);
+  };
+
+  const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteUser = (id) => {
+  const handleDeleteUser = (id: number) => {
     setUsers(users.filter((user) => user.id !== id));
   };
 
-  const handleAssignRole = (user) => {
+  const handleAssignRole = (user: User) => {
     setSelectedUser(user);
     setIsRoleDialogOpen(true);
   };
 
-  const handleResetPassword = (user) => {
+  const handleResetPassword = (user: User) => {
     setSelectedUser(user);
     setIsResetPasswordOpen(true);
   };
 
-  const handleUpdateRole = (newRole) => {
+  const handleUpdateRole = (newRole: Role) => {
+    if (!selectedUser) return;
     setUsers(
       users.map((user) =>
         user.id === selectedUser.id
@@ -208,72 +222,7 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold">{users.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <UserCog className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-2xl font-bold">
-                  {users.filter((u) => u.status === "Active").length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Shield className="w-6 h-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Admins</p>
-                <p className="text-2xl font-bold">
-                  {users.filter(
-                    (u) => u.role === "Super Admin" || u.role === "Manager"
-                  ).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Key className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Roles</p>
-                <p className="text-2xl font-bold">{roles.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Users Management */}
+      {/* Users Table */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
           <CardTitle>User Directory</CardTitle>
@@ -292,7 +241,10 @@ export default function UsersPage() {
             </div>
 
             {/* Filter by role */}
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
+            <Select
+              value={selectedRole}
+              onValueChange={(value) => setSelectedRole(value as Role | "all")}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
@@ -307,7 +259,7 @@ export default function UsersPage() {
             </Select>
           </div>
 
-          {/* Users Table */}
+          {/* Table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -459,7 +411,9 @@ export default function UsersPage() {
               </Label>
               <Select
                 value={newUser.role}
-                onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                onValueChange={(value) =>
+                  setNewUser({ ...newUser, role: value as Role })
+                }
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select role" />
@@ -515,7 +469,7 @@ export default function UsersPage() {
               </Label>
               <Select
                 value={selectedUser?.role || roles[0]}
-                onValueChange={handleUpdateRole}
+                onValueChange={(value) => handleUpdateRole(value as Role)}
               >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select role" />
@@ -553,7 +507,10 @@ export default function UsersPage() {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsResetPasswordOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsResetPasswordOpen(false)}
+            >
               Cancel
             </Button>
             <Button

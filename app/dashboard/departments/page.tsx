@@ -8,10 +8,23 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, Plus, Edit, Trash2, Search, Upload, FileText, Users, Phone, Mail } from 'lucide-react';
 
-const departmentsData = [
+// ---------------- TypeScript Types ----------------
+interface Department {
+  id: number;
+  name: string;
+  head: string;
+  contact: string;
+  email: string;
+  description: string;
+  services: string[];
+  staff: number;
+  documents: number;
+}
+
+// ---------------- Initial Data ----------------
+const departmentsData: Department[] = [
   {
     id: 1,
     name: "Health Department",
@@ -58,14 +71,15 @@ const departmentsData = [
   }
 ];
 
+// ---------------- Main Component ----------------
 export default function DepartmentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [departments, setDepartments] = useState<Department[]>(departmentsData);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
-  const [departments, setDepartments] = useState(departmentsData);
-  const [newDepartment, setNewDepartment] = useState({
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [newDepartment, setNewDepartment] = useState<Omit<Department, "id" | "staff" | "documents">>({
     name: '',
     head: '',
     contact: '',
@@ -74,14 +88,16 @@ export default function DepartmentsPage() {
     services: []
   });
 
+  // ---------------- Filter ----------------
   const filteredDepartments = departments.filter(dept => 
     dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     dept.head.toLowerCase().includes(searchTerm.toLowerCase()) ||
     dept.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // ---------------- Handlers ----------------
   const handleAddDepartment = () => {
-    const department = {
+    const department: Department = {
       id: departments.length + 1,
       ...newDepartment,
       staff: 0,
@@ -92,19 +108,20 @@ export default function DepartmentsPage() {
     setIsAddDialogOpen(false);
   };
 
-  const handleEditDepartment = (dept) => {
+  const handleEditDepartment = (dept: Department) => {
     setSelectedDepartment(dept);
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteDepartment = (id) => {
+  const handleDeleteDepartment = (id: number) => {
     setDepartments(departments.filter(dept => dept.id !== id));
   };
 
-  const handleUploadDocument = (dept) => {
+  const handleUploadDocument = (dept: Department) => {
     setSelectedDepartment(dept);
     setIsDocumentDialogOpen(true);
   };
+
 
   return (
     <div className="space-y-6">

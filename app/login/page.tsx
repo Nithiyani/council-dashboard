@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Lock, Mail, Shield, AlertCircle, Building2 } from 'lucide-react';
+import { CheckedState } from '@radix-ui/react-checkbox';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +29,6 @@ export default function LoginPage() {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (error) setError('');
   };
 
@@ -37,7 +37,6 @@ export default function LoginPage() {
     setIsLoading(true);
     setError('');
 
-    // Basic validation
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
       setIsLoading(false);
@@ -51,25 +50,14 @@ export default function LoginPage() {
     }
 
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // For demo purposes, accept any email/password combination
-      // In a real app, you'd validate against your authentication service
-      if (formData.email && formData.password) {
-        // Store login state (in a real app, you'd use proper authentication)
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userEmail', formData.email);
-        
-        if (rememberMe) {
-          localStorage.setItem('rememberMe', 'true');
-        }
-        
-        // Redirect to dashboard
-        router.push('/dashboard');
-      } else {
-        setError('Invalid email or password');
-      }
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userEmail', formData.email);
+      
+      if (rememberMe) localStorage.setItem('rememberMe', 'true');
+      
+      router.push('/dashboard');
     } catch (err) {
       setError('An error occurred. Please try again.');
     } finally {
@@ -80,7 +68,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
             <Building2 className="w-8 h-8 text-white" />
@@ -89,7 +76,6 @@ export default function LoginPage() {
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
 
-        {/* Login Card */}
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-xl text-center">Welcome Back</CardTitle>
@@ -99,7 +85,6 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Error Alert */}
               {error && (
                 <Alert variant="destructive" className="mb-4">
                   <AlertCircle className="h-4 w-4" />
@@ -107,11 +92,8 @@ export default function LoginPage() {
                 </Alert>
               )}
 
-              {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email Address
-                </Label>
+                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
@@ -128,11 +110,8 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Password Field */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </Label>
+                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
@@ -157,13 +136,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
-                    onCheckedChange={setRememberMe}
+                    onCheckedChange={(checked: CheckedState) => setRememberMe(Boolean(checked))}
                     disabled={isLoading}
                   />
                   <Label htmlFor="remember" className="text-sm text-gray-600">
@@ -178,7 +156,6 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700"
@@ -198,7 +175,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Demo Credentials */}
             <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h4 className="text-sm font-medium text-blue-800 mb-2">Demo Credentials</h4>
               <div className="text-xs text-blue-700 space-y-1">
@@ -210,7 +186,6 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <div className="text-center mt-6 text-sm text-gray-500">
           <p>© 2025 Municipal Council. All rights reserved.</p>
           <div className="flex justify-center space-x-4 mt-2">

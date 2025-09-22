@@ -6,13 +6,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Plus, Edit, Trash2, Search, Calendar, Eye, EyeOff, Clock, AlertCircle } from 'lucide-react';
+import { Bell, Plus, Edit, Trash2, Search, Calendar, Eye, EyeOff, Clock } from 'lucide-react';
 
-const noticesData = [
+// Step 1: Define Notice type
+interface Notice {
+  id: number;
+  title: string;
+  content: string;
+  category: string;
+  priority: string;
+  status: string;
+  publishDate: string;
+  scheduledDate: string;
+  author: string;
+}
+
+// Step 2: Initial Data
+const noticesData: Notice[] = [
   {
     id: 1,
     title: "Road Closure Notice - Main Street",
@@ -43,9 +57,9 @@ export default function NoticesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
-  const [selectedNotice, setSelectedNotice] = useState(null);
-  const [notices, setNotices] = useState(noticesData);
-  const [newNotice, setNewNotice] = useState({
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
+  const [notices, setNotices] = useState<Notice[]>(noticesData);
+  const [newNotice, setNewNotice] = useState<Omit<Notice, 'id' | 'status' | 'publishDate' | 'author'>>({
     title: '',
     content: '',
     category: 'Infrastructure',
@@ -64,8 +78,9 @@ export default function NoticesPage() {
     return matchesSearch && matchesCategory;
   });
 
+  // Step 3: Typed functions
   const handleAddNotice = () => {
-    const notice = {
+    const notice: Notice = {
       id: notices.length + 1,
       ...newNotice,
       status: 'Draft',
@@ -77,16 +92,16 @@ export default function NoticesPage() {
     setIsAddDialogOpen(false);
   };
 
-  const handleEditNotice = (notice) => {
+  const handleEditNotice = (notice: Notice) => {
     setSelectedNotice(notice);
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteNotice = (id) => {
+  const handleDeleteNotice = (id: number) => {
     setNotices(notices.filter(notice => notice.id !== id));
   };
 
-  const handlePublishToggle = (id) => {
+  const handlePublishToggle = (id: number) => {
     setNotices(notices.map(notice =>
       notice.id === id
         ? { ...notice, status: notice.status === 'Published' ? 'Draft' : 'Published', publishDate: notice.status === 'Draft' ? new Date().toISOString().split('T')[0] : '' }
@@ -94,7 +109,7 @@ export default function NoticesPage() {
     ));
   };
 
-  const handleScheduleNotice = (id, date) => {
+  const handleScheduleNotice = (id: number, date: string) => {
     setNotices(notices.map(notice =>
       notice.id === id
         ? { ...notice, status: 'Scheduled', scheduledDate: date }
@@ -117,7 +132,7 @@ export default function NoticesPage() {
         </Button>
       </div>
 
-      {/* Notices Management */}
+      {/* Notices Table */}
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
           <CardTitle>Notices Directory</CardTitle>
@@ -242,6 +257,7 @@ export default function NoticesPage() {
             <DialogDescription>Create a new public notice or announcement.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Title, Content, Category, Priority, Scheduled Date Inputs */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="add-title" className="text-right">Title</Label>
               <Input
@@ -327,8 +343,8 @@ export default function NoticesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>Cancel</Button>
             <Button onClick={() => {
-              const date = document.getElementById('schedule-date').value;
-              handleScheduleNotice(selectedNotice?.id, date);
+              const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
+              handleScheduleNotice(selectedNotice!.id, dateInput.value);
             }}>Schedule Notice</Button>
           </DialogFooter>
         </DialogContent>

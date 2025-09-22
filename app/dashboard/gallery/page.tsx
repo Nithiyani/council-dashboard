@@ -5,12 +5,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Images, Plus, Upload, Trash2, Search, Video, FolderPlus, Eye, Download } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const galleryData = {
+interface Album {
+  id: number;
+  name: string;
+  description: string;
+  coverImage: string;
+  itemCount: number;
+  type: 'photos' | 'videos';
+}
+
+interface Photo {
+  id: number;
+  title: string;
+  url: string;
+  albumId: number;
+  uploadDate: string;
+}
+
+interface Video {
+  id: number;
+  title: string;
+  thumbnail: string;
+  duration: string;
+  albumId: number;
+  uploadDate: string;
+}
+
+interface Gallery {
+  albums: Album[];
+  photos: Photo[];
+  videos: Video[];
+}
+
+const galleryData: Gallery = {
   albums: [
     {
       id: 1,
@@ -92,9 +124,8 @@ export default function GalleryPage() {
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false);
   const [isUploadPhotoOpen, setIsUploadPhotoOpen] = useState(false);
   const [isUploadVideoOpen, setIsUploadVideoOpen] = useState(false);
-  const [selectedAlbum, setSelectedAlbum] = useState(null);
-  const [gallery, setGallery] = useState(galleryData);
-  const [newAlbum, setNewAlbum] = useState({ name: '', description: '', type: 'photos' });
+  const [gallery, setGallery] = useState<Gallery>(galleryData);
+  const [newAlbum, setNewAlbum] = useState<{ name: string; description: string; type: 'photos' | 'videos' }>({ name: '', description: '', type: 'photos' });
 
   const filteredAlbums = gallery.albums.filter(album =>
     album.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -102,7 +133,7 @@ export default function GalleryPage() {
   );
 
   const handleCreateAlbum = () => {
-    const album = {
+    const album: Album = {
       id: gallery.albums.length + 1,
       ...newAlbum,
       coverImage: "https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=300",
@@ -116,7 +147,7 @@ export default function GalleryPage() {
     setIsCreateAlbumOpen(false);
   };
 
-  const handleDeleteAlbum = (id) => {
+  const handleDeleteAlbum = (id: number) => {
     setGallery({
       ...gallery,
       albums: gallery.albums.filter(album => album.id !== id)
@@ -124,12 +155,12 @@ export default function GalleryPage() {
   };
 
   const handleUploadPhoto = () => {
-    // Simulate photo upload
+    // TODO: Implement photo upload logic
     setIsUploadPhotoOpen(false);
   };
 
   const handleUploadVideo = () => {
-    // Simulate video upload
+    // TODO: Implement video upload logic
     setIsUploadVideoOpen(false);
   };
 
@@ -160,57 +191,38 @@ export default function GalleryPage() {
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Images className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Albums</p>
-                <p className="text-2xl font-bold">{gallery.albums.length}</p>
-              </div>
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-2 bg-blue-100 rounded-lg"><Images className="w-6 h-6 text-blue-600" /></div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Albums</p>
+              <p className="text-2xl font-bold">{gallery.albums.length}</p>
             </div>
           </CardContent>
         </Card>
-
         <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Images className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Photos</p>
-                <p className="text-2xl font-bold">{gallery.photos.length}</p>
-              </div>
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-2 bg-green-100 rounded-lg"><Images className="w-6 h-6 text-green-600" /></div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Photos</p>
+              <p className="text-2xl font-bold">{gallery.photos.length}</p>
             </div>
           </CardContent>
         </Card>
-
         <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Video className="w-6 h-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Videos</p>
-                <p className="text-2xl font-bold">{gallery.videos.length}</p>
-              </div>
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-2 bg-orange-100 rounded-lg"><Video className="w-6 h-6 text-orange-600" /></div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Videos</p>
+              <p className="text-2xl font-bold">{gallery.videos.length}</p>
             </div>
           </CardContent>
         </Card>
-
         <Card className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Upload className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Media</p>
-                <p className="text-2xl font-bold">{gallery.photos.length + gallery.videos.length}</p>
-              </div>
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="p-2 bg-purple-100 rounded-lg"><Upload className="w-6 h-6 text-purple-600" /></div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Media</p>
+              <p className="text-2xl font-bold">{gallery.photos.length + gallery.videos.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -218,20 +230,18 @@ export default function GalleryPage() {
 
       {/* Search */}
       <Card className="hover:shadow-lg transition-shadow">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search albums..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        <CardContent className="p-4 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Input
+            placeholder="Search albums..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </CardContent>
       </Card>
 
-      {/* Gallery Content */}
+      {/* Gallery Tabs */}
       <Tabs defaultValue="albums" className="space-y-4">
         <TabsList>
           <TabsTrigger value="albums">Albums</TabsTrigger>
@@ -239,16 +249,13 @@ export default function GalleryPage() {
           <TabsTrigger value="videos">All Videos</TabsTrigger>
         </TabsList>
 
+        {/* Albums */}
         <TabsContent value="albums" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAlbums.map((album) => (
+            {filteredAlbums.map(album => (
               <Card key={album.id} className="hover:shadow-lg transition-shadow overflow-hidden">
                 <div className="aspect-video relative">
-                  <img
-                    src={album.coverImage}
-                    alt={album.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={album.coverImage} alt={album.name} className="w-full h-full object-cover" />
                   <div className="absolute top-2 right-2">
                     <Badge variant={album.type === 'photos' ? 'default' : 'secondary'}>
                       {album.type === 'photos' ? <Images className="w-3 h-3 mr-1" /> : <Video className="w-3 h-3 mr-1" />}
@@ -264,12 +271,10 @@ export default function GalleryPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500">{album.itemCount} items</span>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button variant="ghost" size="sm"><Eye className="w-4 h-4" /></Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="text-red-600 hover:text-red-800"
                         onClick={() => handleDeleteAlbum(album.id)}
                       >
@@ -283,29 +288,13 @@ export default function GalleryPage() {
           </div>
         </TabsContent>
 
+        {/* Photos */}
         <TabsContent value="photos" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {gallery.photos.map((photo) => (
+            {gallery.photos.map(photo => (
               <Card key={photo.id} className="hover:shadow-lg transition-shadow overflow-hidden">
                 <div className="aspect-square relative">
-                  <img
-                    src={photo.url}
-                    alt={photo.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                    <div className="opacity-0 hover:opacity-100 transition-opacity flex space-x-2">
-                      <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-400 hover:bg-white/20">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  <img src={photo.url} alt={photo.title} className="w-full h-full object-cover" />
                 </div>
                 <CardContent className="p-3">
                   <p className="font-medium text-sm truncate">{photo.title}</p>
@@ -316,16 +305,13 @@ export default function GalleryPage() {
           </div>
         </TabsContent>
 
+        {/* Videos */}
         <TabsContent value="videos" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {gallery.videos.map((video) => (
+            {gallery.videos.map(video => (
               <Card key={video.id} className="hover:shadow-lg transition-shadow overflow-hidden">
                 <div className="aspect-video relative">
-                  <img
-                    src={video.thumbnail}
-                    alt={video.title}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
                     <div className="w-16 h-16 bg-white bg-opacity-80 rounded-full flex items-center justify-center">
                       <Video className="w-8 h-8 text-gray-800" />
@@ -341,14 +327,6 @@ export default function GalleryPage() {
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-500">{new Date(video.uploadDate).toLocaleDateString()}</span>
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-800">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -357,41 +335,29 @@ export default function GalleryPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Dialogs */}
       {/* Create Album Dialog */}
       <Dialog open={isCreateAlbumOpen} onOpenChange={setIsCreateAlbumOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Create New Album</DialogTitle>
-            <DialogDescription>Create a new photo or video album.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="album-name" className="text-right">Name</Label>
-              <Input 
-                id="album-name" 
-                className="col-span-3" 
-                placeholder="Album name"
-                value={newAlbum.name}
-                onChange={(e) => setNewAlbum({...newAlbum, name: e.target.value})}
-              />
+              <Input id="album-name" className="col-span-3" value={newAlbum.name} onChange={(e) => setNewAlbum({...newAlbum, name: e.target.value})} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="album-description" className="text-right">Description</Label>
-              <Input 
-                id="album-description" 
-                className="col-span-3" 
-                placeholder="Album description"
-                value={newAlbum.description}
-                onChange={(e) => setNewAlbum({...newAlbum, description: e.target.value})}
-              />
+              <Input id="album-description" className="col-span-3" value={newAlbum.description} onChange={(e) => setNewAlbum({...newAlbum, description: e.target.value})} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="album-type" className="text-right">Type</Label>
-              <select 
-                id="album-type" 
+              <select
+                id="album-type"
                 className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={newAlbum.type}
-                onChange={(e) => setNewAlbum({...newAlbum, type: e.target.value})}
+                onChange={(e) => setNewAlbum({...newAlbum, type: e.target.value as 'photos' | 'videos'})}
               >
                 <option value="photos">Photos</option>
                 <option value="videos">Videos</option>
@@ -401,70 +367,6 @@ export default function GalleryPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateAlbumOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateAlbum}>Create Album</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Photo Dialog */}
-      <Dialog open={isUploadPhotoOpen} onOpenChange={setIsUploadPhotoOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Upload Photo</DialogTitle>
-            <DialogDescription>Upload a new photo to the gallery.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="photo-title" className="text-right">Title</Label>
-              <Input id="photo-title" className="col-span-3" placeholder="Photo title" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="photo-file" className="text-right">File</Label>
-              <Input id="photo-file" type="file" accept="image/*" className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="photo-album" className="text-right">Album</Label>
-              <select id="photo-album" className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                {gallery.albums.filter(a => a.type === 'photos').map(album => (
-                  <option key={album.id} value={album.id}>{album.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadPhotoOpen(false)}>Cancel</Button>
-            <Button onClick={handleUploadPhoto}>Upload Photo</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Video Dialog */}
-      <Dialog open={isUploadVideoOpen} onOpenChange={setIsUploadVideoOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Upload Video</DialogTitle>
-            <DialogDescription>Upload a new video to the gallery.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="video-title" className="text-right">Title</Label>
-              <Input id="video-title" className="col-span-3" placeholder="Video title" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="video-file" className="text-right">File</Label>
-              <Input id="video-file" type="file" accept="video/*" className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="video-album" className="text-right">Album</Label>
-              <select id="video-album" className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                {gallery.albums.filter(a => a.type === 'videos').map(album => (
-                  <option key={album.id} value={album.id}>{album.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadVideoOpen(false)}>Cancel</Button>
-            <Button onClick={handleUploadVideo}>Upload Video</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

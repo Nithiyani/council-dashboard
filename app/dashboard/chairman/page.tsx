@@ -9,8 +9,42 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Crown, Edit, Calendar, MapPin, Phone, Mail, Award } from 'lucide-react';
 
-// Reusable InfoCard component
-function InfoCard({ title, description, icon: Icon, items, setItems }) {
+// ----------------- Types -----------------
+interface ContactInfo {
+  phone: string;
+  email: string;
+  address: string;
+}
+
+interface TenureInfo {
+  startDate: string;
+  currentTerm: string;
+}
+
+interface ChairmanData {
+  name: string;
+  position: string;
+  photo: string;
+  message: string;
+  contact: ContactInfo;
+  tenure: TenureInfo;
+}
+
+interface InfoCardItem {
+  title: string;
+  subtext?: string;
+}
+
+interface InfoCardProps {
+  title: string;
+  description: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  items: InfoCardItem[];
+  setItems: React.Dispatch<React.SetStateAction<InfoCardItem[]>>;
+}
+
+// ----------------- InfoCard Component -----------------
+function InfoCard({ title, description, icon: Icon, items, setItems }: InfoCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newSubtext, setNewSubtext] = useState("");
@@ -77,7 +111,8 @@ function InfoCard({ title, description, icon: Icon, items, setItems }) {
   );
 }
 
-const initialChairmanData = {
+// ----------------- Initial Data -----------------
+const initialChairmanData: ChairmanData = {
   name: "Dr. Sarah Johnson",
   position: "Chairman",
   photo: "https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=300",
@@ -93,21 +128,23 @@ const initialChairmanData = {
   }
 };
 
+// ----------------- ChairmanPage Component -----------------
 export default function ChairmanPage() {
-  const [chairmanData, setChairmanData] = useState(initialChairmanData);
+  const [chairmanData, setChairmanData] = useState<ChairmanData>(initialChairmanData);
+  const [editData, setEditData] = useState<ChairmanData>(initialChairmanData);
+
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
-  const [editData, setEditData] = useState(initialChairmanData);
 
-  // Academics and Honours
-  const [academics, setAcademics] = useState([
+  // Academics & Honours
+  const [academics, setAcademics] = useState<InfoCardItem[]>([
     { title: "Master of Science (Mechanical Engineering, Production Technology)", subtext: "University of XYZ, Country" },
     { title: "Certificate in Senior Management", subtext: "ABC Institute, Country" },
     { title: "Certificate in Standardization & Quality Control", subtext: "DEF Organization, Country" },
     { title: "Certificate in Natural Product Standards (RBS Standards & Technology)", subtext: "GHI University, Country" }
   ]);
 
-  const [honours, setHonours] = useState([
+  const [honours, setHonours] = useState<InfoCardItem[]>([
     { title: "Master of Science (M.Sc.) in Mechanical Engineering (Production Technology)", subtext: "Tribhuvan University, Kathmandu, Nepal" },
     { title: "Bachelor of Engineering (B.E.) in Civil Engineering", subtext: "Institute of Engineering, Pulchowk Campus, Tribhuvan University, Nepal" },
     { title: "Certificate in Senior Management", subtext: "Nepal Engineering Council, Kathmandu, Nepal" },
