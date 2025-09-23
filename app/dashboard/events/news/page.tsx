@@ -169,7 +169,7 @@ export default function GalleryPage() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gallery Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900"> news Management</h1>
           <p className="text-gray-600">Manage photos, videos, and media albums</p>
         </div>
         <div className="flex space-x-2">
