@@ -380,7 +380,7 @@ export default function CouncilMemberPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isMessageOpen, setIsMessageOpen] = useState(false);
+  // const [isMessageOpen, setIsMessageOpen] = useState(false);
 
   // Form states
   const [formName, setFormName] = useState({ english: "", tamil: "", sinhala: "" });
@@ -479,8 +479,8 @@ export default function CouncilMemberPage() {
                 email: formEmail,
                 profile: formProfile || m.profile,
                 tenure: formTenure,
-                message: formMessage,
-                address: formAddress
+                // message: formMessage,
+                // address: formAddress
               }
             : m
         )
@@ -501,7 +501,7 @@ export default function CouncilMemberPage() {
     setFormEmail(member.email);
     setFormProfile(member.profile);
     setFormTenure(member.tenure);
-    setFormMessage(member.message);
+    // setFormMessage(member.message);
     setFormAddress(member.address);
     setIsEditOpen(true);
   };
@@ -511,11 +511,11 @@ export default function CouncilMemberPage() {
     setIsViewOpen(true);
   };
 
-  const openMessageModal = (member: Member) => {
-    setSelectedMember(member);
-    setFormMessage(member.message);
-    setIsMessageOpen(true);
-  };
+  // const openMessageModal = (member: Member) => {
+  //   setSelectedMember(member);
+  //   setFormMessage(member.message);
+  //   setIsMessageOpen(true);
+  // };
 
   const resetForm = () => {
     setFormName({ english: "", tamil: "", sinhala: "" });
@@ -524,7 +524,7 @@ export default function CouncilMemberPage() {
     setFormEmail("");
     setFormProfile("");
     setFormTenure({ startDate: { english: "", tamil: "", sinhala: "" }, currentTerm: { english: "", tamil: "", sinhala: "" } });
-    setFormMessage({ english: "", tamil: "", sinhala: "" });
+    // setFormMessage({ english: "", tamil: "", sinhala: "" });
     setFormAddress({ english: "", tamil: "", sinhala: "" });
   };
 
@@ -619,7 +619,7 @@ export default function CouncilMemberPage() {
                 </div>
 
                 {/* Tenure Information */}
-                <div className="space-y-4">
+                {/* <div className="space-y-4">
                   <h3 className="font-semibold">Tenure Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -631,16 +631,16 @@ export default function CouncilMemberPage() {
                       <Input value={formTenure.currentTerm.english} onChange={(e) => setFormTenure({...formTenure, currentTerm: {...formTenure.currentTerm, english: e.target.value}})} />
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Address */}
-                <div className="space-y-4">
+                {/* <div className="space-y-4">
                   <h3 className="font-semibold">Address</h3>
                   <div className="space-y-2">
                     <Label>Address (English)</Label>
                     <Input value={formAddress.english} onChange={(e) => setFormAddress({...formAddress, english: e.target.value})} />
                   </div>
-                </div>
+                </div> */}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
@@ -710,9 +710,9 @@ export default function CouncilMemberPage() {
                           <DropdownMenuItem onClick={() => openEditModal(member)}>
                             <Edit className="w-4 h-4 mr-2" /> Edit Profile
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openMessageModal(member)}>
+                          {/* <DropdownMenuItem onClick={() => openMessageModal(member)}>
                             <ScrollText className="w-4 h-4 mr-2" /> Edit Message
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
                           <DropdownMenuItem onClick={() => handleToggleStatus(member.id)}>
                             {member.enabled ? (
                               <>
@@ -782,10 +782,10 @@ export default function CouncilMemberPage() {
                     <Mail className="w-4 h-4 text-blue-600" />
                     <span>{selectedMember.email}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  {/* <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4 text-red-600" />
                     <span>{getText(selectedMember.address)}</span>
-                  </div>
+                  </div> */}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
@@ -863,7 +863,7 @@ export default function CouncilMemberPage() {
               </div>
 
               {/* Tenure Information */}
-              <div className="space-y-4">
+              {/* <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Tenure Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -875,16 +875,16 @@ export default function CouncilMemberPage() {
                     <Input value={formTenure.currentTerm.english} onChange={(e) => setFormTenure({...formTenure, currentTerm: {...formTenure.currentTerm, english: e.target.value}})} />
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Address */}
-              <div className="space-y-4">
+              {/* <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Address</h3>
                 <div className="space-y-2">
                   <Label>Address (English)</Label>
                   <Input value={formAddress.english} onChange={(e) => setFormAddress({...formAddress, english: e.target.value})} />
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
           <DialogFooter>
@@ -895,7 +895,7 @@ export default function CouncilMemberPage() {
       </Dialog>
 
       {/* Message Edit Modal */}
-      <Dialog open={isMessageOpen} onOpenChange={setIsMessageOpen}>
+      {/* <Dialog open={isMessageOpen} onOpenChange={setIsMessageOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Member's Message</DialogTitle>
@@ -924,10 +924,10 @@ export default function CouncilMemberPage() {
             }}>Save Message</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* Academics & Honours Section */}
-      {selectedMember && (
+      {/* {selectedMember && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <InfoCard 
             title="Academics & Qualifications" 
@@ -946,7 +946,7 @@ export default function CouncilMemberPage() {
             language={currentLanguage}
           />
         </div>
-      )}
+      )} */}
     </div>
   );
 }
