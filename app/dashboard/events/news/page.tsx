@@ -6,10 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Search, Eye, Edit, Calendar, Clock } from 'lucide-react';
+import { Plus, Trash2, Search, Eye, Edit, Calendar, Clock, User, Download, Pin } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 interface NewsArticle {
   id: string;
@@ -22,6 +20,9 @@ interface NewsArticle {
   category: string;
   readTime: number;
   views: number;
+  isPinned?: boolean;
+  priority?: 'low' | 'medium' | 'high';
+  attachments?: string[];
 }
 
 export default function NewsListPage() {
@@ -32,7 +33,8 @@ export default function NewsListPage() {
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newsToDelete, setNewsToDelete] = useState<NewsArticle | null>(null);
-  const router = useRouter();
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedNews, setSelectedNews] = useState<NewsArticle | null>(null);
 
   // Sample initial data
   const sampleNews: NewsArticle[] = [
@@ -54,7 +56,10 @@ The new system represents a significant upgrade from our previous platform, inco
       status: 'published',
       category: 'Announcements',
       readTime: 5,
-      views: 1245
+      views: 1245,
+      isPinned: true,
+      priority: 'high',
+      attachments: ['system-guide.pdf', 'release-notes.docx']
     },
     {
       id: '2',
@@ -74,7 +79,10 @@ We'll have light refreshments, networking sessions, and a special presentation o
       status: 'published',
       category: 'Events',
       readTime: 3,
-      views: 867
+      views: 867,
+      isPinned: false,
+      priority: 'medium',
+      attachments: ['agenda.pdf']
     },
     {
       id: '3',
@@ -92,7 +100,10 @@ During this time, the system may be unavailable. We apologize for any inconvenie
       status: 'draft',
       category: 'Maintenance',
       readTime: 2,
-      views: 432
+      views: 432,
+      isPinned: false,
+      priority: 'medium',
+      attachments: []
     }
   ];
 
@@ -117,8 +128,16 @@ During this time, the system may be unavailable. We apologize for any inconvenie
     setFilteredNews(filtered);
   }, [searchTerm, news]);
 
-  const handleViewNews = (articleId: string) => {
-    router.push(`/dashboard/events/news/${articleId}`);
+  const handleViewNews = (article: NewsArticle) => {
+    // Increment views when viewing
+    const updatedNews = news.map(item =>
+      item.id === article.id ? { ...item, views: item.views + 1 } : item
+    );
+    setNews(updatedNews);
+    localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+    
+    setSelectedNews({ ...article, views: article.views + 1 });
+    setIsViewDialogOpen(true);
   };
 
   const handleAddNews = () => {
@@ -153,6 +172,8 @@ During this time, the system may be unavailable. We apologize for any inconvenie
     const author = formData.get('author') as string;
     const category = formData.get('category') as string;
     const status = formData.get('status') as 'published' | 'draft';
+    const isPinned = formData.get('isPinned') === 'on';
+    const priority = formData.get('priority') as 'low' | 'medium' | 'high';
 
     if (editingNews) {
       const updatedNews = news.map(article =>
@@ -165,6 +186,8 @@ During this time, the system may be unavailable. We apologize for any inconvenie
               author,
               category,
               status,
+              isPinned,
+              priority,
               publishDate: new Date().toISOString().split('T')[0],
               readTime: Math.ceil(content.split(' ').length / 200)
             }
@@ -181,9 +204,12 @@ During this time, the system may be unavailable. We apologize for any inconvenie
         author,
         category,
         status,
+        isPinned: false,
+        priority: 'medium',
         publishDate: new Date().toISOString().split('T')[0],
         readTime: Math.ceil(content.split(' ').length / 200),
-        views: 0
+        views: 0,
+        attachments: []
       };
       const updatedNews = [...news, newArticle];
       setNews(updatedNews);
@@ -203,6 +229,15 @@ During this time, the system may be unavailable. We apologize for any inconvenie
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
     return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getPriorityColor = (priority: string) => {
+    const priorityColors = {
+      high: 'bg-red-100 text-red-800 border-red-200',
+      medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      low: 'bg-green-100 text-green-800 border-green-200'
+    };
+    return priorityColors[priority as keyof typeof priorityColors] || priorityColors.medium;
   };
 
   const formatDate = (dateString: string) => {
@@ -249,7 +284,10 @@ During this time, the system may be unavailable. We apologize for any inconvenie
             <CardHeader>
               <div className="flex justify-between items-start mb-2">
                 <Badge variant="outline">{article.category}</Badge>
-                {getStatusBadge(article.status)}
+                <div className="flex gap-1">
+                  {article.isPinned && <Pin className="w-4 h-4 text-blue-500 fill-current" />}
+                  {getStatusBadge(article.status)}
+                </div>
               </div>
               <CardTitle className="text-xl line-clamp-2">{article.title}</CardTitle>
               <CardDescription className="line-clamp-3">{article.excerpt}</CardDescription>
@@ -264,7 +302,8 @@ During this time, the system may be unavailable. We apologize for any inconvenie
                   <Clock className="h-4 w-4 mr-2" />
                   {article.readTime} min read
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground flex items-center">
+                  <User className="h-4 w-4 mr-2" />
                   By {article.author}
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
@@ -279,7 +318,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
                   variant="outline" 
                   size="sm" 
                   className="flex-1"
-                  onClick={() => handleViewNews(article.id)}
+                  onClick={() => handleViewNews(article)}
                 >
                   <Eye className="h-4 w-4 mr-1" />
                   View
@@ -384,17 +423,42 @@ During this time, the system may be unavailable. We apologize for any inconvenie
                   />
                 </div>
               </div>
-              <div className="grid gap-2">
-                <label htmlFor="status" className="text-sm font-medium">Status</label>
-                <select
-                  id="status"
-                  name="status"
-                  defaultValue={editingNews?.status || 'draft'}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <label htmlFor="status" className="text-sm font-medium">Status</label>
+                  <select
+                    id="status"
+                    name="status"
+                    defaultValue={editingNews?.status || 'draft'}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="priority" className="text-sm font-medium">Priority</label>
+                  <select
+                    id="priority"
+                    name="priority"
+                    defaultValue={editingNews?.priority || 'medium'}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isPinned"
+                  name="isPinned"
+                  defaultChecked={editingNews?.isPinned || false}
+                  className="rounded border-gray-300"
+                />
+                <label htmlFor="isPinned" className="text-sm font-medium">Pin this news article</label>
               </div>
             </div>
             <DialogFooter>
@@ -406,6 +470,80 @@ During this time, the system may be unavailable. We apologize for any inconvenie
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View News Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedNews?.isPinned && <Pin className="w-4 h-4 text-blue-500 fill-current" />}
+              {selectedNews?.title}
+            </DialogTitle>
+            <DialogDescription>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-2">
+                <div className="flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  <span>{selectedNews?.author}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  <span>{selectedNews?.publishDate}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  <span>{selectedNews?.readTime} min read</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Eye className="w-4 h-4" />
+                  <span>{selectedNews?.views} views</span>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2">
+              <Badge className={getPriorityColor(selectedNews?.priority || 'medium')}>
+                {(selectedNews?.priority || 'medium').toUpperCase()}
+              </Badge>
+              <Badge variant="secondary">{selectedNews?.category}</Badge>
+              {getStatusBadge(selectedNews?.status || 'draft')}
+              {selectedNews?.isPinned && (
+                <Badge variant="outline" className="text-blue-600 border-blue-200">
+                  <Pin className="w-3 h-3 mr-1" />
+                  Pinned
+                </Badge>
+              )}
+            </div>
+            
+            <div className="prose max-w-none">
+              <p className="text-gray-700 whitespace-pre-line">{selectedNews?.content}</p>
+            </div>
+            
+            {selectedNews?.attachments && selectedNews.attachments.length > 0 && (
+              <div className="mt-6">
+                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                  <Download className="w-4 h-4" />
+                  Attachments ({selectedNews.attachments.length})
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedNews.attachments.map((attachment, index) => (
+                    <Badge key={index} variant="outline" className="cursor-pointer hover:bg-gray-100 px-3 py-1">
+                      {attachment}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
