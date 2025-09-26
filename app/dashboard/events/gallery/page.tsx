@@ -47,7 +47,7 @@ interface Photo {
 interface VideoType {
   id: number;
   title: string;
-  url: string; // Added url for uploaded videos
+  url: string;
   duration: string;
   albumId: number;
   uploadDate: string;
@@ -116,7 +116,7 @@ const galleryData: Gallery = {
     {
       id: 1,
       title: "December Council Meeting",
-      url: "https://www.w3schools.com/html/mov_bbb.mp4", // example video url
+      url: "https://www.w3schools.com/html/mov_bbb.mp4",
       duration: "1:45:30",
       albumId: 3,
       uploadDate: "2024-12-20",
@@ -151,12 +151,39 @@ export default function GalleryPage() {
         "https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=300",
       itemCount: 0,
     };
-    setGallery({
-      ...gallery,
-      albums: [...gallery.albums, album],
-    });
+    setGallery({ ...gallery, albums: [...gallery.albums, album] });
     setNewAlbum({ name: "", description: "", type: "photos" });
     setIsCreateAlbumOpen(false);
+  };
+
+  const handleUploadFiles = (
+    files: FileList | null,
+    type: "photos" | "videos"
+  ) => {
+    if (!selectedAlbum || !files) return;
+
+    if (type === "photos") {
+      const newPhotos = Array.from(files).map((file, index) => ({
+        id: gallery.photos.length + index + 1,
+        title: file.name,
+        url: URL.createObjectURL(file),
+        albumId: selectedAlbum.id,
+        uploadDate: new Date().toISOString(),
+      }));
+      setGallery({ ...gallery, photos: [...gallery.photos, ...newPhotos] });
+      setIsUploadPhotoOpen(false);
+    } else {
+      const newVideos = Array.from(files).map((file, index) => ({
+        id: gallery.videos.length + index + 1,
+        title: file.name,
+        url: URL.createObjectURL(file),
+        duration: "00:05:00",
+        albumId: selectedAlbum.id,
+        uploadDate: new Date().toISOString(),
+      }));
+      setGallery({ ...gallery, videos: [...gallery.videos, ...newVideos] });
+      setIsUploadVideoOpen(false);
+    }
   };
 
   return (
@@ -164,10 +191,10 @@ export default function GalleryPage() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-200 pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gallery Management</h1>
-          <p className="text-gray-600">
-            Manage photos, videos, and media albums
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Gallery Management
+          </h1>
+          <p className="text-gray-600">Manage photos, videos, and media albums</p>
         </div>
       </div>
 
@@ -328,7 +355,7 @@ export default function GalleryPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Create Album Dialog */}
+      {/* Dialogs */}
       <Dialog open={isCreateAlbumOpen} onOpenChange={setIsCreateAlbumOpen}>
         <DialogContent>
           <DialogHeader>
@@ -365,7 +392,6 @@ export default function GalleryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Upload Photo Dialog */}
       <Dialog open={isUploadPhotoOpen} onOpenChange={setIsUploadPhotoOpen}>
         <DialogContent>
           <DialogHeader>
@@ -376,25 +402,7 @@ export default function GalleryPage() {
             type="file"
             multiple
             accept="image/*"
-            onChange={(e) => {
-              if (!selectedAlbum) return;
-              const files = e.target.files;
-              if (!files || files.length === 0) return;
-
-              const newPhotos = Array.from(files).map((file, index) => ({
-                id: gallery.photos.length + index + 1,
-                title: file.name,
-                url: URL.createObjectURL(file),
-                albumId: selectedAlbum.id,
-                uploadDate: new Date().toISOString(),
-              }));
-
-              setGallery({
-                ...gallery,
-                photos: [...gallery.photos, ...newPhotos],
-              });
-              setIsUploadPhotoOpen(false);
-            }}
+            onChange={(e) => handleUploadFiles(e.target.files, "photos")}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsUploadPhotoOpen(false)}>
@@ -404,7 +412,6 @@ export default function GalleryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Upload Video Dialog */}
       <Dialog open={isUploadVideoOpen} onOpenChange={setIsUploadVideoOpen}>
         <DialogContent>
           <DialogHeader>
@@ -415,26 +422,7 @@ export default function GalleryPage() {
             type="file"
             multiple
             accept="video/*"
-            onChange={(e) => {
-              if (!selectedAlbum) return;
-              const files = e.target.files;
-              if (!files || files.length === 0) return;
-
-              const newVideos = Array.from(files).map((file, index) => ({
-                id: gallery.videos.length + index + 1,
-                title: file.name,
-                url: URL.createObjectURL(file),
-                duration: "00:05:00",
-                albumId: selectedAlbum.id,
-                uploadDate: new Date().toISOString(),
-              }));
-
-              setGallery({
-                ...gallery,
-                videos: [...gallery.videos, ...newVideos],
-              });
-              setIsUploadVideoOpen(false);
-            }}
+            onChange={(e) => handleUploadFiles(e.target.files, "videos")}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsUploadVideoOpen(false)}>
