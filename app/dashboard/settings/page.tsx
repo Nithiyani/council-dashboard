@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { Settings, Mail, Phone, MapPin } from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Settings, Mail, Phone, MapPin, Trash2, Edit } from "lucide-react";
 
-// Step 1: Define types
+// Step 1: Types
 interface SocialMedia {
   facebook: string;
   twitter: string;
@@ -25,8 +31,14 @@ interface GeneralSettings {
   socialMedia: SocialMedia;
 }
 
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
 interface SettingsType {
   general: GeneralSettings;
+  faq: FAQItem[];
 }
 
 // Step 2: Default settings
@@ -40,65 +52,99 @@ const defaultSettings: SettingsType = {
       facebook: "",
       twitter: "",
       instagram: "",
-      linkedin: ""
-    }
-  }
+      linkedin: "",
+    },
+  },
+  faq: [
+    {
+      question: "How do I reset settings?",
+      answer: 'Click the "Reset to Default" button at the top-right corner.',
+    },
+    {
+      question: "How do I save changes?",
+      answer: 'Click the "Save Changes" button after editing any field.',
+    },
+  ],
 };
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsType>(defaultSettings);
   const [hasChanges, setHasChanges] = useState(false);
+  const [activeTab, setActiveTab] = useState<"general" | "faq">("general");
 
   // Load settings from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('settings');
+    const saved = localStorage.getItem("settings");
     if (saved) setSettings(JSON.parse(saved));
   }, []);
 
-  // Step 3: Typed functions
+  // Update general setting
   const updateSetting = <K extends keyof GeneralSettings>(
     category: keyof SettingsType,
     key: K,
     value: GeneralSettings[K]
   ) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       [category]: {
         ...prev[category],
-        [key]: value
-      }
+        [key]: value,
+      },
     }));
     setHasChanges(true);
   };
 
+  // Update nested social media
   const updateNestedSetting = <K extends keyof SocialMedia>(
     category: keyof SettingsType,
     nestedKey: keyof GeneralSettings,
     key: K,
     value: string
   ) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       [category]: {
         ...prev[category],
         [nestedKey]: {
           ...(prev[category][nestedKey] as SocialMedia),
-          [key]: value
-        }
-      }
+          [key]: value,
+        },
+      },
     }));
     setHasChanges(true);
   };
 
+  // FAQ management functions
+  const addFAQ = () => {
+    setSettings((prev) => ({
+      ...prev,
+      faq: [...prev.faq, { question: "", answer: "" }],
+    }));
+    setHasChanges(true);
+  };
+
+  const updateFAQ = (index: number, field: "question" | "answer", value: string) => {
+    const updated = [...settings.faq];
+    updated[index][field] = value;
+    setSettings((prev) => ({ ...prev, faq: updated }));
+    setHasChanges(true);
+  };
+
+  const deleteFAQ = (index: number) => {
+    const updated = settings.faq.filter((_, i) => i !== index);
+    setSettings((prev) => ({ ...prev, faq: updated }));
+    setHasChanges(true);
+  };
+
   const handleSaveChanges = () => {
-    localStorage.setItem('settings', JSON.stringify(settings));
+    localStorage.setItem("settings", JSON.stringify(settings));
     setHasChanges(false);
-    alert('Settings saved successfully!');
+    alert("Settings saved successfully!");
   };
 
   const handleResetToDefault = () => {
     setSettings(defaultSettings);
-    localStorage.removeItem('settings');
+    localStorage.removeItem("settings");
     setHasChanges(false);
   };
 
@@ -120,89 +166,163 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* General Settings */}
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            General Settings
-          </CardTitle>
-          <CardDescription>Basic site information and contact details</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="siteName">Site Name</Label>
-            <Input
-              id="siteName"
-              value={settings.general.siteName}
-              onChange={(e) => updateSetting('general', 'siteName', e.target.value)}
-            />
-          </div>
+      {/* Tab Menu */}
+      <div className="flex space-x-4 border-b border-gray-200 mb-4">
+        <button
+          className={`px-4 py-2 ${
+            activeTab === "general"
+              ? "border-b-2 border-blue-600 font-semibold"
+              : "text-gray-500"
+          }`}
+          onClick={() => setActiveTab("general")}
+        >
+          General Settings
+        </button>
+        <button
+          className={`px-4 py-2 ${
+            activeTab === "faq"
+              ? "border-b-2 border-blue-600 font-semibold"
+              : "text-gray-500"
+          }`}
+          onClick={() => setActiveTab("faq")}
+        >
+          FAQ
+        </button>
+      </div>
 
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Contact Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Tab Content */}
+      <div>
+        {/* General Settings */}
+        {activeTab === "general" && (
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" /> General Settings
+              </CardTitle>
+              <CardDescription>Basic site information and contact details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Site Name */}
               <div className="space-y-2">
-                <Label htmlFor="contactEmail" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email Address
-                </Label>
+                <Label htmlFor="siteName">Site Name</Label>
                 <Input
-                  id="contactEmail"
-                  type="email"
-                  value={settings.general.contactEmail}
-                  onChange={(e) => updateSetting('general', 'contactEmail', e.target.value)}
+                  id="siteName"
+                  value={settings.general.siteName}
+                  onChange={(e) => updateSetting("general", "siteName", e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone" className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  Phone Number
-                </Label>
-                <Input
-                  id="contactPhone"
-                  value={settings.general.contactPhone}
-                  onChange={(e) => updateSetting('general', 'contactPhone', e.target.value)}
-                />
+
+              <Separator />
+
+              {/* Contact Info */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Contact Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="contactEmail" className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" /> Email Address
+                    </Label>
+                    <Input
+                      id="contactEmail"
+                      type="email"
+                      value={settings.general.contactEmail}
+                      onChange={(e) => updateSetting("general", "contactEmail", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contactPhone" className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" /> Phone Number
+                    </Label>
+                    <Input
+                      id="contactPhone"
+                      value={settings.general.contactPhone}
+                      onChange={(e) => updateSetting("general", "contactPhone", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" /> Address
+                  </Label>
+                  <Textarea
+                    id="address"
+                    value={settings.general.address}
+                    onChange={(e) => updateSetting("general", "address", e.target.value)}
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Social Media */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Social Media Links</h3>
+                  {Object.entries(settings.general.socialMedia).map(([key, value]) => (
+                    <div className="space-y-2" key={key}>
+                      <Label htmlFor={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Label>
+                      <Input
+                        id={key}
+                        type="url"
+                        value={value}
+                        onChange={(e) =>
+                          updateNestedSetting(
+                            "general",
+                            "socialMedia",
+                            key as keyof SocialMedia,
+                            e.target.value
+                          )
+                        }
+                        placeholder={`Enter ${key} URL`}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        )}
 
-            <div className="space-y-2">
-              <Label htmlFor="address" className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Address
-              </Label>
-              <Textarea
-                id="address"
-                value={settings.general.address}
-                onChange={(e) => updateSetting('general', 'address', e.target.value)}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Social Media Links</h3>
-              {Object.entries(settings.general.socialMedia).map(([key, value]) => (
-                <div className="space-y-2" key={key}>
-                  <Label htmlFor={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</Label>
+        {/* FAQ Settings */}
+        {activeTab === "faq" && (
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>FAQ</CardTitle>
+              <CardDescription>Manage Frequently Asked Questions</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {settings.faq.map((item, index) => (
+                <div key={index} className="space-y-2 border p-2 rounded">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Question</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteFAQ(index)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <Input
-                    id={key}
-                    value={value}
-                    onChange={(e) => updateNestedSetting('general', 'socialMedia', key as keyof SocialMedia, e.target.value)}
-                    placeholder={`Enter ${key} URL`}
+                    value={item.question}
+                    onChange={(e) => updateFAQ(index, "question", e.target.value)}
+                  />
+                  <Label>Answer</Label>
+                  <Textarea
+                    value={item.answer}
+                    onChange={(e) => updateFAQ(index, "answer", e.target.value)}
                   />
                 </div>
               ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <Button onClick={addFAQ}>Add New FAQ</Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Save Changes Banner */}
-      {hasChanges && (
+      {hasChanges && activeTab === "general" && (
         <div className="fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-lg shadow-lg">
           <div className="flex items-center space-x-2">
             <span>You have unsaved changes</span>

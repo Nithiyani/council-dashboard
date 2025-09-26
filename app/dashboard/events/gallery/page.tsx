@@ -47,7 +47,7 @@ interface Photo {
 interface VideoType {
   id: number;
   title: string;
-  thumbnail: string;
+  url: string; // Added url for uploaded videos
   duration: string;
   albumId: number;
   uploadDate: string;
@@ -67,7 +67,7 @@ const galleryData: Gallery = {
       description: "Photos from various community events throughout 2024",
       coverImage:
         "https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=300",
-      itemCount: 24,
+      itemCount: 2,
       type: "photos",
     },
     {
@@ -76,7 +76,7 @@ const galleryData: Gallery = {
       description: "Documentation of ongoing infrastructure development",
       coverImage:
         "https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=300",
-      itemCount: 18,
+      itemCount: 1,
       type: "photos",
     },
     {
@@ -85,7 +85,7 @@ const galleryData: Gallery = {
       description: "Video recordings of council meetings and sessions",
       coverImage:
         "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=300",
-      itemCount: 12,
+      itemCount: 1,
       type: "videos",
     },
   ],
@@ -116,8 +116,7 @@ const galleryData: Gallery = {
     {
       id: 1,
       title: "December Council Meeting",
-      thumbnail:
-        "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=400",
+      url: "https://www.w3schools.com/html/mov_bbb.mp4", // example video url
       duration: "1:45:30",
       albumId: 3,
       uploadDate: "2024-12-20",
@@ -160,42 +159,6 @@ export default function GalleryPage() {
     setIsCreateAlbumOpen(false);
   };
 
-  const handleUploadPhoto = () => {
-    if (selectedAlbum) {
-      const photo: Photo = {
-        id: gallery.photos.length + 1,
-        title: `New Photo ${gallery.photos.length + 1}`,
-        url: "https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg?auto=compress&cs=tinysrgb&w=400",
-        albumId: selectedAlbum.id,
-        uploadDate: new Date().toISOString(),
-      };
-      setGallery({
-        ...gallery,
-        photos: [...gallery.photos, photo],
-      });
-    }
-    setIsUploadPhotoOpen(false);
-  };
-
-  const handleUploadVideo = () => {
-    if (selectedAlbum) {
-      const video: VideoType = {
-        id: gallery.videos.length + 1,
-        title: `New Video ${gallery.videos.length + 1}`,
-        thumbnail:
-          "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=400",
-        duration: "00:05:00",
-        albumId: selectedAlbum.id,
-        uploadDate: new Date().toISOString(),
-      };
-      setGallery({
-        ...gallery,
-        videos: [...gallery.videos, video],
-      });
-    }
-    setIsUploadVideoOpen(false);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -233,7 +196,6 @@ export default function GalleryPage() {
         <TabsContent value="albums" className="space-y-4">
           {!selectedAlbum ? (
             <>
-              {/* Only Create Album button in list */}
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"
@@ -242,8 +204,6 @@ export default function GalleryPage() {
                   <FolderPlus className="w-4 h-4 mr-2" /> Create Album
                 </Button>
               </div>
-
-              {/* Albums list */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredAlbums.map((album) => (
                   <Card
@@ -314,16 +274,14 @@ export default function GalleryPage() {
                       .filter((v) => v.albumId === selectedAlbum.id)
                       .map((video) => (
                         <Card key={video.id}>
-                          <img
-                            src={video.thumbnail}
-                            alt={video.title}
+                          <video
+                            src={video.url}
+                            controls
                             className="w-full h-40 object-cover"
                           />
                           <CardContent>
                             <p className="text-sm">{video.title}</p>
-                            <p className="text-xs text-gray-500">
-                              {video.duration}
-                            </p>
+                            <p className="text-xs text-gray-500">{video.duration}</p>
                           </CardContent>
                         </Card>
                       ))}
@@ -332,7 +290,7 @@ export default function GalleryPage() {
           )}
         </TabsContent>
 
-        {/* Photos */}
+        {/* All Photos Tab */}
         <TabsContent value="photos">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {gallery.photos.map((photo) => (
@@ -350,14 +308,14 @@ export default function GalleryPage() {
           </div>
         </TabsContent>
 
-        {/* Videos */}
+        {/* All Videos Tab */}
         <TabsContent value="videos">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {gallery.videos.map((video) => (
               <Card key={video.id}>
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
+                <video
+                  src={video.url}
+                  controls
                   className="w-full h-40 object-cover"
                 />
                 <CardContent>
@@ -413,12 +371,35 @@ export default function GalleryPage() {
           <DialogHeader>
             <DialogTitle>Upload Photo</DialogTitle>
           </DialogHeader>
-          <p>This will add a sample photo to album: {selectedAlbum?.name}</p>
+          <p>Choose photo(s) to upload to album: {selectedAlbum?.name}</p>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={(e) => {
+              if (!selectedAlbum) return;
+              const files = e.target.files;
+              if (!files || files.length === 0) return;
+
+              const newPhotos = Array.from(files).map((file, index) => ({
+                id: gallery.photos.length + index + 1,
+                title: file.name,
+                url: URL.createObjectURL(file),
+                albumId: selectedAlbum.id,
+                uploadDate: new Date().toISOString(),
+              }));
+
+              setGallery({
+                ...gallery,
+                photos: [...gallery.photos, ...newPhotos],
+              });
+              setIsUploadPhotoOpen(false);
+            }}
+          />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsUploadPhotoOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUploadPhoto}>Upload</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -429,12 +410,36 @@ export default function GalleryPage() {
           <DialogHeader>
             <DialogTitle>Upload Video</DialogTitle>
           </DialogHeader>
-          <p>This will add a sample video to album: {selectedAlbum?.name}</p>
+          <p>Choose video(s) to upload to album: {selectedAlbum?.name}</p>
+          <input
+            type="file"
+            multiple
+            accept="video/*"
+            onChange={(e) => {
+              if (!selectedAlbum) return;
+              const files = e.target.files;
+              if (!files || files.length === 0) return;
+
+              const newVideos = Array.from(files).map((file, index) => ({
+                id: gallery.videos.length + index + 1,
+                title: file.name,
+                url: URL.createObjectURL(file),
+                duration: "00:05:00",
+                albumId: selectedAlbum.id,
+                uploadDate: new Date().toISOString(),
+              }));
+
+              setGallery({
+                ...gallery,
+                videos: [...gallery.videos, ...newVideos],
+              });
+              setIsUploadVideoOpen(false);
+            }}
+          />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsUploadVideoOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUploadVideo}>Upload</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
