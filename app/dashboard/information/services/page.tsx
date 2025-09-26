@@ -4,13 +4,14 @@ import { useState } from "react";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Eye } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Users,
+  BookOpen,
+  Shield,
+  Heart,
+  Wrench,
+  Building,
+  FileCheck,
+  Settings,
+  X,
+  Plus,
+  Grid3X3,
+  Trash2,
+  Eye,
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Service {
@@ -48,12 +77,28 @@ const initialServices: Service[] = [
   },
 ];
 
-export default function ServicesAdmin() {
+export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>(initialServices);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [newService, setNewService] = useState({ title: "", description: "" });
+  const [language, setLanguage] = useState<"en" | "ta" | "si">("en");
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "",
+    bannerImage: null as File | null,
+    document: null as File | null,
+    date: "",
+    contactInfo: {
+      location: "",
+      phone: "",
+      email: "",
+    },
+  });
+  const [galleryImages, setGalleryImages] = useState<File[]>([]);
 
+  // 🛠 Handlers
   const handleAddService = () => {
     const service: Service = {
       id: services.length + 1,
@@ -67,8 +112,8 @@ export default function ServicesAdmin() {
 
   const handleEditService = () => {
     if (editingService) {
-      setServices(
-        services.map((s) => (s.id === editingService.id ? editingService : s))
+      setServices((prev) =>
+        prev.map((s) => (s.id === editingService.id ? editingService : s))
       );
       setEditingService(null);
       setIsDialogOpen(false);
@@ -77,6 +122,56 @@ export default function ServicesAdmin() {
 
   const handleDeleteService = (id: number) => {
     setServices(services.filter((s) => s.id !== id));
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleContactInfoChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      contactInfo: {
+        ...prev.contactInfo,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleImageUpload = (file: File | null) => {
+    setFormData((prev) => ({
+      ...prev,
+      bannerImage: file,
+    }));
+  };
+
+  const handleDocumentUpload = (file: File | null) => {
+    setFormData((prev) => ({
+      ...prev,
+      document: file,
+    }));
+  };
+
+  const handleGalleryUpload = (files: FileList) => {
+    const newImages = Array.from(files);
+    setGalleryImages((prev) => [...prev, ...newImages]);
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submissionData = {
+      ...formData,
+      galleryImages: galleryImages,
+    };
+    console.log("Form Data:", submissionData);
+    alert("Service saved successfully!");
   };
 
   return (
@@ -99,31 +194,29 @@ export default function ServicesAdmin() {
         <TabsContent value="services">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((service) => (
-              <Card key={service.id}>
+              <Card key={service.id} className="p-4">
                 <CardHeader>
                   <CardTitle>{service.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
                   <CardDescription>{service.description}</CardDescription>
-                  <div className="flex space-x-2 mt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingService(service);
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-1" /> Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteService(service.id)}
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" /> Delete
-                    </Button>
-                  </div>
+                </CardHeader>
+                <CardContent className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditingService(service);
+                      setIsDialogOpen(true);
+                    }}
+                  >
+                    <Eye className="w-4 h-4 mr-1" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteService(service.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" /> Delete
+                  </Button>
                 </CardContent>
               </Card>
             ))}
@@ -131,7 +224,7 @@ export default function ServicesAdmin() {
         </TabsContent>
       </Tabs>
 
-      {/* Dialog for Add / Edit */}
+      {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -147,7 +240,10 @@ export default function ServicesAdmin() {
                 value={editingService?.title || newService.title}
                 onChange={(e) =>
                   editingService
-                    ? setEditingService({ ...editingService, title: e.target.value })
+                    ? setEditingService({
+                        ...editingService,
+                        title: e.target.value,
+                      })
                     : setNewService({ ...newService, title: e.target.value })
                 }
               />
@@ -159,8 +255,14 @@ export default function ServicesAdmin() {
                 value={editingService?.description || newService.description}
                 onChange={(e) =>
                   editingService
-                    ? setEditingService({ ...editingService, description: e.target.value })
-                    : setNewService({ ...newService, description: e.target.value })
+                    ? setEditingService({
+                        ...editingService,
+                        description: e.target.value,
+                      })
+                    : setNewService({
+                        ...newService,
+                        description: e.target.value,
+                      })
                 }
               />
             </div>
@@ -169,7 +271,9 @@ export default function ServicesAdmin() {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={editingService ? handleEditService : handleAddService}>
+            <Button
+              onClick={editingService ? handleEditService : handleAddService}
+            >
               {editingService ? "Save" : "Add"}
             </Button>
           </DialogFooter>

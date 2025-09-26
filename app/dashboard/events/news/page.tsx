@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Search, Eye, Edit, Calendar, Clock, User, Download, Pin } from 'lucide-react';
+import { Plus, Trash2, Search, Eye, Edit, Calendar, Clock, User, Download, Pin, BarChart3, FileText, Archive, TrendingUp } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 interface NewsArticle {
@@ -25,6 +25,16 @@ interface NewsArticle {
   attachments?: string[];
 }
 
+interface Statistics {
+  totalArticles: number;
+  publishedArticles: number;
+  draftArticles: number;
+  archivedArticles: number;
+  totalViews: number;
+  averageReadTime: number;
+  pinnedArticles: number;
+}
+
 export default function NewsListPage() {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [filteredNews, setFilteredNews] = useState<NewsArticle[]>([]);
@@ -35,6 +45,15 @@ export default function NewsListPage() {
   const [newsToDelete, setNewsToDelete] = useState<NewsArticle | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedNews, setSelectedNews] = useState<NewsArticle | null>(null);
+  const [statistics, setStatistics] = useState<Statistics>({
+    totalArticles: 0,
+    publishedArticles: 0,
+    draftArticles: 0,
+    archivedArticles: 0,
+    totalViews: 0,
+    averageReadTime: 0,
+    pinnedArticles: 0
+  });
 
   // Sample initial data
   const sampleNews: NewsArticle[] = [
@@ -107,13 +126,39 @@ During this time, the system may be unavailable. We apologize for any inconvenie
     }
   ];
 
+  // Calculate statistics
+  const calculateStatistics = (newsData: NewsArticle[]) => {
+    const totalArticles = newsData.length;
+    const publishedArticles = newsData.filter(article => article.status === 'published').length;
+    const draftArticles = newsData.filter(article => article.status === 'draft').length;
+    const archivedArticles = newsData.filter(article => article.status === 'archived').length;
+    const totalViews = newsData.reduce((sum, article) => sum + article.views, 0);
+    const averageReadTime = totalArticles > 0 
+      ? Math.round(newsData.reduce((sum, article) => sum + article.readTime, 0) / totalArticles * 10) / 10 
+      : 0;
+    const pinnedArticles = newsData.filter(article => article.isPinned).length;
+
+    return {
+      totalArticles,
+      publishedArticles,
+      draftArticles,
+      archivedArticles,
+      totalViews,
+      averageReadTime,
+      pinnedArticles
+    };
+  };
+
   useEffect(() => {
     // Load news from localStorage or use sample data
     const savedNews = localStorage.getItem('newsArticles');
     if (savedNews) {
-      setNews(JSON.parse(savedNews));
+      const newsData = JSON.parse(savedNews);
+      setNews(newsData);
+      setStatistics(calculateStatistics(newsData));
     } else {
       setNews(sampleNews);
+      setStatistics(calculateStatistics(sampleNews));
       localStorage.setItem('newsArticles', JSON.stringify(sampleNews));
     }
   }, []);
@@ -126,6 +171,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
       article.author.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredNews(filtered);
+    setStatistics(calculateStatistics(news));
   }, [searchTerm, news]);
 
   const handleViewNews = (article: NewsArticle) => {
@@ -135,6 +181,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
     );
     setNews(updatedNews);
     localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+    setStatistics(calculateStatistics(updatedNews));
     
     setSelectedNews({ ...article, views: article.views + 1 });
     setIsViewDialogOpen(true);
@@ -160,6 +207,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
       const updatedNews = news.filter(article => article.id !== newsToDelete.id);
       setNews(updatedNews);
       localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+      setStatistics(calculateStatistics(updatedNews));
       setIsDeleteDialogOpen(false);
       setNewsToDelete(null);
     }
@@ -195,6 +243,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
       );
       setNews(updatedNews);
       localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+      setStatistics(calculateStatistics(updatedNews));
     } else {
       const newArticle: NewsArticle = {
         id: Date.now().toString(),
@@ -204,8 +253,8 @@ During this time, the system may be unavailable. We apologize for any inconvenie
         author,
         category,
         status,
-        isPinned: false,
-        priority: 'medium',
+        isPinned,
+        priority,
         publishDate: new Date().toISOString().split('T')[0],
         readTime: Math.ceil(content.split(' ').length / 200),
         views: 0,
@@ -214,6 +263,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
       const updatedNews = [...news, newArticle];
       setNews(updatedNews);
       localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+      setStatistics(calculateStatistics(updatedNews));
     }
 
     setIsDialogOpen(false);
@@ -248,6 +298,37 @@ During this time, the system may be unavailable. We apologize for any inconvenie
     });
   };
 
+  const StatCard = ({ title, value, icon: Icon, description, trend }: { 
+    title: string; 
+    value: number | string; 
+    icon: React.ElementType;
+    description?: string;
+    trend?: string;
+  }) => (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold">{value}</p>
+            {description && (
+              <p className="text-xs text-muted-foreground mt-1">{description}</p>
+            )}
+            {trend && (
+              <div className="flex items-center mt-1">
+                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                <span className="text-xs text-green-500">{trend}</span>
+              </div>
+            )}
+          </div>
+          <div className="p-3 rounded-full bg-primary/10">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -260,6 +341,57 @@ During this time, the system may be unavailable. We apologize for any inconvenie
           <Plus className="h-4 w-4" />
           Add News
         </Button>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard 
+          title="Total Articles" 
+          value={statistics.totalArticles} 
+          icon={FileText}
+          description="All news articles"
+        />
+        <StatCard 
+          title="Published" 
+          value={statistics.publishedArticles} 
+          icon={BarChart3}
+          description="Currently live"
+          trend={`${statistics.totalArticles > 0 ? Math.round((statistics.publishedArticles / statistics.totalArticles) * 100) : 0}% of total`}
+        />
+        <StatCard 
+          title="Total Views" 
+          value={statistics.totalViews.toLocaleString()} 
+          icon={Eye}
+          description="All-time views"
+        />
+        <StatCard 
+          title="Avg. Read Time" 
+          value={`${statistics.averageReadTime}m`} 
+          icon={Clock}
+          description="Per article"
+        />
+      </div>
+
+      {/* Additional Statistics Row */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard 
+          title="Draft Articles" 
+          value={statistics.draftArticles} 
+          icon={FileText}
+          description="In progress"
+        />
+        <StatCard 
+          title="Pinned Articles" 
+          value={statistics.pinnedArticles} 
+          icon={Pin}
+          description="Featured content"
+        />
+        <StatCard 
+          title="Archived" 
+          value={statistics.archivedArticles} 
+          icon={Archive}
+          description="Historical articles"
+        />
       </div>
 
       {/* Search Bar */}
@@ -357,10 +489,10 @@ During this time, the system may be unavailable. We apologize for any inconvenie
         </Card>
       )}
 
-      {/* Add/Edit News Dialog */}
+      {/* Add/Edit News Dialog with Scroll */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>
               {editingNews ? 'Edit News Article' : 'Create New News Article'}
             </DialogTitle>
@@ -368,100 +500,103 @@ During this time, the system may be unavailable. We apologize for any inconvenie
               {editingNews ? 'Update the news article details.' : 'Fill in the details for the new news article.'}
             </DialogDescription>
           </DialogHeader>
-          <form action={handleSaveNews}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <label htmlFor="title" className="text-sm font-medium">Title</label>
-                <Input
-                  id="title"
-                  name="title"
-                  defaultValue={editingNews?.title || ''}
-                  placeholder="Enter news title"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <label htmlFor="excerpt" className="text-sm font-medium">Excerpt</label>
-                <Input
-                  id="excerpt"
-                  name="excerpt"
-                  defaultValue={editingNews?.excerpt || ''}
-                  placeholder="Brief description of the news"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <label htmlFor="content" className="text-sm font-medium">Content</label>
-                <Textarea
-                  id="content"
-                  name="content"
-                  defaultValue={editingNews?.content || ''}
-                  placeholder="Write the full news content here..."
-                  rows={6}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          <form action={handleSaveNews} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto pr-2 py-4">
+              <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <label htmlFor="author" className="text-sm font-medium">Author</label>
+                  <label htmlFor="title" className="text-sm font-medium">Title</label>
                   <Input
-                    id="author"
-                    name="author"
-                    defaultValue={editingNews?.author || ''}
-                    placeholder="Author name"
+                    id="title"
+                    name="title"
+                    defaultValue={editingNews?.title || ''}
+                    placeholder="Enter news title"
                     required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <label htmlFor="category" className="text-sm font-medium">Category</label>
+                  <label htmlFor="excerpt" className="text-sm font-medium">Excerpt</label>
                   <Input
-                    id="category"
-                    name="category"
-                    defaultValue={editingNews?.category || ''}
-                    placeholder="News category"
+                    id="excerpt"
+                    name="excerpt"
+                    defaultValue={editingNews?.excerpt || ''}
+                    placeholder="Brief description of the news"
                     required
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <label htmlFor="status" className="text-sm font-medium">Status</label>
-                  <select
-                    id="status"
-                    name="status"
-                    defaultValue={editingNews?.status || 'draft'}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                  </select>
+                  <label htmlFor="content" className="text-sm font-medium">Content</label>
+                  <Textarea
+                    id="content"
+                    name="content"
+                    defaultValue={editingNews?.content || ''}
+                    placeholder="Write the full news content here..."
+                    rows={8}
+                    required
+                    className="min-h-[200px] resize-vertical"
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <label htmlFor="priority" className="text-sm font-medium">Priority</label>
-                  <select
-                    id="priority"
-                    name="priority"
-                    defaultValue={editingNews?.priority || 'medium'}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="author" className="text-sm font-medium">Author</label>
+                    <Input
+                      id="author"
+                      name="author"
+                      defaultValue={editingNews?.author || ''}
+                      placeholder="Author name"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="category" className="text-sm font-medium">Category</label>
+                    <Input
+                      id="category"
+                      name="category"
+                      defaultValue={editingNews?.category || ''}
+                      placeholder="News category"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="isPinned"
-                  name="isPinned"
-                  defaultChecked={editingNews?.isPinned || false}
-                  className="rounded border-gray-300"
-                />
-                <label htmlFor="isPinned" className="text-sm font-medium">Pin this news article</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="status" className="text-sm font-medium">Status</label>
+                    <select
+                      id="status"
+                      name="status"
+                      defaultValue={editingNews?.status || 'draft'}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                    </select>
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="priority" className="text-sm font-medium">Priority</label>
+                    <select
+                      id="priority"
+                      name="priority"
+                      defaultValue={editingNews?.priority || 'medium'}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPinned"
+                    name="isPinned"
+                    defaultChecked={editingNews?.isPinned || false}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor="isPinned" className="text-sm font-medium">Pin this news article</label>
+                </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex-shrink-0 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
@@ -473,10 +608,10 @@ During this time, the system may be unavailable. We apologize for any inconvenie
         </DialogContent>
       </Dialog>
 
-      {/* View News Dialog */}
+      {/* View News Dialog with Enhanced Scroll */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               {selectedNews?.isPinned && <Pin className="w-4 h-4 text-blue-500 fill-current" />}
               {selectedNews?.title}
@@ -503,8 +638,8 @@ During this time, the system may be unavailable. We apologize for any inconvenie
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="flex gap-2">
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+            <div className="flex gap-2 flex-wrap">
               <Badge className={getPriorityColor(selectedNews?.priority || 'medium')}>
                 {(selectedNews?.priority || 'medium').toUpperCase()}
               </Badge>
@@ -519,7 +654,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
             </div>
             
             <div className="prose max-w-none">
-              <p className="text-gray-700 whitespace-pre-line">{selectedNews?.content}</p>
+              <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedNews?.content}</p>
             </div>
             
             {selectedNews?.attachments && selectedNews.attachments.length > 0 && (
@@ -539,7 +674,7 @@ During this time, the system may be unavailable. We apologize for any inconvenie
             )}
           </div>
           
-          <DialogFooter>
+          <DialogFooter className="flex-shrink-0 pt-4 border-t">
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close
             </Button>
