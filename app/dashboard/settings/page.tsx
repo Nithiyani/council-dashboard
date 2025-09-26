@@ -80,14 +80,13 @@ export default function SettingsPage() {
 
   // Update general setting
   const updateSetting = <K extends keyof GeneralSettings>(
-    category: keyof SettingsType,
     key: K,
     value: GeneralSettings[K]
   ) => {
     setSettings((prev) => ({
       ...prev,
-      [category]: {
-        ...prev[category],
+      general: {
+        ...prev.general,
         [key]: value,
       },
     }));
@@ -96,17 +95,15 @@ export default function SettingsPage() {
 
   // Update nested social media
   const updateNestedSetting = <K extends keyof SocialMedia>(
-    category: keyof SettingsType,
-    nestedKey: keyof GeneralSettings,
     key: K,
     value: string
   ) => {
     setSettings((prev) => ({
       ...prev,
-      [category]: {
-        ...prev[category],
-        [nestedKey]: {
-          ...(prev[category][nestedKey] as SocialMedia),
+      general: {
+        ...prev.general,
+        socialMedia: {
+          ...prev.general.socialMedia,
           [key]: value,
         },
       },
@@ -208,7 +205,7 @@ export default function SettingsPage() {
                 <Input
                   id="siteName"
                   value={settings.general.siteName}
-                  onChange={(e) => updateSetting("general", "siteName", e.target.value)}
+                  onChange={(e) => updateSetting("siteName", e.target.value)}
                 />
               </div>
 
@@ -226,7 +223,7 @@ export default function SettingsPage() {
                       id="contactEmail"
                       type="email"
                       value={settings.general.contactEmail}
-                      onChange={(e) => updateSetting("general", "contactEmail", e.target.value)}
+                      onChange={(e) => updateSetting("contactEmail", e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -236,7 +233,7 @@ export default function SettingsPage() {
                     <Input
                       id="contactPhone"
                       value={settings.general.contactPhone}
-                      onChange={(e) => updateSetting("general", "contactPhone", e.target.value)}
+                      onChange={(e) => updateSetting("contactPhone", e.target.value)}
                     />
                   </div>
                 </div>
@@ -248,7 +245,7 @@ export default function SettingsPage() {
                   <Textarea
                     id="address"
                     value={settings.general.address}
-                    onChange={(e) => updateSetting("general", "address", e.target.value)}
+                    onChange={(e) => updateSetting("address", e.target.value)}
                   />
                 </div>
 
@@ -266,8 +263,6 @@ export default function SettingsPage() {
                         value={value}
                         onChange={(e) =>
                           updateNestedSetting(
-                            "general",
-                            "socialMedia",
                             key as keyof SocialMedia,
                             e.target.value
                           )
