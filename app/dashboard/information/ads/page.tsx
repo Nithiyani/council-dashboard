@@ -447,7 +447,7 @@ export default function PublicAdvertisementsPage() {
   });
 
   // Get unique categories for filter dropdown
-  const categories = [...new Set(advertisements.map((a) => a.category))];
+  const categories = Array.from(new Set(advertisements.map((a) => a.category)));
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
@@ -606,8 +606,8 @@ export default function PublicAdvertisementsPage() {
                 className="pl-10"
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus} className="w-full md:w-40">
-              <SelectTrigger>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full md:w-40">
                 <SelectValue placeholder="Filter by Status" />
               </SelectTrigger>
               <SelectContent>
@@ -617,8 +617,8 @@ export default function PublicAdvertisementsPage() {
                 <SelectItem value="draft">Draft</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filterCategory} onValueChange={setFilterCategory} className="w-full md:w-40">
-              <SelectTrigger>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-full md:w-40">
                 <SelectValue placeholder="Filter by Category" />
               </SelectTrigger>
               <SelectContent>
