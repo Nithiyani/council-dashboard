@@ -1,470 +1,1375 @@
-// app/dashboard/information/services/page.tsx
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useState } from "react";
-import {
-  FileText,
-  BookOpen,
-  Shield,
-  Heart,
-  Wrench,
-  Building,
-  FileCheck,
-  Settings,
-  X,
-  Image as ImageIcon,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Search, Eye, Edit, Trash2, MapPin, Phone, Mail, Calendar, Download, Image as ImageIcon, FileText, X, AlertCircle, CheckCircle } from "lucide-react";
 
-export default function ServicesPage() {
-  const [language, setLanguage] = useState<"en" | "ta" | "si">("en");
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    category: "",
-    document: null as File | null,
-    images: [] as File[],
-    date: "",
-    contactInfo: {
-      location: "",
-      phone: "",
-      email: "",
-    },
-  });
-
-  // Language content
-  const content = {
-    en: {
-      title: "Community Services Management",
-      subtitle: "Manage and organize community services efficiently",
-      categories: "Service Categories",
-      education: "Education & Welfare",
-      infrastructure: "Infrastructure & Development",
-      safety: "Safety & Protection",
-      health: "Health & Environment",
-      contactInfo: "Contact Information",
-      location: "Location",
-      phone: "Phone",
-      email: "Email",
-      date: "Date Created",
-      uploadDocument: "Upload Documents",
-      uploadImages: "Upload Service Images",
-      description: "Service Description",
-      serviceTitle: "Service Title",
-      selectCategory: "Select Category",
-      saveButton: "Save Service",
-      formTitle: "Add New Service",
-    },
-    ta: {
-      title: "சமூக சேவைகள் மேலாண்மை",
-      subtitle: "சமூக சேவைகளை திறம்பட நிர்வகித்து ஒழுங்கமைக்கவும்",
-      categories: "சேவை வகைகள்",
-      education: "கல்வி & நலன்",
-      infrastructure: "உள்கட்டமைப்பு & வளர்ச்சி",
-      safety: "பாதுகாப்பு",
-      health: "சுகாதாரம் & சூழல்",
-      contactInfo: "தொடர்பு தகவல்",
-      location: "இடம்",
-      phone: "தொலைபேசி",
-      email: "மின்னஞ்சல்",
-      date: "உருவாக்கப்பட்ட தேதி",
-      uploadDocument: "ஆவணங்களை பதிவேற்று",
-      uploadImages: "சேவை படங்களை பதிவேற்று",
-      description: "சேவை விளக்கம்",
-      serviceTitle: "சேவை தலைப்பு",
-      selectCategory: "வகையை தேர்ந்தெடுக்கவும்",
-      saveButton: "சேவையை சேமிக்கவும்",
-      formTitle: "புதிய சேவையை சேர்க்கவும்",
-    },
-    si: {
-      title: "සමාජ සේවා කළමනාකරණය",
-      subtitle: "සමාජ සේවා කාර්යක්ෂමව කළමනාකරණය කර සංවිධානය කරන්න",
-      categories: "සේවා කාණ්ඩ",
-      education: "අධ්‍යාපනය සහ සුබසාධනය",
-      infrastructure: "අඩිතාලම සහ සංවර්ධනය",
-      safety: "සුරක්ෂිතතාව සහ ආරක්ෂාව",
-      health: "සෞඛ්‍ය සහ පරිසරය",
-      contactInfo: "සම්බන්ධතා තොරතුරු",
-      location: "ස්ථානය",
-      phone: "දුරකථන",
-      email: "විද්‍යුත් තැපෑල",
-      date: "නිර්මාණය කළ දිනය",
-      uploadDocument: "ලේඛන උඩුගත කරන්න",
-      uploadImages: "සේවා පින්තූර උඩුගත කරන්න",
-      description: "සේවා විස්තරය",
-      serviceTitle: "සේවා මාතෘකාව",
-      selectCategory: "ප්‍රවර්ගය තෝරන්න",
-      saveButton: "සේවය සුරකින්න",
-      formTitle: "නව සේවයක් එක් කරන්න",
-    },
+// Types
+interface Service {
+  id: string;
+  title: {
+    en: string;
+    ta: string;
+    si: string;
   };
-
-  const currentContent = content[language];
-
-  const categories = [
-    { value: "education", label: currentContent.education, icon: <BookOpen className="h-4 w-4" /> },
-    { value: "infrastructure", label: currentContent.infrastructure, icon: <Wrench className="h-4 w-4" /> },
-    { value: "safety", label: currentContent.safety, icon: <Shield className="h-4 w-4" /> },
-    { value: "health", label: currentContent.health, icon: <Heart className="h-4 w-4" /> },
-  ];
-
-  // Language-specific inputMode map
-  const inputModes = {
-    en: "latin",
-    ta: "tamil",
-    si: "sinhalese",
+  description: {
+    en: string;
+    ta: string;
+    si: string;
   };
+  category: string;
+  location: string;
+  phone: string;
+  email: string;
+  dateCreated: string;
+  status: "active" | "inactive";
+  images: string[];
+  documents: string[];
+  isFeatured: boolean;
+}
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+interface ServiceFormData {
+  title: {
+    en: string;
+    ta: string;
+    si: string;
   };
+  description: {
+    en: string;
+    ta: string;
+    si: string;
+  };
+  category: string;
+  location: string;
+  phone: string;
+  email: string;
+  dateCreated: string;
+  status: "active" | "inactive";
+  images: string[];
+  documents: string[];
+  isFeatured: boolean;
+}
 
-  const handleContactInfoChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      contactInfo: {
-        ...prev.contactInfo,
-        [field]: value,
-      },
-    }));
-  };
+type Language = "en" | "ta" | "si";
 
-  const handleDocumentUpload = (file: File | null) => {
-    setFormData((prev) => ({
-      ...prev,
-      document: file,
-    }));
-  };
+// Constants
+const SERVICE_CATEGORIES = [
+  "Healthcare",
+  "Education",
+  "Utilities",
+  "Social Welfare",
+  "Employment",
+  "Housing",
+  "Legal Aid",
+  "Transportation",
+  "Environmental",
+  "Cultural"
+];
 
-  const handleImageUpload = (files: FileList | null) => {
-    if (!files) return;
-    const newFiles = Array.from(files);
-    setFormData((prev) => {
-      if (prev.images.length + newFiles.length > 6) {
-        alert("You can upload maximum 6 images.");
-        return prev;
-      }
-      return {
-        ...prev,
-        images: [...prev.images, ...newFiles],
-      };
-    });
-  };
+const LANGUAGES: Language[] = ["en", "ta", "si"];
+const LANGUAGE_NAMES = { en: "English", ta: "Tamil", si: "Sinhala" };
 
-  const removeImage = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.images.length < 1) {
-      alert("Please upload at least 1 image.");
-      return;
-    }
-    console.log("Form Data:", formData);
-    alert("Service saved successfully!");
-  };
+// Alert Component
+const Alert = ({ type, message, onClose }: { type: "success" | "error"; message: string; onClose: () => void }) => {
+  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
+  const Icon = type === "success" ? CheckCircle : AlertCircle;
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Page Header */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{currentContent.title}</h1>
-              <p className="text-gray-600 mt-1">{currentContent.subtitle}</p>
+    <div className="mt-4 animate-in slide-in-from-top duration-300 z-50">
+      <div className={`${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2`}>
+        <Icon className="w-5 h-5" />
+        <span className="font-medium flex-1">{message}</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-white hover:bg-white/20"
+          onClick={onClose}
+        >
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Service Card Component
+const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, language }: {
+  service: Service;
+  onView: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleFeature: () => void;
+  language: Language;
+}) => {
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric"
+  });
+
+  return (
+    <Card className="hover:shadow-lg transition-shadow duration-300">
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <CardTitle className="text-lg font-semibold">
+                {service.title[language]}
+              </CardTitle>
+              {service.isFeatured && (
+                <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">Featured</Badge>
+              )}
+              <Badge className={service.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                {service.status.toUpperCase()}
+              </Badge>
+            </div>
+            
+            <CardDescription className="text-sm text-gray-600 mb-3 line-clamp-2">
+              {service.description[language]}
+            </CardDescription>
+
+            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                <span>{service.location}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Phone className="w-3 h-3" />
+                <span>{service.phone}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                <span>{formatDate(service.dateCreated)}</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                {(["en", "ta", "si"] as const).map((lang) => (
-                  <Button
-                    key={lang}
-                    variant={language === lang ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => {
-                      setLanguage(lang);
-                      setFormData((prev) => ({
-                        ...prev,
-                        title: "",
-                        description: "",
-                        contactInfo: { location: "", phone: "", email: "" },
-                      }));
-                    }}
-                    className={`px-3 text-xs ${language === lang ? "bg-white shadow-sm" : "text-gray-600"}`}
-                  >
-                    {lang.toUpperCase()}
-                  </Button>
-                ))}
-              </div>
-
-              {/* <Button variant="outline" size="sm" className="gap-2"> */}
-                {/* <Settings className="h-4 w-4" /> */}
-                {/* Settings */}
-              {/* </Button> */}
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{service.category}</Badge>
+              {service.images.length > 0 && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" />
+                  {service.images.length}
+                </Badge>
+              )}
+              {service.documents.length > 0 && (
+                <Badge variant="outline" className="flex items-center gap-1">
+                  <FileText className="w-3 h-3" />
+                  {service.documents.length}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Categories */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    {currentContent.categories}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select value={formData.category} onValueChange={(value) => handleInputChange("category", value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={currentContent.selectCategory} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          <div className="flex items-center gap-2">
-                            {category.icon}
-                            {category.label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
+        <div className="flex justify-between items-center">
+          <div className="flex gap-1">
+            {LANGUAGES.map(lang => (
+              <Badge key={lang} variant="outline" className="text-xs">
+                {lang.toUpperCase()}
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" onClick={onView}>
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={onEdit}>
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={onToggleFeature}>
+              <Star className={`w-4 h-4 ${service.isFeatured ? "fill-yellow-400 text-yellow-400" : ""}`} />
+            </Button>
+            <Button variant="destructive" size="icon" onClick={onDelete}>
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
-              {/* Contact Info */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-2">
-                    <Building className="h-4 w-4" />
-                    {currentContent.contactInfo}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {["location", "phone", "email"].map((field) => (
-                    <div className="space-y-2" key={field}>
-                      <Label htmlFor={field} className="text-xs font-medium text-gray-500">
-                        {currentContent[field as "location" | "phone" | "email"]}
-                      </Label>
-                      <Input
-                        id={field}
-                        value={(formData.contactInfo as any)[field]}
-                        onChange={(e) => handleContactInfoChange(field, e.target.value)}
-                        placeholder={`Enter ${field}`}
-                        inputMode={inputModes[language] as any}
-                        type={field === "email" ? "email" : "text"}
-                      />
-                    </div>
-                  ))}
+// File Upload Components
+const DocumentUpload = ({ documents, onDocumentsChange }: {
+  documents: string[];
+  onDocumentsChange: (documents: string[]) => void;
+}) => {
+  const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
 
-                  <div className="space-y-2">
-                    <Label htmlFor="date" className="text-xs font-medium text-gray-500">
-                      {currentContent.date}
+    Array.from(files).forEach(file => {
+      if (file.type === "application/pdf" || file.type.includes("document")) {
+        const reader = new FileReader();
+        reader.onload = (e) => e.target?.result && onDocumentsChange([...documents, e.target.result as string]);
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  const removeDocument = (index: number) => {
+    onDocumentsChange(documents.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="space-y-4">
+      <Label>Upload Documents (PDF, DOC, DOCX)</Label>
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+        <Input type="file" multiple accept=".pdf,.doc,.docx" onChange={handleDocumentUpload} className="hidden" id="documents" />
+        <Label htmlFor="documents" className="cursor-pointer flex flex-col items-center gap-2">
+          <FileText className="w-8 h-8 text-gray-400" />
+          <span className="text-sm text-gray-600">Choose Document</span>
+          <span className="text-xs text-gray-500">PDF, DOC, or DOCX files</span>
+        </Label>
+      </div>
+
+      {documents.length > 0 && (
+        <div className="space-y-2">
+          {documents.map((doc, index) => (
+            <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-gray-500" />
+                <span className="text-sm">Document {index + 1}</span>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => removeDocument(index)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ImageUpload = ({ images, onImagesChange }: {
+  images: string[];
+  onImagesChange: (images: string[]) => void;
+}) => {
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const newImages: string[] = [];
+    Array.from(files).slice(0, 6 - images.length).forEach(file => {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            newImages.push(e.target.result as string);
+            if (newImages.length === Math.min(files.length, 6 - images.length)) {
+              onImagesChange([...images, ...newImages]);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  const removeImage = (index: number) => {
+    onImagesChange(images.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="space-y-4">
+      <Label>Upload Service Images (JPG, PNG)</Label>
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+        <Input 
+          type="file" 
+          multiple 
+          accept="image/*" 
+          onChange={handleImageUpload} 
+          className="hidden" 
+          id="images" 
+          disabled={images.length >= 6}
+        />
+        <Label 
+          htmlFor="images" 
+          className={`cursor-pointer flex flex-col items-center gap-2 ${images.length >= 6 ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <ImageIcon className="w-8 h-8 text-gray-400" />
+          <span className="text-sm text-gray-600">Choose Images</span>
+          <span className="text-xs text-gray-500">Minimum 1, Maximum 6 images</span>
+        </Label>
+      </div>
+
+      {images.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {images.map((image, index) => (
+            <div key={index} className="relative group">
+              <img src={image} alt={`Upload ${index + 1}`} className="w-full h-24 object-cover rounded-lg border" />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => removeImage(index)}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      {images.length > 0 && (
+        <p className="text-xs text-gray-500">
+          {images.length}/6 images uploaded
+        </p>
+      )}
+    </div>
+  );
+};
+
+// Language Form Section with Validation
+const LanguageFormSection = ({ 
+  language, 
+  isActive, 
+  formData, 
+  onFormDataChange, 
+  validationErrors 
+}: {
+  language: Language;
+  isActive: boolean;
+  formData: ServiceFormData;
+  onFormDataChange: (data: ServiceFormData) => void;
+  validationErrors: { [key: string]: boolean };
+}) => {
+  if (!isActive) return null;
+
+  const hasError = validationErrors[`title-${language}`] || validationErrors[`description-${language}`];
+
+  return (
+    <div className="space-y-4 animate-in fade-in duration-300">
+      <div className={`flex items-center gap-2 mb-4 p-3 rounded-lg ${
+        hasError ? "bg-red-50 border border-red-200" : "bg-blue-50"
+      }`}>
+        {hasError ? (
+          <AlertCircle className="w-4 h-4 text-red-600" />
+        ) : (
+          <CheckCircle className="w-4 h-4 text-blue-600" />
+        )}
+        <span className={`font-medium ${hasError ? "text-red-800" : "text-blue-800"}`}>
+          Editing in {LANGUAGE_NAMES[language]} {hasError && "- Required fields missing"}
+        </span>
+      </div>
+
+      <div>
+        <Label 
+          htmlFor={`title-${language}`}
+          className={validationErrors[`title-${language}`] ? "text-red-600" : ""}
+        >
+          Service Title in {LANGUAGE_NAMES[language]} *
+        </Label>
+        <Input
+          id={`title-${language}`}
+          value={formData.title[language]}
+          onChange={(e) => onFormDataChange({
+            ...formData,
+            title: { ...formData.title, [language]: e.target.value }
+          })}
+          placeholder={`Enter service title in ${LANGUAGE_NAMES[language]}`}
+          className={`mt-1 ${
+            validationErrors[`title-${language}`] 
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
+              : ""
+          }`}
+        />
+        {validationErrors[`title-${language}`] && (
+          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            Title in {LANGUAGE_NAMES[language]} is required
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Label 
+          htmlFor={`description-${language}`}
+          className={validationErrors[`description-${language}`] ? "text-red-600" : ""}
+        >
+          Service Description in {LANGUAGE_NAMES[language]} *
+        </Label>
+        <Textarea
+          id={`description-${language}`}
+          value={formData.description[language]}
+          onChange={(e) => onFormDataChange({
+            ...formData,
+            description: { ...formData.description, [language]: e.target.value }
+          })}
+          placeholder={`Enter detailed service description in ${LANGUAGE_NAMES[language]}...`}
+          rows={4}
+          className={`mt-1 ${
+            validationErrors[`description-${language}`] 
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
+              : ""
+          }`}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          {formData.description[language].length} characters
+        </p>
+        {validationErrors[`description-${language}`] && (
+          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            Description in {LANGUAGE_NAMES[language]} is required
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Star Icon Component
+const Star = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+  </svg>
+);
+
+// Validation Helper
+const validateServiceForm = (formData: ServiceFormData): { isValid: boolean; errors: { [key: string]: boolean } } => {
+  const errors: { [key: string]: boolean } = {};
+  let isValid = true;
+
+  // Validate all three languages
+  LANGUAGES.forEach(lang => {
+    if (!formData.title[lang]?.trim()) {
+      errors[`title-${lang}`] = true;
+      isValid = false;
+    }
+    if (!formData.description[lang]?.trim()) {
+      errors[`description-${lang}`] = true;
+      isValid = false;
+    }
+  });
+
+  // Validate category
+  if (!formData.category.trim()) {
+    errors.category = true;
+    isValid = false;
+  }
+
+  // Validate location
+  if (!formData.location.trim()) {
+    errors.location = true;
+    isValid = false;
+  }
+
+  // Validate phone
+  if (!formData.phone.trim()) {
+    errors.phone = true;
+    isValid = false;
+  }
+
+  // Validate email
+  if (!formData.email.trim()) {
+    errors.email = true;
+    isValid = false;
+  } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    errors.email = true;
+    isValid = false;
+  }
+
+  // Validate date
+  if (!formData.dateCreated.trim()) {
+    errors.dateCreated = true;
+    isValid = false;
+  }
+
+  // Validate images (minimum 1)
+  if (formData.images.length === 0) {
+    errors.images = true;
+    isValid = false;
+  }
+
+  return { isValid, errors };
+};
+
+// Main Component
+export default function ServicesManagementPage() {
+  const [services, setServices] = useState<Service[]>([
+    {
+      id: "1",
+      title: {
+        en: "Community Health Center",
+        ta: "சமூக சுகாதார மையம்",
+        si: "සමුදාය සෞඛ්ය මධ්යස්ථානය"
+      },
+      description: {
+        en: "Free medical checkups and basic healthcare services for community members. We provide comprehensive healthcare services including consultations, basic treatments, and health education programs.",
+        ta: "சமூக உறுப்பினர்களுக்கு இலவச மருத்துவ பரிசோதனைகள் மற்றும் அடிப்படை சுகாதார சேவைகள். ஆலோசனைகள், அடிப்படை சிகிச்சைகள் மற்றும் சுகாதார கல்வி திட்டங்கள் உட்பட விரிவான சுகாதார சேவைகளை நாங்கள் வழங்குகிறோம்.",
+        si: "ප්‍රජා සාමාජිකයින් සඳහා නොමිලේ වෛද්‍ය පරීක්ෂණ සහ මූලික සෞඛ්ය සේවා. අපි සැලසුම්කරණ, මූලික ප්‍රතිකර්ම සහ සෞඛ්ය අධ්‍යාපන වැඩසටහන් ඇතුළත් සවිස්තරාත්මක සෞඛ්ය සේවා ලබා දෙන්නෙමු."
+      },
+      category: "Healthcare",
+      location: "123 Main Street, City Center",
+      phone: "+94 11 234 5678",
+      email: "health@community.org",
+      dateCreated: "2024-01-15",
+      status: "active",
+      images: ["https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=300&h=200&fit=crop"],
+      documents: [],
+      isFeatured: true
+    },
+    {
+      id: "2",
+      title: {
+        en: "Adult Education Program",
+        ta: "முதியோர் கல்வி திட்டம்",
+        si: "වැඩිහිටි අධ්‍යාපන වැඩසටහන"
+      },
+      description: {
+        en: "Free adult education classes including literacy, computer skills, and vocational training for community members above 18 years.",
+        ta: "18 வயதுக்கு மேற்பட்ட சமூக உறுப்பினர்களுக்கு எழுத்தறிவு, கணினி திறன்கள் மற்றும் தொழில் பயிற்சி உட்பட இலவச முதியோர் கல்வி வகுப்புகள்.",
+        si: "18 ට වැඩි ප්‍රජා සාමාජිකයින් සඳහා සාක්ෂරතාවය, පරිගණක කුසලතා සහ වෘත්තීය පුහුණුව ඇතුළත් නොමිලේ වැඩිහිටි අධ්‍යාපන පන්ති."
+      },
+      category: "Education",
+      location: "456 Learning Avenue, Education Zone",
+      phone: "+94 11 345 6789",
+      email: "education@community.org",
+      dateCreated: "2024-01-10",
+      status: "active",
+      images: ["https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=300&h=200&fit=crop"],
+      documents: [],
+      isFeatured: false
+    }
+  ]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [currentLanguage, setCurrentLanguage] = useState<Language>("en");
+  const [dialog, setDialog] = useState<"view" | "create" | "edit" | "delete" | null>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: boolean }>({});
+  const [alert, setAlert] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const initialFormData: ServiceFormData = {
+    title: { en: "", ta: "", si: "" },
+    description: { en: "", ta: "", si: "" },
+    category: "",
+    location: "",
+    phone: "",
+    email: "",
+    dateCreated: new Date().toISOString().split('T')[0],
+    status: "active",
+    images: [],
+    documents: [],
+    isFeatured: false
+  };
+
+  const [formData, setFormData] = useState<ServiceFormData>(initialFormData);
+
+  // Clear validation errors
+  const clearValidationErrors = () => {
+    setValidationErrors({});
+  };
+
+  // Filter services
+  const filteredServices = services.filter(service => {
+    const matchesSearch = Object.values(service.title).some(title =>
+      title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const matchesCategory = filterCategory === "all" || service.category === filterCategory;
+    const matchesStatus = filterStatus === "all" || service.status === filterStatus;
+    
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // Handlers
+  const handleCreateService = () => {
+    const { isValid, errors } = validateServiceForm(formData);
+    
+    if (!isValid) {
+      setValidationErrors(errors);
+      setAlert({
+        type: "error",
+        message: "Please fill all required fields in all three languages before saving!"
+      });
+      setTimeout(() => setAlert(null), 5000);
+      return;
+    }
+
+    const newService: Service = {
+      id: (services.length + 1).toString(),
+      ...formData
+    };
+    
+    setServices([newService, ...services]);
+    setDialog(null);
+    setFormData(initialFormData);
+    clearValidationErrors();
+    
+    setAlert({
+      type: "success",
+      message: "Service created successfully!"
+    });
+    setTimeout(() => setAlert(null), 3000);
+  };
+
+  const handleEditService = () => {
+    if (!selectedService) return;
+
+    const { isValid, errors } = validateServiceForm(formData);
+    
+    if (!isValid) {
+      setValidationErrors(errors);
+      setAlert({
+        type: "error",
+        message: "Please fill all required fields in all three languages before saving!"
+      });
+      setTimeout(() => setAlert(null), 5000);
+      return;
+    }
+
+    setServices(prev => prev.map(service => 
+      service.id === selectedService.id ? { ...selectedService, ...formData } : service
+    ));
+    
+    setDialog(null);
+    clearValidationErrors();
+    
+    setAlert({
+      type: "success",
+      message: "Service updated successfully!"
+    });
+    setTimeout(() => setAlert(null), 3000);
+  };
+
+  const handleDeleteService = () => {
+    if (!selectedService) return;
+    setServices(prev => prev.filter(service => service.id !== selectedService.id));
+    setDialog(null);
+    
+    setAlert({
+      type: "success",
+      message: "Service deleted successfully!"
+    });
+    setTimeout(() => setAlert(null), 3000);
+  };
+
+  const handleToggleFeature = (id: string) => {
+    setServices(prev => prev.map(service =>
+      service.id === id ? { ...service, isFeatured: !service.isFeatured } : service
+    ));
+  };
+
+  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric", month: "short", day: "numeric"
+  });
+
+  return (
+    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+      {/* Global Alert */}
+      {alert && (
+        <div className="fixed top-4 right-4 z-50 max-w-md">
+          <Alert
+            type={alert.type}
+            message={alert.message}
+            onClose={() => setAlert(null)}
+          />
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Community Services Management</h1>
+          <p className="text-gray-600 mt-1">Manage and organize community services efficiently</p>
+        </div>
+        <Dialog open={dialog === "create"} onOpenChange={(open) => {
+          setDialog(open ? "create" : null);
+          if (!open) {
+            setFormData(initialFormData);
+            clearValidationErrors();
+          }
+        }}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" /> Add New Service
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Service</DialogTitle>
+              <DialogDescription>Fill in the details for the new service</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Language Tabs */}
+              <div className="flex gap-2">
+                {LANGUAGES.map(lang => (
+                  <Button
+                    key={lang}
+                    type="button"
+                    variant={currentLanguage === lang ? "default" : "outline"}
+                    onClick={() => setCurrentLanguage(lang)}
+                    className="flex-1"
+                  >
+                    {LANGUAGE_NAMES[lang]}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Language-specific Fields */}
+              {LANGUAGES.map(lang => (
+                <LanguageFormSection
+                  key={lang}
+                  language={lang}
+                  isActive={currentLanguage === lang}
+                  formData={formData}
+                  onFormDataChange={setFormData}
+                  validationErrors={validationErrors}
+                />
+              ))}
+
+              {/* Service Category */}
+              <div>
+                <Label 
+                  htmlFor="category"
+                  className={validationErrors.category ? "text-red-600" : ""}
+                >
+                  Service Category *
+                </Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger 
+                    id="category"
+                    className={validationErrors.category ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_CATEGORIES.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {validationErrors.category && (
+                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Category is required
+                  </p>
+                )}
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold">Contact Information</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label 
+                      htmlFor="location"
+                      className={validationErrors.location ? "text-red-600" : ""}
+                    >
+                      Location *
                     </Label>
                     <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => handleInputChange("date", e.target.value)}
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      placeholder="Enter location"
+                      className={validationErrors.location ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
                     />
+                    {validationErrors.location && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Location is required
+                      </p>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Main Form */}
-            <div className="lg:col-span-3 space-y-6">
-              {/* Header */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-bold text-gray-900">
-                    {currentContent.formTitle}
-                  </CardTitle>
-                  <CardDescription>Fill in the details for the new service</CardDescription>
-                </CardHeader>
-              </Card>
-
-              {/* Title */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                    {currentContent.serviceTitle}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => handleInputChange("title", e.target.value)}
-                    placeholder="Enter service title"
-                    inputMode={inputModes[language] as any}
-                    className="text-lg font-medium"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Description */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    {currentContent.description}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    placeholder="Enter detailed service description..."
-                    value={formData.description}
-                    onChange={(e) => handleInputChange("description", e.target.value)}
-                    inputMode={inputModes[language] as any}
-                    className="min-h-[120px] resize-vertical border-gray-300 focus:border-blue-500"
-                  />
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs text-gray-500">{formData.description.length} characters</span>
+                  <div>
+                    <Label 
+                      htmlFor="phone"
+                      className={validationErrors.phone ? "text-red-600" : ""}
+                    >
+                      Phone *
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="Enter phone"
+                      className={validationErrors.phone ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                    {validationErrors.phone && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Phone is required
+                      </p>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <Label 
+                      htmlFor="email"
+                      className={validationErrors.email ? "text-red-600" : ""}
+                    >
+                      Email *
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="Enter email"
+                      className={validationErrors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                    {validationErrors.email && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Valid email is required
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label 
+                      htmlFor="dateCreated"
+                      className={validationErrors.dateCreated ? "text-red-600" : ""}
+                    >
+                      Date Created *
+                    </Label>
+                    <Input
+                      id="dateCreated"
+                      type="date"
+                      value={formData.dateCreated}
+                      onChange={(e) => setFormData({ ...formData, dateCreated: e.target.value })}
+                      className={validationErrors.dateCreated ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                    {validationErrors.dateCreated && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Date is required
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Document Upload */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-2">
-                    <FileCheck className="h-4 w-4" />
-                    {currentContent.uploadDocument}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <p className="text-sm text-gray-600 mb-1">Upload PDF, DOC, or DOCX files</p>
-                    <Input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={(e) => e.target.files?.[0] && handleDocumentUpload(e.target.files[0])}
-                      className="hidden"
-                      id="document-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => document.getElementById("document-upload")?.click()}
-                      className="border-gray-300 text-gray-700"
-                    >
-                      Choose Document
-                    </Button>
-                    {formData.document && (
-                      <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-blue-700">✓ {formData.document.name}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDocumentUpload(null)}
-                            className="h-6 w-6 p-0 text-red-500"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="border-t pt-4">
+                <DocumentUpload
+                  documents={formData.documents}
+                  onDocumentsChange={(documents) => setFormData({ ...formData, documents })}
+                />
+              </div>
 
               {/* Image Upload */}
-              <Card className="border-0 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-gray-500 flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    {currentContent.uploadImages}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <p className="text-sm text-gray-600 mb-1">Upload JPG, PNG images</p>
-                    <p className="text-xs text-gray-500 mb-3">Minimum 1, Maximum 6 images</p>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => handleImageUpload(e.target.files)}
-                      className="hidden"
-                      id="image-upload"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => document.getElementById("image-upload")?.click()}
-                      className="border-gray-300 text-gray-700"
-                    >
-                      Choose Images
-                    </Button>
+              <div className="border-t pt-4">
+                <ImageUpload
+                  images={formData.images}
+                  onImagesChange={(images) => setFormData({ ...formData, images })}
+                />
+                {validationErrors.images && (
+                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    At least one image is required
+                  </p>
+                )}
+              </div>
 
-                    {/* Preview */}
-                    {formData.images.length > 0 && (
-                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {formData.images.map((img, index) => (
-                          <div key={index} className="relative border rounded-lg overflow-hidden">
-                            <img
-                              src={URL.createObjectURL(img)}
-                              alt={`Preview ${index + 1}`}
-                              className="w-full h-32 object-cover"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeImage(index)}
-                              className="absolute top-1 right-1 h-6 w-6 p-0 text-red-500 bg-white/70 rounded-full"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Featured Switch */}
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="featured"
+                  checked={formData.isFeatured}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
+                />
+                <Label htmlFor="featured">Feature this service</Label>
+              </div>
 
-              {/* Save */}
-              <div className="flex justify-end">
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 px-8">
-                  {currentContent.saveButton}
-                </Button>
+              {/* Status */}
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger id="status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          </div>
-        </form>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialog(null)}>Cancel</Button>
+              <Button onClick={handleCreateService}>Create Service</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search services by title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {SERVICE_CATEGORIES.map(category => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full md:w-40">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Language:</span>
+              <Select value={currentLanguage} onValueChange={(val: Language) => setCurrentLanguage(val)}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.map(lang => (
+                    <SelectItem key={lang} value={lang}>{LANGUAGE_NAMES[lang]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm("");
+                setFilterCategory("all");
+                setFilterStatus("all");
+              }}
+              className="w-full md:w-auto"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Results Count */}
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-600">
+          Showing {filteredServices.length} of {services.length} services
+        </p>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+            {services.filter(s => s.isFeatured).length} Featured
+          </Badge>
+          <Badge variant="secondary" className="bg-green-100 text-green-700">
+            {services.filter(s => s.status === "active").length} Active
+          </Badge>
+        </div>
+      </div>
+
+      {/* Services Grid */}
+      <div className="grid gap-6">
+        {filteredServices.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500">No services found matching your criteria.</p>
+              <Button variant="outline" className="mt-4" onClick={() => {
+                setSearchTerm("");
+                setFilterCategory("all");
+                setFilterStatus("all");
+              }}>
+                Clear filters
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredServices.map(service => (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              language={currentLanguage}
+              onView={() => {
+                setSelectedService(service);
+                setDialog("view");
+              }}
+              onEdit={() => {
+                setSelectedService(service);
+                setFormData(service);
+                setDialog("edit");
+              }}
+              onDelete={() => {
+                setSelectedService(service);
+                setDialog("delete");
+              }}
+              onToggleFeature={() => handleToggleFeature(service.id)}
+            />
+          ))
+        )}
+      </div>
+
+      {/* View Dialog */}
+      {dialog === "view" && selectedService && (
+        <Dialog open onOpenChange={() => setDialog(null)}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedService.title[currentLanguage]}
+                {selectedService.isFeatured && (
+                  <Badge className="bg-yellow-100 text-yellow-700">Featured</Badge>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedService.category} • Created on {formatDate(selectedService.dateCreated)}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Language Selector */}
+              <div className="flex gap-2">
+                {LANGUAGES.map(lang => (
+                  <Button
+                    key={lang}
+                    size="sm"
+                    variant={currentLanguage === lang ? "default" : "outline"}
+                    onClick={() => setCurrentLanguage(lang)}
+                  >
+                    {LANGUAGE_NAMES[lang]}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Images */}
+              {selectedService.images.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {selectedService.images.map((image, index) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt={`Service image ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <h4 className="font-semibold mb-2">Service Description</h4>
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  {selectedService.description[currentLanguage]}
+                </p>
+              </div>
+
+              {/* Contact Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-3">Contact Information</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-gray-500" />
+                      <span>{selectedService.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-gray-500" />
+                      <span>{selectedService.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span>{selectedService.email}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-3">Service Details</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Category:</span>
+                      <Badge variant="secondary">{selectedService.category}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <Badge className={selectedService.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                        {selectedService.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Date Created:</span>
+                      <span>{formatDate(selectedService.dateCreated)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Featured:</span>
+                      <span>{selectedService.isFeatured ? "Yes" : "No"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Documents */}
+              {selectedService.documents.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3">Documents</h4>
+                  <div className="space-y-2">
+                    {selectedService.documents.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm">Document {index + 1}</span>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Dialog */}
+      {dialog === "edit" && selectedService && (
+        <Dialog open onOpenChange={() => setDialog(null)}>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Service</DialogTitle>
+              <DialogDescription>Update the service details</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Language Tabs */}
+              <div className="flex gap-2">
+                {LANGUAGES.map(lang => (
+                  <Button
+                    key={lang}
+                    type="button"
+                    variant={currentLanguage === lang ? "default" : "outline"}
+                    onClick={() => setCurrentLanguage(lang)}
+                    className="flex-1"
+                  >
+                    {LANGUAGE_NAMES[lang]}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Language-specific Fields */}
+              {LANGUAGES.map(lang => (
+                <LanguageFormSection
+                  key={lang}
+                  language={lang}
+                  isActive={currentLanguage === lang}
+                  formData={formData}
+                  onFormDataChange={setFormData}
+                  validationErrors={validationErrors}
+                />
+              ))}
+
+              {/* Service Category */}
+              <div>
+                <Label 
+                  htmlFor="edit-category"
+                  className={validationErrors.category ? "text-red-600" : ""}
+                >
+                  Service Category *
+                </Label>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger 
+                    id="edit-category"
+                    className={validationErrors.category ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_CATEGORIES.map(category => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {validationErrors.category && (
+                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Category is required
+                  </p>
+                )}
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold">Contact Information</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label 
+                      htmlFor="edit-location"
+                      className={validationErrors.location ? "text-red-600" : ""}
+                    >
+                      Location *
+                    </Label>
+                    <Input
+                      id="edit-location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      className={validationErrors.location ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                    {validationErrors.location && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Location is required
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label 
+                      htmlFor="edit-phone"
+                      className={validationErrors.phone ? "text-red-600" : ""}
+                    >
+                      Phone *
+                    </Label>
+                    <Input
+                      id="edit-phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className={validationErrors.phone ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                    {validationErrors.phone && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Phone is required
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label 
+                      htmlFor="edit-email"
+                      className={validationErrors.email ? "text-red-600" : ""}
+                    >
+                      Email *
+                    </Label>
+                    <Input
+                      id="edit-email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className={validationErrors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                    {validationErrors.email && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Valid email is required
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label 
+                      htmlFor="edit-date"
+                      className={validationErrors.dateCreated ? "text-red-600" : ""}
+                    >
+                      Date Created *
+                    </Label>
+                    <Input
+                      id="edit-date"
+                      type="date"
+                      value={formData.dateCreated}
+                      onChange={(e) => setFormData({ ...formData, dateCreated: e.target.value })}
+                      className={validationErrors.dateCreated ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                    />
+                    {validationErrors.dateCreated && (
+                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Date is required
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Upload */}
+              <div className="border-t pt-4">
+                <DocumentUpload
+                  documents={formData.documents}
+                  onDocumentsChange={(documents) => setFormData({ ...formData, documents })}
+                />
+              </div>
+
+              {/* Image Upload */}
+              <div className="border-t pt-4">
+                <ImageUpload
+                  images={formData.images}
+                  onImagesChange={(images) => setFormData({ ...formData, images })}
+                />
+                {validationErrors.images && (
+                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    At least one image is required
+                  </p>
+                )}
+              </div>
+
+              {/* Featured Switch */}
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="edit-featured"
+                  checked={formData.isFeatured}
+                  onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
+                />
+                <Label htmlFor="edit-featured">Feature this service</Label>
+              </div>
+
+              {/* Status */}
+              <div>
+                <Label htmlFor="edit-status">Status</Label>
+                <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger id="edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialog(null)}>Cancel</Button>
+              <Button onClick={handleEditService}>Save Changes</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Delete Dialog */}
+      {dialog === "delete" && selectedService && (
+        <Dialog open onOpenChange={() => setDialog(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{selectedService.title.en}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialog(null)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDeleteService}>Delete Service</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
