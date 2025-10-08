@@ -64,9 +64,9 @@ export default function DashboardLayout({
         { name: 'notices', href: '/dashboard/events/notices', icon: Bell },
       ]
     },
-    { name: 'Departments', href: '/dashboard/departments', icon: Building2 },
-    { name: 'Gallery', href: '/dashboard/gallery', icon: Images },
-    { name: 'Documents', href: '/dashboard/documents', icon: FileText },
+    // { name: 'Departments', href: '/dashboard/departments', icon: Building2 },
+    // { name: 'Gallery', href: '/dashboard/gallery', icon: Images },
+    // { name: 'Documents', href: '/dashboard/documents', icon: FileText },
     { 
       name: 'Information', 
       href: '/dashboard/information', 
@@ -80,7 +80,7 @@ export default function DashboardLayout({
       ]
     },
     { name: 'User Management', href: '/dashboard/users', icon: UserCog },
-    { name: 'Reports & Logs', href: '/dashboard/reports', icon: BarChart3 },
+    // { name: 'Reports & Logs', href: '/dashboard/reports', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
