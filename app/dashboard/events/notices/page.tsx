@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Images, Plus, Upload, Trash2, Search, Video, FolderPlus, Eye, Download, Calendar, MapPin, Users, Filter, MoreVertical, Edit, X } from 'lucide-react';
+import { Images, Plus, Upload, Trash2, Search, Video, FolderPlus, Eye, Download, Calendar, MapPin, Users, Filter, MoreVertical, Edit, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,75 +15,90 @@ import { Switch } from '@/components/ui/switch';
 
 interface Notice {
   id: string;
-  title: string;
+  title: {
+    en: string;
+    ta: string;
+    si: string;
+  };
   date: string;
-  description: string;
+  description: {
+    en: string;
+    ta: string;
+    si: string;
+  };
   category: string;
-  ward: string;
   status: 'active' | 'expired' | 'draft';
   priority: 'high' | 'medium' | 'low';
   views: number;
   attachments: number;
   startDate: string;
   endDate: string;
-  contactPerson: string;
-  contactPhone: string;
-  location: string;
 }
 
 const sampleNotices: Notice[] = [
   {
     id: '1',
-    title: 'Water Supply Maintenance - Ward 3 & 4',
+    title: {
+      en: 'Water Supply Maintenance',
+      ta: 'நீர் விநியோக பராமரிப்பு',
+      si: 'ජල සැපයුම් නඩත්තුව'
+    },
     date: '1/16/2024',
-    description: 'Scheduled water supply maintenance will affect Ward 3 and Ward 4 areas from January 17, 6:00 AM to 4:00 PM. Alternative water supply arrangements have been made at community centers. Residents are advised to store adequate water for essential needs during this period.',
+    description: {
+      en: 'Scheduled water supply maintenance will affect areas from January 17, 6:00 AM to 4:00 PM. Alternative water supply arrangements have been made at community centers.',
+      ta: 'ஜனவரி 17, காலை 6:00 மணி முதல் மாலை 4:00 மணி வரை பகுதிகளை பராமரிப்பு பாதிக்கும். சமூக மையங்களில் மாற்று நீர் விநியோக ஏற்பாடுகள் செய்யப்பட்டுள்ளன.',
+      si: 'ජනවාරි 17, පෙ.ව. 6:00 සිට ප.ව. 4:00 දක්වා ප්‍රදේශ නඩත්තුවෙන් පීඩාවට ලක්වනු ඇත. සමාජ මධ්‍යස්ථානවල විකල්ප ජල සැපයුම් ගනුදෙනු සකස් කර ඇත.'
+    },
     category: 'Utility',
-    ward: 'Ward 3 & 4, Mannar',
     status: 'active',
     priority: 'high',
     views: 1245,
     attachments: 3,
     startDate: '2024-01-17',
-    endDate: '2024-01-17',
-    contactPerson: 'Mr. John Smith',
-    contactPhone: '+94 77 123 4567',
-    location: 'Community Center, Mannar'
+    endDate: '2024-01-17'
   },
   {
     id: '2',
-    title: 'Road Closure - Main Street Repair',
+    title: {
+      en: 'Road Closure - Main Street Repair',
+      ta: 'சாலை மூடப்படுதல் - மெயின் தெரு பழுது',
+      si: 'වීදි වසාදැමීම - ප්‍රධාන වීදිය අලුත්වැඩියාව'
+    },
     date: '1/15/2024',
-    description: 'Main Street will be closed for emergency repairs from January 18-20. Please use alternate routes via Church Road and Market Street. Emergency vehicles will have access at all times.',
+    description: {
+      en: 'Main Street will be closed for emergency repairs from January 18-20. Please use alternate routes via Church Road and Market Street.',
+      ta: 'ஜனவரி 18-20 வரை அவசர பழுதுபார்ப்பிற்காக மெயின் தெரு மூடப்படும். தயவுசெய்து சர்ச் ரோடு மற்றும் மார்க்கெட் தெரு வழியாக மாற்று வழிகளைப் பயன்படுத்தவும்.',
+      si: 'ජනවාරි 18-20 දක්වා හදිසි අලුත්වැඩියා සඳහා ප්‍රධාන වීදිය වසා දමනු ලැබේ. කරුණාකර චර්ච් රෝඩ් සහ මාර්කට් වීදිය හරහා විකල්ප මාර්ග භාවිතා කරන්න.'
+    },
     category: 'Infrastructure',
-    ward: 'Ward 1, Mannar',
     status: 'active',
     priority: 'medium',
     views: 892,
     attachments: 2,
     startDate: '2024-01-18',
-    endDate: '2024-01-20',
-    contactPerson: 'Ms. Sarah Johnson',
-    contactPhone: '+94 76 234 5678',
-    location: 'Main Street, Mannar'
-  },
-  {
-    id: '3',
-    title: 'Community Meeting Announcement',
-    date: '1/14/2024',
-    description: 'Monthly community meeting scheduled for January 25th at Town Hall. Agenda includes budget discussion, infrastructure projects, and community welfare programs. All residents are welcome to participate.',
-    category: 'Community',
-    ward: 'All Wards',
-    status: 'active',
-    priority: 'low',
-    views: 567,
-    attachments: 1,
-    startDate: '2024-01-25',
-    endDate: '2024-01-25',
-    contactPerson: 'Community Leader',
-    contactPhone: '+94 75 345 6789',
-    location: 'Town Hall, Mannar'
+    endDate: '2024-01-20'
   }
 ];
+
+type Language = 'en' | 'ta' | 'si';
+
+interface NewNoticeState {
+  title: {
+    en: string;
+    ta: string;
+    si: string;
+  };
+  description: {
+    en: string;
+    ta: string;
+    si: string;
+  };
+  category: string;
+  priority: 'high' | 'medium' | 'low';
+  status: 'active' | 'expired' | 'draft';
+  startDate: string;
+  endDate: string;
+}
 
 export default function NoticesPage() {
   const [notices, setNotices] = useState<Notice[]>(sampleNotices);
@@ -95,32 +110,71 @@ export default function NoticesPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
-  const [newNotice, setNewNotice] = useState({
-    title: '',
-    description: '',
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('en');
+  const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
+  const [saveMessage, setSaveMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  const [newNotice, setNewNotice] = useState<NewNoticeState>({
+    title: {
+      en: '',
+      ta: '',
+      si: ''
+    },
+    description: {
+      en: '',
+      ta: '',
+      si: ''
+    },
     category: '',
-    ward: '',
-    priority: 'medium' as 'high' | 'medium' | 'low',
-    status: 'active' as 'active' | 'expired' | 'draft',
+    priority: 'medium',
+    status: 'active',
     startDate: '',
-    endDate: '',
-    contactPerson: '',
-    contactPhone: '',
-    location: ''
+    endDate: ''
   });
 
   const filteredNotices = notices.filter(notice => {
-    const matchesSearch = notice.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         notice.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      notice.title.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notice.title.ta.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notice.title.si.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notice.description.en.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notice.description.ta.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      notice.description.si.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || notice.status === filterStatus;
     const matchesCategory = filterCategory === 'all' || notice.category === filterCategory;
     
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
+  const validateNotice = (): string | null => {
+    const missingLanguages: string[] = [];
+    
+    if (!newNotice.title.en.trim() || !newNotice.description.en.trim()) {
+      missingLanguages.push('English');
+    }
+    if (!newNotice.title.ta.trim() || !newNotice.description.ta.trim()) {
+      missingLanguages.push('Tamil');
+    }
+    if (!newNotice.title.si.trim() || !newNotice.description.si.trim()) {
+      missingLanguages.push('Sinhala');
+    }
+
+    if (!newNotice.category) {
+      return 'Please fill all required fields (Category)';
+    }
+
+    if (missingLanguages.length > 0) {
+      return `Please fill all content for: ${missingLanguages.join(', ')}`;
+    }
+
+    return null;
+  };
+
   const handleCreateNotice = () => {
-    if (!newNotice.title || !newNotice.description || !newNotice.category || !newNotice.ward) {
-      alert('Please fill in all required fields');
+    const validationError = validateNotice();
+    if (validationError) {
+      setErrorMessage(validationError);
       return;
     }
 
@@ -130,33 +184,31 @@ export default function NoticesPage() {
       date: new Date().toLocaleDateString(),
       description: newNotice.description,
       category: newNotice.category,
-      ward: newNotice.ward,
       status: newNotice.status,
       priority: newNotice.priority,
       views: 0,
       attachments: 0,
       startDate: newNotice.startDate,
-      endDate: newNotice.endDate,
-      contactPerson: newNotice.contactPerson,
-      contactPhone: newNotice.contactPhone,
-      location: newNotice.location
+      endDate: newNotice.endDate
     };
     
     setNotices([notice, ...notices]);
     setNewNotice({ 
-      title: '', 
-      description: '', 
+      title: { en: '', ta: '', si: '' },
+      description: { en: '', ta: '', si: '' },
       category: '', 
-      ward: '', 
       priority: 'medium',
       status: 'active',
       startDate: '',
-      endDate: '',
-      contactPerson: '',
-      contactPhone: '',
-      location: ''
+      endDate: ''
     });
-    setIsCreateDialogOpen(false);
+    setSaveMessage("Notice saved successfully!");
+    setErrorMessage('');
+    
+    setTimeout(() => {
+      setSaveMessage('');
+      setIsCreateDialogOpen(false);
+    }, 2000);
   };
 
   const handleViewNotice = (notice: Notice) => {
@@ -166,25 +218,28 @@ export default function NoticesPage() {
 
   const handleEditNotice = (notice: Notice) => {
     setSelectedNotice(notice);
+    setSelectedLanguage('en');
     setNewNotice({
       title: notice.title,
       description: notice.description,
       category: notice.category,
-      ward: notice.ward,
       priority: notice.priority,
       status: notice.status,
       startDate: notice.startDate,
-      endDate: notice.endDate,
-      contactPerson: notice.contactPerson,
-      contactPhone: notice.contactPhone,
-      location: notice.location
+      endDate: notice.endDate
     });
     setIsEditDialogOpen(true);
   };
 
   const handleUpdateNotice = () => {
-    if (!selectedNotice || !newNotice.title || !newNotice.description || !newNotice.category || !newNotice.ward) {
-      alert('Please fill in all required fields');
+    const validationError = validateNotice();
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
+
+    if (!selectedNotice) {
+      setErrorMessage('No notice selected for update');
       return;
     }
 
@@ -195,34 +250,32 @@ export default function NoticesPage() {
             title: newNotice.title,
             description: newNotice.description,
             category: newNotice.category,
-            ward: newNotice.ward,
             priority: newNotice.priority,
             status: newNotice.status,
             startDate: newNotice.startDate,
-            endDate: newNotice.endDate,
-            contactPerson: newNotice.contactPerson,
-            contactPhone: newNotice.contactPhone,
-            location: newNotice.location
+            endDate: newNotice.endDate
           }
         : notice
     );
 
     setNotices(updatedNotices);
-    setIsEditDialogOpen(false);
-    setSelectedNotice(null);
-    setNewNotice({ 
-      title: '', 
-      description: '', 
-      category: '', 
-      ward: '', 
-      priority: 'medium',
-      status: 'active',
-      startDate: '',
-      endDate: '',
-      contactPerson: '',
-      contactPhone: '',
-      location: ''
-    });
+    setSaveMessage("Notice updated successfully!");
+    setErrorMessage('');
+    
+    setTimeout(() => {
+      setSaveMessage('');
+      setIsEditDialogOpen(false);
+      setSelectedNotice(null);
+      setNewNotice({ 
+        title: { en: '', ta: '', si: '' },
+        description: { en: '', ta: '', si: '' },
+        category: '', 
+        priority: 'medium',
+        status: 'active',
+        startDate: '',
+        endDate: ''
+      });
+    }, 2000);
   };
 
   const handleDeleteNotice = (notice: Notice) => {
@@ -267,6 +320,45 @@ export default function NoticesPage() {
     });
   };
 
+  const updateNewNoticeTitle = (value: string) => {
+    setNewNotice({
+      ...newNotice,
+      title: {
+        ...newNotice.title,
+        [selectedLanguage]: value
+      }
+    });
+  };
+
+  const updateNewNoticeDescription = (value: string) => {
+    setNewNotice({
+      ...newNotice,
+      description: {
+        ...newNotice.description,
+        [selectedLanguage]: value
+      }
+    });
+  };
+
+  const getLanguageLabel = (lang: Language) => {
+    switch (lang) {
+      case 'en': return 'English';
+      case 'ta': return 'Tamil';
+      case 'si': return 'Sinhala';
+      default: return 'English';
+    }
+  };
+
+  const LanguageTabs = () => (
+    <Tabs value={selectedLanguage} onValueChange={(value) => setSelectedLanguage(value as Language)}>
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="en">English</TabsTrigger>
+        <TabsTrigger value="ta">Tamil</TabsTrigger>
+        <TabsTrigger value="si">Sinhala</TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -276,45 +368,72 @@ export default function NoticesPage() {
             <h1 className="text-3xl font-bold text-gray-900">Public Notices</h1>
             <p className="text-gray-600 mt-2">Manage and publish important community announcements</p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+            setIsCreateDialogOpen(open);
+            if (!open) {
+              setErrorMessage('');
+              setSaveMessage('');
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white mt-4 sm:mt-0">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Notice
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Notice</DialogTitle>
                 <DialogDescription>
-                  Fill in all the details for the new public notice. Fields marked with * are required.
+                  Fill in all the details for the new public notice in all three languages. All language fields are required.
                 </DialogDescription>
               </DialogHeader>
+              
               <div className="grid gap-4 py-4">
+                {/* Language Tabs */}
+                <LanguageTabs />
+
+                {/* Title Input */}
                 <div className="grid gap-2">
-                  <Label htmlFor="title">Title *</Label>
+                  <Label htmlFor="title">
+                    Title ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
                   <Input
                     id="title"
-                    value={newNotice.title}
-                    onChange={(e) => setNewNotice({...newNotice, title: e.target.value})}
-                    placeholder="Enter notice title"
+                    value={newNotice.title[selectedLanguage]}
+                    onChange={(e) => updateNewNoticeTitle(e.target.value)}
+                    placeholder={`Enter notice title in ${getLanguageLabel(selectedLanguage)}`}
+                    className={!newNotice.title[selectedLanguage].trim() && errorMessage ? "border-red-500" : ""}
                   />
+                  {!newNotice.title[selectedLanguage].trim() && errorMessage && (
+                    <p className="text-red-500 text-sm">Title is required in {getLanguageLabel(selectedLanguage)}</p>
+                  )}
                 </div>
+
+                {/* Description Input */}
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Description *</Label>
+                  <Label htmlFor="description">
+                    Description ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
                   <Textarea
                     id="description"
-                    value={newNotice.description}
-                    onChange={(e) => setNewNotice({...newNotice, description: e.target.value})}
-                    placeholder="Enter detailed notice description"
+                    value={newNotice.description[selectedLanguage]}
+                    onChange={(e) => updateNewNoticeDescription(e.target.value)}
+                    placeholder={`Enter detailed notice description in ${getLanguageLabel(selectedLanguage)}`}
                     rows={4}
+                    className={!newNotice.description[selectedLanguage].trim() && errorMessage ? "border-red-500" : ""}
                   />
+                  {!newNotice.description[selectedLanguage].trim() && errorMessage && (
+                    <p className="text-red-500 text-sm">Description is required in {getLanguageLabel(selectedLanguage)}</p>
+                  )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* Common Fields */}
+                <div className="grid grid-cols-1 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="category">Category *</Label>
                     <Select value={newNotice.category} onValueChange={(value) => setNewNotice({...newNotice, category: value})}>
-                      <SelectTrigger>
+                      <SelectTrigger className={!newNotice.category && errorMessage ? "border-red-500" : ""}>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
@@ -327,17 +446,12 @@ export default function NoticesPage() {
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="ward">Ward *</Label>
-                    <Input
-                      id="ward"
-                      value={newNotice.ward}
-                      onChange={(e) => setNewNotice({...newNotice, ward: e.target.value})}
-                      placeholder="e.g., Ward 3 & 4, Mannar"
-                    />
+                    {!newNotice.category && errorMessage && (
+                      <p className="text-red-500 text-sm">Category is required</p>
+                    )}
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="priority">Priority</Label>
@@ -366,6 +480,7 @@ export default function NoticesPage() {
                     </Select>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="startDate">Start Date</Label>
@@ -386,38 +501,41 @@ export default function NoticesPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="contactPerson">Contact Person</Label>
-                    <Input
-                      id="contactPerson"
-                      value={newNotice.contactPerson}
-                      onChange={(e) => setNewNotice({...newNotice, contactPerson: e.target.value})}
-                      placeholder="Name of contact person"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="contactPhone">Contact Phone</Label>
-                    <Input
-                      id="contactPhone"
-                      value={newNotice.contactPhone}
-                      onChange={(e) => setNewNotice({...newNotice, contactPhone: e.target.value})}
-                      placeholder="Phone number"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={newNotice.location}
-                    onChange={(e) => setNewNotice({...newNotice, location: e.target.value})}
-                    placeholder="Specific location or venue"
-                  />
-                </div>
               </div>
+
+              {/* Alert Messages under the form */}
+              <div className="space-y-2">
+                {errorMessage && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                    <div className="flex items-center">
+                      <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+                      <div>
+                        <p className="text-red-800 font-medium">Please complete all required fields</p>
+                        <p className="text-red-600 text-sm">{errorMessage}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {saveMessage && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                    <div className="flex items-center">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                      <div>
+                        <p className="text-green-800 font-medium">Success!</p>
+                        <p className="text-green-600 text-sm">{saveMessage}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => {
+                  setIsCreateDialogOpen(false);
+                  setErrorMessage('');
+                  setSaveMessage('');
+                }}>Cancel</Button>
                 <Button onClick={handleCreateNotice}>Publish Notice</Button>
               </DialogFooter>
             </DialogContent>
@@ -478,6 +596,29 @@ export default function NoticesPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Results Count and Language Switcher */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          {/* Results Count */}
+          <p className="text-sm text-gray-600 mb-4 sm:mb-0">
+            Showing {filteredNotices.length} of {notices.length} notices
+          </p>
+          
+          {/* Language Switcher */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">View in:</span>
+            <Select value={currentLanguage} onValueChange={(val: Language) => setCurrentLanguage(val)}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="ta">Tamil</SelectItem>
+                <SelectItem value="si">Sinhala</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Filters and Search */}
@@ -549,17 +690,18 @@ export default function NoticesPage() {
                       </Badge>
                     </div>
                     
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{notice.title}</h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">{notice.description}</p>
+                    {/* Display title in selected language */}
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {notice.title[currentLanguage]}
+                    </h3>
+                    <p className="text-gray-600 mb-4 line-clamp-2">
+                      {notice.description[currentLanguage]}
+                    </p>
                     
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
                         {notice.date}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {notice.ward}
                       </div>
                       <div className="flex items-center gap-1">
                         <Eye className="w-4 h-4" />
@@ -571,6 +713,16 @@ export default function NoticesPage() {
                           {notice.attachments} files
                         </div>
                       )}
+                    </div>
+
+                    {/* Language Indicators */}
+                    <div className="flex gap-2 mt-3">
+                      <Badge variant="outline" className="text-xs bg-gray-50">
+                        TA: {notice.title.ta.substring(0, 20)}...
+                      </Badge>
+                      <Badge variant="outline" className="text-xs bg-gray-50">
+                        SI: {notice.title.si.substring(0, 20)}...
+                      </Badge>
                     </div>
                   </div>
                   
@@ -620,12 +772,12 @@ export default function NoticesPage() {
 
         {/* View Notice Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Notice Details</DialogTitle>
             </DialogHeader>
             {selectedNotice && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline" className={getPriorityColor(selectedNotice.priority)}>
                     {selectedNotice.priority.toUpperCase()}
@@ -637,21 +789,41 @@ export default function NoticesPage() {
                     {selectedNotice.category}
                   </Badge>
                 </div>
+
+                <Tabs defaultValue={currentLanguage} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="en">English</TabsTrigger>
+                    <TabsTrigger value="ta">Tamil</TabsTrigger>
+                    <TabsTrigger value="si">Sinhala</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="en" className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{selectedNotice.title.en}</h3>
+                      <p className="text-gray-600 mt-2 whitespace-pre-wrap">{selectedNotice.description.en}</p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="ta" className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{selectedNotice.title.ta}</h3>
+                      <p className="text-gray-600 mt-2 whitespace-pre-wrap">{selectedNotice.description.ta}</p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="si" className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{selectedNotice.title.si}</h3>
+                      <p className="text-gray-600 mt-2 whitespace-pre-wrap">{selectedNotice.description.si}</p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
                 
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{selectedNotice.title}</h3>
-                  <p className="text-gray-600 mt-2">{selectedNotice.description}</p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm border-t pt-4">
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Published Date:</span>
                       <span className="font-medium">{selectedNotice.date}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Ward:</span>
-                      <span className="font-medium">{selectedNotice.ward}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Views:</span>
@@ -673,32 +845,6 @@ export default function NoticesPage() {
                     </div>
                   </div>
                 </div>
-                
-                {(selectedNotice.contactPerson || selectedNotice.contactPhone || selectedNotice.location) && (
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold text-gray-900 mb-2">Contact Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      {selectedNotice.contactPerson && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Contact Person:</span>
-                          <span className="font-medium">{selectedNotice.contactPerson}</span>
-                        </div>
-                      )}
-                      {selectedNotice.contactPhone && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Contact Phone:</span>
-                          <span className="font-medium">{selectedNotice.contactPhone}</span>
-                        </div>
-                      )}
-                      {selectedNotice.location && (
-                        <div className="flex justify-between md:col-span-2">
-                          <span className="text-gray-500">Location:</span>
-                          <span className="font-medium text-right">{selectedNotice.location}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
             <DialogFooter>
@@ -708,39 +854,62 @@ export default function NoticesPage() {
         </Dialog>
 
         {/* Edit Notice Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setErrorMessage('');
+            setSaveMessage('');
+          }
+        }}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Notice</DialogTitle>
               <DialogDescription>
-                Update the notice details below.
+                Update the notice details in all three languages. All language fields are required.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              {/* Language Tabs */}
+              <LanguageTabs />
+
               <div className="grid gap-2">
-                <Label htmlFor="edit-title">Title *</Label>
+                <Label htmlFor="edit-title">
+                  Title ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
                 <Input
                   id="edit-title"
-                  value={newNotice.title}
-                  onChange={(e) => setNewNotice({...newNotice, title: e.target.value})}
-                  placeholder="Enter notice title"
+                  value={newNotice.title[selectedLanguage]}
+                  onChange={(e) => updateNewNoticeTitle(e.target.value)}
+                  placeholder={`Enter notice title in ${getLanguageLabel(selectedLanguage)}`}
+                  className={!newNotice.title[selectedLanguage].trim() && errorMessage ? "border-red-500" : ""}
                 />
+                {!newNotice.title[selectedLanguage].trim() && errorMessage && (
+                  <p className="text-red-500 text-sm">Title is required in {getLanguageLabel(selectedLanguage)}</p>
+                )}
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="edit-description">Description *</Label>
+                <Label htmlFor="edit-description">
+                  Description ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
                 <Textarea
                   id="edit-description"
-                  value={newNotice.description}
-                  onChange={(e) => setNewNotice({...newNotice, description: e.target.value})}
-                  placeholder="Enter detailed notice description"
+                  value={newNotice.description[selectedLanguage]}
+                  onChange={(e) => updateNewNoticeDescription(e.target.value)}
+                  placeholder={`Enter detailed notice description in ${getLanguageLabel(selectedLanguage)}`}
                   rows={4}
+                  className={!newNotice.description[selectedLanguage].trim() && errorMessage ? "border-red-500" : ""}
                 />
+                {!newNotice.description[selectedLanguage].trim() && errorMessage && (
+                  <p className="text-red-500 text-sm">Description is required in {getLanguageLabel(selectedLanguage)}</p>
+                )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-category">Category *</Label>
                   <Select value={newNotice.category} onValueChange={(value) => setNewNotice({...newNotice, category: value})}>
-                    <SelectTrigger>
+                    <SelectTrigger className={!newNotice.category && errorMessage ? "border-red-500" : ""}>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -753,17 +922,12 @@ export default function NoticesPage() {
                       <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-ward">Ward *</Label>
-                  <Input
-                    id="edit-ward"
-                    value={newNotice.ward}
-                    onChange={(e) => setNewNotice({...newNotice, ward: e.target.value})}
-                    placeholder="e.g., Ward 3 & 4, Mannar"
-                  />
+                  {!newNotice.category && errorMessage && (
+                    <p className="text-red-500 text-sm">Category is required</p>
+                  )}
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-priority">Priority</Label>
@@ -792,6 +956,7 @@ export default function NoticesPage() {
                   </Select>
                 </div>
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-startDate">Start Date</Label>
@@ -812,38 +977,41 @@ export default function NoticesPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-contactPerson">Contact Person</Label>
-                  <Input
-                    id="edit-contactPerson"
-                    value={newNotice.contactPerson}
-                    onChange={(e) => setNewNotice({...newNotice, contactPerson: e.target.value})}
-                    placeholder="Name of contact person"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="edit-contactPhone">Contact Phone</Label>
-                  <Input
-                    id="edit-contactPhone"
-                    value={newNotice.contactPhone}
-                    onChange={(e) => setNewNotice({...newNotice, contactPhone: e.target.value})}
-                    placeholder="Phone number"
-                  />
-                </div>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-location">Location</Label>
-                <Input
-                  id="edit-location"
-                  value={newNotice.location}
-                  onChange={(e) => setNewNotice({...newNotice, location: e.target.value})}
-                  placeholder="Specific location or venue"
-                />
-              </div>
             </div>
+
+            {/* Alert Messages under the form */}
+            <div className="space-y-2">
+              {errorMessage && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+                    <div>
+                      <p className="text-red-800 font-medium">Please complete all required fields</p>
+                      <p className="text-red-600 text-sm">{errorMessage}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {saveMessage && (
+                <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                  <div className="flex items-center">
+                    <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+                    <div>
+                      <p className="text-green-800 font-medium">Success!</p>
+                      <p className="text-green-600 text-sm">{saveMessage}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => {
+                setIsEditDialogOpen(false);
+                setErrorMessage('');
+                setSaveMessage('');
+              }}>Cancel</Button>
               <Button onClick={handleUpdateNotice}>Update Notice</Button>
             </DialogFooter>
           </DialogContent>
@@ -860,8 +1028,8 @@ export default function NoticesPage() {
             </DialogHeader>
             {selectedNotice && (
               <div className="py-4">
-                <p className="font-medium text-gray-900">{selectedNotice.title}</p>
-                <p className="text-sm text-gray-600 mt-1">{selectedNotice.category} • {selectedNotice.ward}</p>
+                <p className="font-medium text-gray-900">{selectedNotice.title.en}</p>
+                <p className="text-sm text-gray-600 mt-1">{selectedNotice.category}</p>
               </div>
             )}
             <DialogFooter>
