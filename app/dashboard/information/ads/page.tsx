@@ -734,7 +734,9 @@ export default function PublicAdvertisementsPage() {
   });
 
   // Get unique categories for filter dropdown
-  const categories = Array.from(new Set(advertisements.map((a) => a.category)));
+  const categories = Array.from(
+    new Set(advertisements?.map((a) => a.category).filter(Boolean) || [])
+  );
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">

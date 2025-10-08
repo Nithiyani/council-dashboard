@@ -3,10 +3,30 @@ import { useState } from "react";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -104,12 +124,19 @@ export const InfoCard = ({
       <CardContent>
         <div className="space-y-4">
           {items.map((item) => (
-            <div key={item.id} className="p-4 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors">
+            <div
+              key={item.id}
+              className="p-4 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors"
+            >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <span className="text-sm font-medium">{getDisplayText(item.title)}</span>
+                  <span className="text-sm font-medium">
+                    {getDisplayText(item.title)}
+                  </span>
                   {item.subtext && (
-                    <p className="text-xs text-gray-500 mt-1">{getDisplayText(item.subtext)}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {getDisplayText(item.subtext)}
+                    </p>
                   )}
                 </div>
                 <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -144,7 +171,11 @@ export const InfoCard = ({
           {/* Add Dialog */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2" onClick={handleAddOpen}>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={handleAddOpen}
+              >
                 <Plus className="w-4 h-4" />
                 Add {title}
               </Button>
@@ -155,27 +186,43 @@ export const InfoCard = ({
                 <p className="text-sm text-gray-500 mt-1">{description}</p>
               </DialogHeader>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleAdd)} className="space-y-6">
-                  <Tabs value={langTab} onValueChange={v => setLangTab(v as Language)} className="mb-2">
+                <form
+                  onSubmit={form.handleSubmit(handleAdd)}
+                  className="space-y-6"
+                >
+                  <Tabs
+                    value={langTab}
+                    onValueChange={(v) => setLangTab(v as Language)}
+                    className="mb-2"
+                  >
                     <TabsList>
                       <TabsTrigger value="en">English</TabsTrigger>
                       <TabsTrigger value="ta">Tamil</TabsTrigger>
                       <TabsTrigger value="si">Sinhala</TabsTrigger>
                     </TabsList>
                     {(["en", "ta", "si"] as const).map((lang) => (
-                      <TabsContent key={lang} value={lang} className="space-y-4">
+                      <TabsContent
+                        key={lang}
+                        value={lang}
+                        className="space-y-4"
+                      >
                         <div className="space-y-2">
                           <Label>Title ({lang.toUpperCase()}) *</Label>
                           <Input
                             value={form.watch(`title.${lang}`)}
                             onChange={(e) => {
-                              const newTitle = { ...form.watch("title"), [lang]: e.target.value };
+                              const newTitle = {
+                                ...form.watch("title"),
+                                [lang]: e.target.value,
+                              };
                               form.setValue("title", newTitle);
                             }}
                             placeholder={`Enter title in ${lang}`}
                           />
-                          {form.formState.errors.title?.[lang] && (
-                            <p className="text-sm text-red-600">{form.formState.errors.title[lang].message}</p>
+                          {form.formState.errors.title?.[lang]?.message && (
+                            <p className="text-sm text-red-600">
+                              {form.formState.errors.title?.[lang]?.message}
+                            </p>
                           )}
                         </div>
                         <div className="space-y-2">
@@ -183,13 +230,18 @@ export const InfoCard = ({
                           <Input
                             value={form.watch(`subtext.${lang}`)}
                             onChange={(e) => {
-                              const newSubtext = { ...form.watch("subtext"), [lang]: e.target.value };
+                              const newSubtext = {
+                                ...form.watch("subtext"),
+                                [lang]: e.target.value,
+                              };
                               form.setValue("subtext", newSubtext);
                             }}
                             placeholder={`Enter details in ${lang}`}
                           />
-                          {form.formState.errors.subtext?.[lang] && (
-                            <p className="text-sm text-red-600">{form.formState.errors.subtext[lang].message}</p>
+                          {form.formState.errors.subtext?.[lang]?.message && (
+                            <p>
+                              {form.formState.errors.subtext?.[lang]?.message}
+                            </p>
                           )}
                         </div>
                       </TabsContent>
@@ -197,7 +249,11 @@ export const InfoCard = ({
                   </Tabs>
 
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit">Add</Button>
@@ -212,30 +268,48 @@ export const InfoCard = ({
             <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit {title}</DialogTitle>
-                <p className="text-sm text-gray-500 mt-1">Edit the {title.toLowerCase()} details</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Edit the {title.toLowerCase()} details
+                </p>
               </DialogHeader>
               <Form {...editForm}>
-                <form onSubmit={editForm.handleSubmit(handleEdit)} className="space-y-6">
-                  <Tabs value={langTab} onValueChange={v => setLangTab(v as Language)} className="mb-2">
+                <form
+                  onSubmit={editForm.handleSubmit(handleEdit)}
+                  className="space-y-6"
+                >
+                  <Tabs
+                    value={langTab}
+                    onValueChange={(v) => setLangTab(v as Language)}
+                    className="mb-2"
+                  >
                     <TabsList>
                       <TabsTrigger value="en">English</TabsTrigger>
                       <TabsTrigger value="ta">Tamil</TabsTrigger>
                       <TabsTrigger value="si">Sinhala</TabsTrigger>
                     </TabsList>
                     {(["en", "ta", "si"] as const).map((lang) => (
-                      <TabsContent key={lang} value={lang} className="space-y-4">
+                      <TabsContent
+                        key={lang}
+                        value={lang}
+                        className="space-y-4"
+                      >
                         <div className="space-y-2">
                           <Label>Title ({lang.toUpperCase()}) *</Label>
                           <Input
                             value={editForm.watch(`title.${lang}`)}
                             onChange={(e) => {
-                              const newTitle = { ...editForm.watch("title"), [lang]: e.target.value };
+                              const newTitle = {
+                                ...editForm.watch("title"),
+                                [lang]: e.target.value,
+                              };
                               editForm.setValue("title", newTitle);
                             }}
                             placeholder={`Enter title in ${lang}`}
                           />
                           {editForm.formState.errors.title?.[lang] && (
-                            <p className="text-sm text-red-600">{editForm.formState.errors.title[lang].message}</p>
+                            <p className="text-sm text-red-600">
+                              {editForm.formState.errors.title[lang].message}
+                            </p>
                           )}
                         </div>
                         <div className="space-y-2">
@@ -243,13 +317,18 @@ export const InfoCard = ({
                           <Input
                             value={editForm.watch(`subtext.${lang}`)}
                             onChange={(e) => {
-                              const newSubtext = { ...editForm.watch("subtext"), [lang]: e.target.value };
+                              const newSubtext = {
+                                ...editForm.watch("subtext"),
+                                [lang]: e.target.value,
+                              };
                               editForm.setValue("subtext", newSubtext);
                             }}
                             placeholder={`Enter details in ${lang}`}
                           />
                           {editForm.formState.errors.subtext?.[lang] && (
-                            <p className="text-sm text-red-600">{editForm.formState.errors.subtext[lang].message}</p>
+                            <p className="text-sm text-red-600">
+                              {editForm.formState.errors.subtext[lang].message}
+                            </p>
                           )}
                         </div>
                       </TabsContent>
@@ -257,7 +336,11 @@ export const InfoCard = ({
                   </Tabs>
 
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsEditDialogOpen(false)}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit">Update</Button>
