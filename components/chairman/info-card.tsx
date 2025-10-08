@@ -95,6 +95,9 @@ export const InfoCard = ({
   const getDisplayText = (text: { en: string; ta: string; si: string }) => {
     return text[currentLanguage] || text.en;
   };
+  const getErrorMessage = (field: "title" | "subtext", lang: Language) =>
+  editForm.formState.errors[field]?.[lang]?.message ?? "";
+
 
   const handleEditClick = (item: InfoCardItem) => {
     setEditingItem(item);
@@ -264,93 +267,79 @@ export const InfoCard = ({
           </Dialog>
 
           {/* Edit Dialog */}
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Edit {title}</DialogTitle>
-                <p className="text-sm text-gray-500 mt-1">
-                  Edit the {title.toLowerCase()} details
+         {/* Edit Dialog */}
+<Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+  <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>Edit {title}</DialogTitle>
+      <p className="text-sm text-gray-500 mt-1">
+        Edit the {title.toLowerCase()} details
+      </p>
+    </DialogHeader>
+    <Form {...editForm}>
+      <form
+        onSubmit={editForm.handleSubmit(handleEdit)}
+        className="space-y-6"
+      >
+        <Tabs
+          value={langTab}
+          onValueChange={(v) => setLangTab(v as Language)}
+          className="mb-2"
+        >
+          <TabsList>
+            <TabsTrigger value="en">English</TabsTrigger>
+            <TabsTrigger value="ta">Tamil</TabsTrigger>
+            <TabsTrigger value="si">Sinhala</TabsTrigger>
+          </TabsList>
+          {(["en", "ta", "si"] as const).map((lang) => (
+            <TabsContent key={lang} value={lang} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Title ({lang.toUpperCase()}) *</Label>
+                <Input
+                  value={editForm.watch(`title.${lang}`)}
+                  onChange={(e) =>
+                    editForm.setValue(`title.${lang}`, e.target.value)
+                  }
+                  placeholder={`Enter title in ${lang}`}
+                />
+                <p className="text-sm text-red-600">
+                  {editForm.formState.errors.title?.[lang]?.message}
                 </p>
-              </DialogHeader>
-              <Form {...editForm}>
-                <form
-                  onSubmit={editForm.handleSubmit(handleEdit)}
-                  className="space-y-6"
-                >
-                  <Tabs
-                    value={langTab}
-                    onValueChange={(v) => setLangTab(v as Language)}
-                    className="mb-2"
-                  >
-                    <TabsList>
-                      <TabsTrigger value="en">English</TabsTrigger>
-                      <TabsTrigger value="ta">Tamil</TabsTrigger>
-                      <TabsTrigger value="si">Sinhala</TabsTrigger>
-                    </TabsList>
-                    {(["en", "ta", "si"] as const).map((lang) => (
-                      <TabsContent
-                        key={lang}
-                        value={lang}
-                        className="space-y-4"
-                      >
-                        <div className="space-y-2">
-                          <Label>Title ({lang.toUpperCase()}) *</Label>
-                          <Input
-                            value={editForm.watch(`title.${lang}`)}
-                            onChange={(e) => {
-                              const newTitle = {
-                                ...editForm.watch("title"),
-                                [lang]: e.target.value,
-                              };
-                              editForm.setValue("title", newTitle);
-                            }}
-                            placeholder={`Enter title in ${lang}`}
-                          />
-                          {editForm.formState.errors.title?.[lang] && (
-                            <p className="text-sm text-red-600">
-                              {editForm.formState.errors.title[lang].message}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Details ({lang.toUpperCase()})</Label>
-                          <Input
-                            value={editForm.watch(`subtext.${lang}`)}
-                            onChange={(e) => {
-                              const newSubtext = {
-                                ...editForm.watch("subtext"),
-                                [lang]: e.target.value,
-                              };
-                              editForm.setValue("subtext", newSubtext);
-                            }}
-                            placeholder={`Enter details in ${lang}`}
-                          />
-                          {editForm.formState.errors.subtext?.[lang] && (
-                            <p className="text-sm text-red-600">
-                              {editForm.formState.errors.subtext[lang].message}
-                            </p>
-                          )}
-                        </div>
-                      </TabsContent>
-                    ))}
-                  </Tabs>
+              </div>
+              <div className="space-y-2">
+                <Label>Details ({lang.toUpperCase()})</Label>
+                <Input
+                  value={editForm.watch(`subtext.${lang}`)}
+                  onChange={(e) =>
+                    editForm.setValue(`subtext.${lang}`, e.target.value)
+                  }
+                  placeholder={`Enter details in ${lang}`}
+                />
+                <p className="text-sm text-red-600">
+                  {editForm.formState.errors.subtext?.[lang]?.message}
+                </p>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
 
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsEditDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit">Update</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsEditDialogOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button type="submit">Update</Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  </DialogContent>
+</Dialog>
+
         </div>
       </CardContent>
     </Card>
   );
-};
+};  
