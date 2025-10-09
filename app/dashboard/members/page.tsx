@@ -380,7 +380,6 @@ export default function CouncilMemberPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  // const [isMessageOpen, setIsMessageOpen] = useState(false);
 
   // Form states
   const [formName, setFormName] = useState({ english: "", tamil: "", sinhala: "" });
@@ -395,6 +394,10 @@ export default function CouncilMemberPage() {
   const [formAddress, setFormAddress] = useState({ english: "", tamil: "", sinhala: "" });
   const [formMessage, setFormMessage] = useState({ english: "", tamil: "", sinhala: "" });
 
+  // Form validation states
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showFormError, setShowFormError] = useState(false);
+
   // Academics & Honours
   const [academics, setAcademics] = useState<InfoCardItem[]>([]);
   const [honours, setHonours] = useState<InfoCardItem[]>([]);
@@ -406,6 +409,35 @@ export default function CouncilMemberPage() {
   // Helper function to get text in current language
   const getText = (text: { english: string; tamil: string; sinhala: string }) => {
     return text[currentLanguage as keyof typeof text] || text.english;
+  };
+
+  // Validation function
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formName.english.trim()) {
+      errors.nameEnglish = "English name is required";
+    }
+
+    if (!formPhone.trim()) {
+      errors.phone = "Phone number is required";
+    } else if (!/^\+?[\d\s-()]+$/.test(formPhone)) {
+      errors.phone = "Please enter a valid phone number";
+    }
+
+    if (!formEmail.trim()) {
+      errors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!formRole.english.trim()) {
+      errors.role = "Role is required";
+    }
+
+    setFormErrors(errors);
+    setShowFormError(Object.keys(errors).length > 0);
+    return Object.keys(errors).length === 0;
   };
 
   const filteredMembers = useMemo(() => {
@@ -430,6 +462,18 @@ export default function CouncilMemberPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert("Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormProfile(reader.result as string);
@@ -446,7 +490,9 @@ export default function CouncilMemberPage() {
 
   // Handlers
   const handleAddMember = () => {
-    if (!formName.english.trim()) return;
+    if (!validateForm()) {
+      return;
+    }
     
     const newMember: Member = {
       id: Date.now(),
@@ -464,9 +510,14 @@ export default function CouncilMemberPage() {
     setMembers([...members, newMember]);
     resetForm();
     setIsAddOpen(false);
+    alert("Member added successfully!");
   };
 
   const handleEditMember = () => {
+    if (!validateForm()) {
+      return;
+    }
+
     if (selectedMember) {
       setMembers(
         members.map((m) =>
@@ -479,18 +530,20 @@ export default function CouncilMemberPage() {
                 email: formEmail,
                 profile: formProfile || m.profile,
                 tenure: formTenure,
-                // message: formMessage,
-                // address: formAddress
               }
             : m
         )
       );
       setIsEditOpen(false);
+      alert("Member profile updated successfully!");
     }
   };
 
   const handleDeleteMember = (id: number) => {
-    setMembers(members.filter((m) => m.id !== id));
+    if (window.confirm("Are you sure you want to delete this member?")) {
+      setMembers(members.filter((m) => m.id !== id));
+      alert("Member deleted successfully!");
+    }
   };
 
   const openEditModal = (member: Member) => {
@@ -501,8 +554,9 @@ export default function CouncilMemberPage() {
     setFormEmail(member.email);
     setFormProfile(member.profile);
     setFormTenure(member.tenure);
-    // setFormMessage(member.message);
     setFormAddress(member.address);
+    setFormErrors({});
+    setShowFormError(false);
     setIsEditOpen(true);
   };
 
@@ -511,12 +565,6 @@ export default function CouncilMemberPage() {
     setIsViewOpen(true);
   };
 
-  // const openMessageModal = (member: Member) => {
-  //   setSelectedMember(member);
-  //   setFormMessage(member.message);
-  //   setIsMessageOpen(true);
-  // };
-
   const resetForm = () => {
     setFormName({ english: "", tamil: "", sinhala: "" });
     setFormRole(roles[0]);
@@ -524,21 +572,23 @@ export default function CouncilMemberPage() {
     setFormEmail("");
     setFormProfile("");
     setFormTenure({ startDate: { english: "", tamil: "", sinhala: "" }, currentTerm: { english: "", tamil: "", sinhala: "" } });
-    // setFormMessage({ english: "", tamil: "", sinhala: "" });
+    setFormMessage({ english: "", tamil: "", sinhala: "" });
     setFormAddress({ english: "", tamil: "", sinhala: "" });
+    setFormErrors({});
+    setShowFormError(false);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-4">
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Council Members</h1>
           <p className="text-gray-600">Manage council members, roles and contacts</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <Select value={currentLanguage} onValueChange={setCurrentLanguage}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full md:w-40">
               <Languages className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Select Language" />
             </SelectTrigger>
@@ -553,7 +603,7 @@ export default function CouncilMemberPage() {
 
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full md:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Member
               </Button>
@@ -569,7 +619,14 @@ export default function CouncilMemberPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Name (English) *</Label>
-                      <Input value={formName.english} onChange={(e) => setFormName({...formName, english: e.target.value})} />
+                      <Input 
+                        value={formName.english} 
+                        onChange={(e) => setFormName({...formName, english: e.target.value})} 
+                        className={formErrors.nameEnglish ? "border-red-500" : ""}
+                      />
+                      {formErrors.nameEnglish && (
+                        <p className="text-red-500 text-sm">{formErrors.nameEnglish}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Name (Tamil)</Label>
@@ -582,9 +639,9 @@ export default function CouncilMemberPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Role</Label>
+                    <Label>Role *</Label>
                     <Select value={formRole.english} onValueChange={(val) => setFormRole(roles.find(r => r.english === val) || roles[0])}>
-                      <SelectTrigger>
+                      <SelectTrigger className={formErrors.role ? "border-red-500" : ""}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -595,16 +652,33 @@ export default function CouncilMemberPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {formErrors.role && (
+                      <p className="text-red-500 text-sm">{formErrors.role}</p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
+                      <Label>Phone *</Label>
+                      <Input 
+                        value={formPhone} 
+                        onChange={(e) => setFormPhone(e.target.value)} 
+                        className={formErrors.phone ? "border-red-500" : ""}
+                      />
+                      {formErrors.phone && (
+                        <p className="text-red-500 text-sm">{formErrors.phone}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+                      <Label>Email *</Label>
+                      <Input 
+                        value={formEmail} 
+                        onChange={(e) => setFormEmail(e.target.value)} 
+                        className={formErrors.email ? "border-red-500" : ""}
+                      />
+                      {formErrors.email && (
+                        <p className="text-red-500 text-sm">{formErrors.email}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -612,39 +686,29 @@ export default function CouncilMemberPage() {
                 {/* Profile Image */}
                 <div className="space-y-2">
                   <Label>Profile Image</Label>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageUpload} 
+                    className="w-full p-2 border rounded-md"
+                  />
                   {formProfile && (
                     <img src={formProfile} alt="Preview" className="w-20 h-20 rounded-full object-cover mt-2" />
                   )}
                 </div>
-
-                {/* Tenure Information */}
-                {/* <div className="space-y-4">
-                  <h3 className="font-semibold">Tenure Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Start Date (English)</Label>
-                      <Input value={formTenure.startDate.english} onChange={(e) => setFormTenure({...formTenure, startDate: {...formTenure.startDate, english: e.target.value}})} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Current Term (English)</Label>
-                      <Input value={formTenure.currentTerm.english} onChange={(e) => setFormTenure({...formTenure, currentTerm: {...formTenure.currentTerm, english: e.target.value}})} />
-                    </div>
-                  </div>
-                </div> */}
-
-                {/* Address */}
-                {/* <div className="space-y-4">
-                  <h3 className="font-semibold">Address</h3>
-                  <div className="space-y-2">
-                    <Label>Address (English)</Label>
-                    <Input value={formAddress.english} onChange={(e) => setFormAddress({...formAddress, english: e.target.value})} />
-                  </div>
-                </div> */}
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                <Button onClick={handleAddMember}>Add Member</Button>
+              <DialogFooter className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  {showFormError && (
+                    <p className="text-red-500 text-sm font-medium">
+                      Please fix the form errors before saving.
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                  <Button onClick={handleAddMember}>Add Member</Button>
+                </div>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -652,12 +716,14 @@ export default function CouncilMemberPage() {
       </div>
 
       {/* Search */}
-      <Input
-        placeholder="Search by name or role..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="max-w-md"
-      />
+      <div className="w-full">
+        <Input
+          placeholder="Search by name or role..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md w-full"
+        />
+      </div>
 
       {/* Member List */}
       <Card>
@@ -667,7 +733,65 @@ export default function CouncilMemberPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full table-auto border border-gray-200">
+            {/* Mobile View */}
+            <div className="block md:hidden space-y-4">
+              {paginatedMembers.map((member) => (
+                <Card key={member.id} className="p-4">
+                  <div className="flex items-start space-x-4">
+                    <img src={member.profile} alt={getText(member.name)} className="w-16 h-16 rounded-full object-cover" />
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <h3 className="font-semibold text-lg">{getText(member.name)}</h3>
+                        <p className="text-gray-600">{getText(member.role)}</p>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <Phone className="w-4 h-4 text-green-600" />
+                          <span>{member.phone}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail className="w-4 h-4 text-blue-600" />
+                          <span className="truncate">{member.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <ToggleRight className="w-4 h-4 text-gray-600" />
+                          <span className={member.enabled ? "text-green-600" : "text-gray-500"}>
+                            {member.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
+                    <Button variant="outline" size="sm" onClick={() => openViewModal(member)}>
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEditModal(member)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleToggleStatus(member.id)}
+                      className={member.enabled ? "text-orange-600" : "text-green-600"}
+                    >
+                      {member.enabled ? <ToggleLeft className="w-4 h-4" /> : <ToggleRight className="w-4 h-4" />}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDeleteMember(member.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop View */}
+            <table className="w-full table-auto border border-gray-200 hidden md:table">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="border px-4 py-3 text-left">Profile</th>
@@ -710,9 +834,6 @@ export default function CouncilMemberPage() {
                           <DropdownMenuItem onClick={() => openEditModal(member)}>
                             <Edit className="w-4 h-4 mr-2" /> Edit Profile
                           </DropdownMenuItem>
-                          {/* <DropdownMenuItem onClick={() => openMessageModal(member)}>
-                            <ScrollText className="w-4 h-4 mr-2" /> Edit Message
-                          </DropdownMenuItem> */}
                           <DropdownMenuItem onClick={() => handleToggleStatus(member.id)}>
                             {member.enabled ? (
                               <>
@@ -737,18 +858,26 @@ export default function CouncilMemberPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex justify-between items-center mt-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
             <div className="text-sm text-gray-600">
               Showing {paginatedMembers.length} of {filteredMembers.length} members
             </div>
-            <div className="flex space-x-2">
-              <Button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+            <div className="flex items-center space-x-2">
+              <Button 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(p => p - 1)}
+                size="sm"
+              >
                 Previous
               </Button>
               <span className="px-3 py-2 text-sm">
                 Page {currentPage} of {totalPages || 1}
               </span>
-              <Button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)}>
+              <Button 
+                disabled={currentPage === totalPages || totalPages === 0} 
+                onClick={() => setCurrentPage(p => p + 1)}
+                size="sm"
+              >
                 Next
               </Button>
             </div>
@@ -782,10 +911,10 @@ export default function CouncilMemberPage() {
                     <Mail className="w-4 h-4 text-blue-600" />
                     <span>{selectedMember.email}</span>
                   </div>
-                  {/* <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
                     <MapPin className="w-4 h-4 text-red-600" />
                     <span>{getText(selectedMember.address)}</span>
-                  </div> */}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
@@ -828,8 +957,15 @@ export default function CouncilMemberPage() {
                 <h3 className="font-semibold text-lg">Personal Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>Name (English)</Label>
-                    <Input value={formName.english} onChange={(e) => setFormName({...formName, english: e.target.value})} />
+                    <Label>Name (English) *</Label>
+                    <Input 
+                      value={formName.english} 
+                      onChange={(e) => setFormName({...formName, english: e.target.value})} 
+                      className={formErrors.nameEnglish ? "border-red-500" : ""}
+                    />
+                    {formErrors.nameEnglish && (
+                      <p className="text-red-500 text-sm">{formErrors.nameEnglish}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Name (Tamil)</Label>
@@ -843,88 +979,79 @@ export default function CouncilMemberPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
+                    <Label>Phone *</Label>
+                    <Input 
+                      value={formPhone} 
+                      onChange={(e) => setFormPhone(e.target.value)} 
+                      className={formErrors.phone ? "border-red-500" : ""}
+                    />
+                    {formErrors.phone && (
+                      <p className="text-red-500 text-sm">{formErrors.phone}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+                    <Label>Email *</Label>
+                    <Input 
+                      value={formEmail} 
+                      onChange={(e) => setFormEmail(e.target.value)} 
+                      className={formErrors.email ? "border-red-500" : ""}
+                    />
+                    {formErrors.email && (
+                      <p className="text-red-500 text-sm">{formErrors.email}</p>
+                    )}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Role *</Label>
+                  <Select value={formRole.english} onValueChange={(val) => setFormRole(roles.find(r => r.english === val) || roles[0])}>
+                    <SelectTrigger className={formErrors.role ? "border-red-500" : ""}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.english} value={role.english}>
+                          {role.english}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.role && (
+                    <p className="text-red-500 text-sm">{formErrors.role}</p>
+                  )}
                 </div>
               </div>
 
               {/* Profile Image */}
               <div className="space-y-2">
                 <Label>Profile Image</Label>
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full" />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageUpload} 
+                  className="w-full p-2 border rounded-md"
+                />
                 {formProfile && (
                   <img src={formProfile} alt="Preview" className="w-20 h-20 rounded-full object-cover mt-2" />
                 )}
               </div>
-
-              {/* Tenure Information */}
-              {/* <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Tenure Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Start Date (English)</Label>
-                    <Input value={formTenure.startDate.english} onChange={(e) => setFormTenure({...formTenure, startDate: {...formTenure.startDate, english: e.target.value}})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Current Term (English)</Label>
-                    <Input value={formTenure.currentTerm.english} onChange={(e) => setFormTenure({...formTenure, currentTerm: {...formTenure.currentTerm, english: e.target.value}})} />
-                  </div>
-                </div>
-              </div> */}
-
-              {/* Address */}
-              {/* <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Address</h3>
-                <div className="space-y-2">
-                  <Label>Address (English)</Label>
-                  <Input value={formAddress.english} onChange={(e) => setFormAddress({...formAddress, english: e.target.value})} />
-                </div>
-              </div> */}
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditMember}>Save Changes</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              {showFormError && (
+                <p className="text-red-500 text-sm font-medium">
+                  Please fix the form errors before saving.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditMember}>Save Changes</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Message Edit Modal */}
-      {/* <Dialog open={isMessageOpen} onOpenChange={setIsMessageOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Member's Message</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Message (English)</Label>
-              <Textarea value={formMessage.english} onChange={(e) => setFormMessage({...formMessage, english: e.target.value})} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label>Message (Tamil)</Label>
-              <Textarea value={formMessage.tamil} onChange={(e) => setFormMessage({...formMessage, tamil: e.target.value})} rows={3} />
-            </div>
-            <div className="space-y-2">
-              <Label>Message (Sinhala)</Label>
-              <Textarea value={formMessage.sinhala} onChange={(e) => setFormMessage({...formMessage, sinhala: e.target.value})} rows={3} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsMessageOpen(false)}>Cancel</Button>
-            <Button onClick={() => {
-              if (selectedMember) {
-                setMembers(members.map(m => m.id === selectedMember.id ? {...m, message: formMessage} : m));
-                setIsMessageOpen(false);
-              }
-            }}>Save Message</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog> */}
 
       {/* Academics & Honours Section */}
       {/* {selectedMember && (
