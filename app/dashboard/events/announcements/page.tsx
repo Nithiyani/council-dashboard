@@ -39,6 +39,8 @@ interface Announcement {
   location: string;
   isPinned: boolean;
   isViewed?: boolean;
+  
+
 }
 
 // Constants
@@ -145,7 +147,7 @@ const LanguageTabs = ({
   onValueChange: (value: Language) => void;
   type?: "view" | "edit";
 }) => (
-  <Tabs value={value} onValueChange={onValueChange}>
+  <Tabs value={value} onValueChange={(val) => onValueChange(val as Language)}>
     <TabsList className="grid w-full grid-cols-3">
       {LANGUAGES.map((lang) => (
         <TabsTrigger key={lang.value} value={lang.value}>
@@ -155,6 +157,7 @@ const LanguageTabs = ({
     </TabsList>
   </Tabs>
 );
+
 
 const StatsCard = ({ icon: Icon, title, value, color }: { icon: any; title: string; value: number; color: string }) => (
   <Card className="bg-white/80 backdrop-blur-sm border-blue-200">
@@ -291,19 +294,19 @@ export default function PublicAnnouncementsPage() {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const [newAnnouncement, setNewAnnouncement] = useState({
-    title: { en: '', ta: '', si: '' },
-    description: { en: '', ta: '', si: '' },
-    category: '',
-    ward: '',
-    priority: 'medium' as const,
-    status: 'active' as const,
-    startDate: '',
-    endDate: '',
-    contactPerson: '',
-    contactPhone: '',
-    location: '',
-    isPinned: false
-  });
+  title: { en: '', ta: '', si: '' },
+  description: { en: '', ta: '', si: '' },
+  category: '',
+  ward: '',
+  priority: 'medium' as 'high' | 'medium' | 'low', // Fix: Cast to the correct union type
+  status: 'active' as 'active' | 'expired' | 'draft',
+  startDate: '',
+  endDate: '',
+  contactPerson: '',
+  contactPhone: '',
+  location: '',
+  isPinned: false
+});
 
   // Computed values
   const sortedAnnouncements = [...announcements].sort((a, b) => {

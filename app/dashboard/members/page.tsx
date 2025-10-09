@@ -59,14 +59,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// ✅ Constants for reusable configuration
-const LANGUAGES = [
-  { code: 'english', label: 'English' },
-  { code: 'tamil', label: 'Tamil' },
-  { code: 'sinhala', label: 'Sinhala' }
-] as const;
+// ✅ Define a type for roles
+type Role = {
+  english: string;
+  tamil: string;
+  sinhala: string;
+};
 
-const ROLES = [
+// ✅ Update ROLES to use the Role type
+const ROLES: Role[] = [
   { 
     english: "Member", 
     tamil: "உறுப்பினர்", 
@@ -87,7 +88,16 @@ const ROLES = [
     tamil: "உதவி செயலாளர்", 
     sinhala: "උප ලේකම්" 
   }
+];
+
+// ✅ Constants for reusable configuration
+const LANGUAGES = [
+  { code: 'english', label: 'English' },
+  { code: 'tamil', label: 'Tamil' },
+  { code: 'sinhala', label: 'Sinhala' }
 ] as const;
+
+
 
 // ✅ Validation types
 type ValidationError = {
