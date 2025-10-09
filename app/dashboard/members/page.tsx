@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -28,12 +28,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
   Edit,
   Trash2,
   Plus,
@@ -42,15 +36,14 @@ import {
   ToggleLeft,
   ToggleRight,
   Languages,
+  Crown,
   User,
   Mail,
   Phone,
   MapPin,
   Calendar,
-  X,
-  CheckCircle,
-  AlertCircle,
-  Upload,
+  Award,
+  ScrollText,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -100,106 +93,19 @@ interface Member {
   };
 }
 
-// ✅ Alert Component
-interface AlertProps {
-  type: "success" | "error";
-  message: string;
-  onClose: () => void;
+interface InfoCardItem {
+  id: string;
+  title: {
+    english: string;
+    tamil: string;
+    sinhala: string;
+  };
+  subtext?: {
+    english: string;
+    tamil: string;
+    sinhala: string;
+  };
 }
-
-const Alert = ({ type, message, onClose }: AlertProps) => {
-  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
-  const Icon = type === "success" ? CheckCircle : AlertCircle;
-
-  return (
-    <div className="mt-4 animate-in slide-in-from-top duration-300">
-      <div
-        className={`${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2`}
-      >
-        <Icon className="w-5 h-5" />
-        <span className="font-medium flex-1">{message}</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-white hover:bg-white/20"
-          onClick={onClose}
-        >
-          <X className="w-3 h-3" />
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-// ✅ Image Upload Component
-const ImageUpload = ({ 
-  profile, 
-  onImageChange, 
-  onImageRemove 
-}: {
-  profile: string;
-  onImageChange: (file: File) => void;
-  onImageRemove: () => void;
-}) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      onImageChange(files[0]);
-    }
-  };
-
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  return (
-    <div className="space-y-2">
-      <Label>Profile Image</Label>
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileSelect}
-        accept="image/*"
-        className="hidden"
-      />
-      
-      {profile ? (
-        <div className="flex items-center gap-3">
-          <img 
-            src={profile} 
-            alt="Profile preview" 
-            className="w-16 h-16 rounded-full object-cover border" 
-          />
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm" 
-            onClick={onImageRemove}
-          >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Remove
-          </Button>
-        </div>
-      ) : (
-        <div
-          className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors"
-          onClick={triggerFileInput}
-        >
-          <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          <span className="text-sm text-gray-600">
-            Click to upload profile image
-          </span>
-          <br />
-          <span className="text-xs text-gray-500">
-            PNG, JPG up to 5MB
-          </span>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ✅ Language Support
 const languages = [
@@ -271,113 +177,204 @@ const initialMembers: Member[] = [
       tamil: "123 மெயின் தெரு, நகரம்",
       sinhala: "123 ප්‍රධාන වීදිය, නගරය"
     }
+  },
+  {
+    id: 2,
+    name: {
+      english: "Jane Smith",
+      tamil: "ஜேன் ஸ்மித்",
+      sinhala: "ජේන් ස්මිත්"
+    },
+    role: {
+      english: "Secretary",
+      tamil: "செயலாளர்",
+      sinhala: "ලේකම්"
+    },
+    phone: "+1 987-6543",
+    email: "jane@example.com",
+    enabled: true,
+    profile: "https://i.pravatar.cc/150?img=2",
+    tenure: {
+      startDate: {
+        english: "March 2023",
+        tamil: "மார்ச் 2023",
+        sinhala: "2023 මාර්තු"
+      },
+      currentTerm: {
+        english: "2023-2027",
+        tamil: "2023-2027",
+        sinhala: "2023-2027"
+      }
+    },
+    message: {
+      english: "Committed to transparent governance and community development.",
+      tamil: "வெளிப்படை ஆளுமை மற்றும் சமூக மேம்பாட்டிற்கு அர்ப்பணிக்கப்பட்டுள்ளேன்.",
+      sinhala: "පාරදෘෂ්ටික පාලනය සහ සමාජ සංවර්ධනය සඳහා කැපවී සිටිමි."
+    },
+    address: {
+      english: "456 Oak Avenue, Town",
+      tamil: "456 ஓக் அவென்யூ, நகரம்",
+      sinhala: "456 ඔක් ඇවිනියු, නගරය"
+    }
   }
 ];
 
-// ✅ Language Form Section Component
-const LanguageFormSection = ({
-  language,
-  formData,
-  onFormDataChange,
-  validationErrors,
+// ✅ InfoCard Component for Academics & Honours
+function InfoCard({ 
+  title, 
+  description, 
+  icon: Icon, 
+  items, 
+  setItems, 
+  language 
 }: {
-  language: 'english' | 'tamil' | 'sinhala';
-  formData: any;
-  onFormDataChange: (data: any) => void;
-  validationErrors: { [key: string]: boolean };
-}) => {
-  const languageNames = {
-    english: "English",
-    tamil: "Tamil", 
-    sinhala: "Sinhala"
+  title: string;
+  description: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  items: InfoCardItem[];
+  setItems: React.Dispatch<React.SetStateAction<InfoCardItem[]>>;
+  language: string;
+}) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<InfoCardItem | null>(null);
+  const [newTitle, setNewTitle] = useState({ english: "", tamil: "", sinhala: "" });
+  const [newSubtext, setNewSubtext] = useState({ english: "", tamil: "", sinhala: "" });
+
+  const getDisplayText = (text: { english: string; tamil: string; sinhala: string }) => {
+    return text[language as keyof typeof text] || text.english;
   };
 
-  const handleFieldChange = (field: string, value: string) => {
-    const updatedData = {
-      ...formData,
-      [field]: {
-        ...formData[field],
-        [language]: value
-      }
-    };
-    onFormDataChange(updatedData);
+  const handleAddItem = () => {
+    if (newTitle.english.trim() !== "") {
+      setItems([...items, { 
+        id: Math.random().toString(36).substr(2, 9),
+        title: { ...newTitle }, 
+        subtext: newSubtext.english || newSubtext.tamil || newSubtext.sinhala ? { ...newSubtext } : undefined 
+      }]);
+      setNewTitle({ english: "", tamil: "", sinhala: "" });
+      setNewSubtext({ english: "", tamil: "", sinhala: "" });
+      setIsDialogOpen(false);
+    }
   };
 
-  const hasNameError = validationErrors[`name-${language}`];
+  const handleEditItem = (item: InfoCardItem) => {
+    setEditingItem(item);
+    setNewTitle({ ...item.title });
+    setNewSubtext(item.subtext ? { ...item.subtext } : { english: "", tamil: "", sinhala: "" });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateItem = () => {
+    if (editingItem) {
+      setItems(items.map(item => 
+        item.id === editingItem.id 
+          ? { 
+              ...item, 
+              title: { ...newTitle }, 
+              subtext: newSubtext.english || newSubtext.tamil || newSubtext.sinhala ? { ...newSubtext } : undefined 
+            } 
+          : item
+      ));
+      setEditingItem(null);
+      setNewTitle({ english: "", tamil: "", sinhala: "" });
+      setNewSubtext({ english: "", tamil: "", sinhala: "" });
+      setIsEditDialogOpen(false);
+    }
+  };
+
+  const handleDeleteItem = (id: string) => {
+    setItems(items.filter(item => item.id !== id));
+  };
 
   return (
-    <div className="space-y-4">
-      <div className={`p-3 rounded-lg ${hasNameError ? "bg-red-50 border border-red-200" : "bg-blue-50"}`}>
-        <div className="flex items-center gap-2">
-          {hasNameError ? (
-            <AlertCircle className="w-4 h-4 text-red-600" />
-          ) : (
-            <CheckCircle className="w-4 h-4 text-blue-600" />
-          )}
-          <span className={`font-medium ${hasNameError ? "text-red-800" : "text-blue-800"}`}>
-            {languageNames[language]} {hasNameError && "- Required field"}
-          </span>
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {Icon && <Icon className="w-5 h-5 text-blue-600" />}
+          {title}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <span className="text-sm font-medium">{getDisplayText(item.title)}</span>
+                  {item.subtext && (
+                    <p className="text-xs text-gray-500 mt-1">{getDisplayText(item.subtext)}</p>
+                  )}
+                </div>
+                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button variant="outline" size="sm" onClick={() => handleEditItem(item)}>
+                    <Edit className="w-3 h-3" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDeleteItem(item.id)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
 
-      {/* Name Field */}
-      <div>
-        <Label htmlFor={`name-${language}`} className={hasNameError ? "text-red-600" : ""}>
-          Name in {languageNames[language]} *
-        </Label>
-        <Input
-          id={`name-${language}`}
-          value={formData.name[language]}
-          onChange={(e) => handleFieldChange('name', e.target.value)}
-          placeholder={`Enter name in ${languageNames[language]}`}
-          className={`mt-1 ${hasNameError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
-        />
-        {hasNameError && (
-          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            Name in {languageNames[language]} is required
-          </p>
-        )}
-      </div>
-
-      {/* Message Field */}
-      <div>
-        <Label htmlFor={`message-${language}`}>
-          Message in {languageNames[language]}
-        </Label>
-        <Textarea
-          id={`message-${language}`}
-          value={formData.message[language]}
-          onChange={(e) => handleFieldChange('message', e.target.value)}
-          placeholder={`Enter message in ${languageNames[language]}`}
-          rows={3}
-          className="mt-1"
-        />
-      </div>
-
-      {/* Address Field */}
-      <div>
-        <Label htmlFor={`address-${language}`}>
-          Address in {languageNames[language]}
-        </Label>
-        <Input
-          id={`address-${language}`}
-          value={formData.address[language]}
-          onChange={(e) => handleFieldChange('address', e.target.value)}
-          placeholder={`Enter address in ${languageNames[language]}`}
-          className="mt-1"
-        />
-      </div>
-    </div>
+        <div className="mt-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-2" />
+                Add {title}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add {title}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Title (English)</Label>
+                  <Input value={newTitle.english} onChange={(e) => setNewTitle({...newTitle, english: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Title (Tamil)</Label>
+                  <Input value={newTitle.tamil} onChange={(e) => setNewTitle({...newTitle, tamil: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Title (Sinhala)</Label>
+                  <Input value={newTitle.sinhala} onChange={(e) => setNewTitle({...newTitle, sinhala: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Details (English)</Label>
+                  <Input value={newSubtext.english} onChange={(e) => setNewSubtext({...newSubtext, english: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Details (Tamil)</Label>
+                  <Input value={newSubtext.tamil} onChange={(e) => setNewSubtext({...newSubtext, tamil: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Details (Sinhala)</Label>
+                  <Input value={newSubtext.sinhala} onChange={(e) => setNewSubtext({...newSubtext, sinhala: e.target.value})} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleAddItem}>Add</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardContent>
+    </Card>
   );
-};
+}
 
 export default function CouncilMemberPage() {
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [currentLanguage, setCurrentLanguage] = useState('english');
-  const [alert, setAlert] = useState<{type: "success" | "error", message: string} | null>(null);
 
   // Modal states
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -385,21 +382,25 @@ export default function CouncilMemberPage() {
   const [isViewOpen, setIsViewOpen] = useState(false);
 
   // Form states
-  const [formData, setFormData] = useState({
-    name: { english: "", tamil: "", sinhala: "" },
-    role: roles[0],
-    phone: "",
-    email: "",
-    profile: "",
-    tenure: {
-      startDate: { english: "", tamil: "", sinhala: "" },
-      currentTerm: { english: "", tamil: "", sinhala: "" }
-    },
-    address: { english: "", tamil: "", sinhala: "" },
-    message: { english: "", tamil: "", sinhala: "" }
+  const [formName, setFormName] = useState({ english: "", tamil: "", sinhala: "" });
+  const [formRole, setFormRole] = useState(roles[0]);
+  const [formPhone, setFormPhone] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formProfile, setFormProfile] = useState<string>("");
+  const [formTenure, setFormTenure] = useState({
+    startDate: { english: "", tamil: "", sinhala: "" },
+    currentTerm: { english: "", tamil: "", sinhala: "" }
   });
+  const [formAddress, setFormAddress] = useState({ english: "", tamil: "", sinhala: "" });
+  const [formMessage, setFormMessage] = useState({ english: "", tamil: "", sinhala: "" });
 
-  const [validationErrors, setValidationErrors] = useState<{[key: string]: boolean}>({});
+  // Form validation states
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [showFormError, setShowFormError] = useState(false);
+
+  // Academics & Honours
+  const [academics, setAcademics] = useState<InfoCardItem[]>([]);
+  const [honours, setHonours] = useState<InfoCardItem[]>([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -410,12 +411,35 @@ export default function CouncilMemberPage() {
     return text[currentLanguage as keyof typeof text] || text.english;
   };
 
-  const showAlert = (type: "success" | "error", message: string) => {
-    setAlert({ type, message });
-    setTimeout(() => setAlert(null), 5000);
+  // Validation function
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formName.english.trim()) {
+      errors.nameEnglish = "English name is required";
+    }
+
+    if (!formPhone.trim()) {
+      errors.phone = "Phone number is required";
+    } else if (!/^\+?[\d\s-()]+$/.test(formPhone)) {
+      errors.phone = "Please enter a valid phone number";
+    }
+
+    if (!formEmail.trim()) {
+      errors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formEmail)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    if (!formRole.english.trim()) {
+      errors.role = "Role is required";
+    }
+
+    setFormErrors(errors);
+    setShowFormError(Object.keys(errors).length > 0);
+    return Object.keys(errors).length === 0;
   };
 
-  // Data filtering and pagination
   const filteredMembers = useMemo(() => {
     return members.filter(
       (member) =>
@@ -433,162 +457,107 @@ export default function CouncilMemberPage() {
 
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
 
-  // ✅ Validation
-  const validateMemberForm = (data: typeof formData): boolean => {
-    const errors: {[key: string]: boolean} = {};
-    
-    // Check all three languages for name
-    (['english', 'tamil', 'sinhala'] as const).forEach(lang => {
-      if (!data.name[lang]?.trim()) {
-        errors[`name-${lang}`] = true;
-      }
-    });
+  // ✅ Handle Image Upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    // Check required fields
-    if (!data.phone.trim()) errors.phone = true;
-    if (!data.email.trim()) errors.email = true;
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert("Please select a valid image file");
+      return;
+    }
 
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should be less than 5MB");
+      return;
+    }
 
-  const clearValidationErrors = () => {
-    setValidationErrors({});
-  };
-
-  // ✅ Image Upload Handler
-  const handleImageUpload = (file: File) => {
     const reader = new FileReader();
     reader.onloadend = () => {
-      setFormData(prev => ({...prev, profile: reader.result as string}));
+      setFormProfile(reader.result as string);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleImageRemove = () => {
-    setFormData(prev => ({...prev, profile: ""}));
+  // ✅ Toggle Enable/Disable
+  const handleToggleStatus = (id: number) => {
+    setMembers(
+      members.map((m) => (m.id === id ? { ...m, enabled: !m.enabled } : m))
+    );
   };
 
-  // ✅ Auto-fill tenure data when English is filled
-  const handleTenureChange = (field: 'startDate' | 'currentTerm', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tenure: {
-        ...prev.tenure,
-        [field]: {
-          english: value,
-          tamil: value, // Auto-fill same value for other languages
-          sinhala: value
-        }
-      }
-    }));
-  };
-
-  // ✅ Auto-fill role data when English role is selected
-  const handleRoleChange = (englishRole: string) => {
-    const selectedRole = roles.find(r => r.english === englishRole) || roles[0];
-    setFormData(prev => ({
-      ...prev,
-      role: selectedRole
-    }));
-  };
-
-  // ✅ Auto-fill message and address when English is filled
-  const handleEnglishFieldChange = (field: 'message' | 'address', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: {
-        english: value,
-        tamil: value, // Auto-fill same value for other languages
-        sinhala: value
-      }
-    }));
-  };
-
-  // ✅ Member Operations
+  // Handlers
   const handleAddMember = () => {
-    if (!validateMemberForm(formData)) {
-      showAlert("error", "Please fill all required fields in all languages!");
+    if (!validateForm()) {
       return;
     }
     
     const newMember: Member = {
       id: Date.now(),
-      name: formData.name,
-      role: formData.role,
-      phone: formData.phone,
-      email: formData.email,
+      name: formName,
+      role: formRole,
+      phone: formPhone,
+      email: formEmail,
       enabled: true,
-      profile: formData.profile || "https://i.pravatar.cc/150?img=10",
-      tenure: formData.tenure,
-      message: formData.message,
-      address: formData.address
+      profile: formProfile || "https://i.pravatar.cc/150?img=10",
+      tenure: formTenure,
+      message: formMessage,
+      address: formAddress
     };
     
-    setMembers(prev => [...prev, newMember]);
+    setMembers([...members, newMember]);
     resetForm();
     setIsAddOpen(false);
-    showAlert("success", "Council member added successfully!");
+    alert("Member added successfully!");
   };
 
   const handleEditMember = () => {
-    if (!validateMemberForm(formData)) {
-      showAlert("error", "Please fill all required fields in all languages!");
+    if (!validateForm()) {
       return;
     }
 
     if (selectedMember) {
-      setMembers(prev =>
-        prev.map(m =>
+      setMembers(
+        members.map((m) =>
           m.id === selectedMember.id
             ? {
                 ...m,
-                name: formData.name,
-                role: formData.role,
-                phone: formData.phone,
-                email: formData.email,
-                profile: formData.profile || m.profile,
-                tenure: formData.tenure,
-                message: formData.message,
-                address: formData.address
+                name: formName,
+                role: formRole,
+                phone: formPhone,
+                email: formEmail,
+                profile: formProfile || m.profile,
+                tenure: formTenure,
               }
             : m
         )
       );
       setIsEditOpen(false);
-      showAlert("success", "Council member updated successfully!");
+      alert("Member profile updated successfully!");
     }
   };
 
   const handleDeleteMember = (id: number) => {
-    setMembers(prev => prev.filter(m => m.id !== id));
-    showAlert("success", "Council member deleted successfully!");
-  };
-
-  const handleToggleStatus = (id: number) => {
-    setMembers(prev =>
-      prev.map(m =>
-        m.id === id ? { ...m, enabled: !m.enabled } : m
-      )
-    );
-    const member = members.find(m => m.id === id);
-    showAlert("success", `Member ${member?.enabled ? "disabled" : "enabled"} successfully!`);
+    if (window.confirm("Are you sure you want to delete this member?")) {
+      setMembers(members.filter((m) => m.id !== id));
+      alert("Member deleted successfully!");
+    }
   };
 
   const openEditModal = (member: Member) => {
     setSelectedMember(member);
-    setFormData({
-      name: member.name,
-      role: member.role,
-      phone: member.phone,
-      email: member.email,
-      profile: member.profile,
-      tenure: member.tenure,
-      message: member.message,
-      address: member.address
-    });
+    setFormName(member.name);
+    setFormRole(member.role);
+    setFormPhone(member.phone);
+    setFormEmail(member.email);
+    setFormProfile(member.profile);
+    setFormTenure(member.tenure);
+    setFormAddress(member.address);
+    setFormErrors({});
+    setShowFormError(false);
     setIsEditOpen(true);
-    clearValidationErrors();
   };
 
   const openViewModal = (member: Member) => {
@@ -597,163 +566,29 @@ export default function CouncilMemberPage() {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: { english: "", tamil: "", sinhala: "" },
-      role: roles[0],
-      phone: "",
-      email: "",
-      profile: "",
-      tenure: {
-        startDate: { english: "", tamil: "", sinhala: "" },
-        currentTerm: { english: "", tamil: "", sinhala: "" }
-      },
-      address: { english: "", tamil: "", sinhala: "" },
-      message: { english: "", tamil: "", sinhala: "" }
-    });
-    clearValidationErrors();
+    setFormName({ english: "", tamil: "", sinhala: "" });
+    setFormRole(roles[0]);
+    setFormPhone("");
+    setFormEmail("");
+    setFormProfile("");
+    setFormTenure({ startDate: { english: "", tamil: "", sinhala: "" }, currentTerm: { english: "", tamil: "", sinhala: "" } });
+    setFormMessage({ english: "", tamil: "", sinhala: "" });
+    setFormAddress({ english: "", tamil: "", sinhala: "" });
+    setFormErrors({});
+    setShowFormError(false);
   };
 
-  // ✅ Common Form Sections
-  const CommonFormFields = () => (
-    <div className="space-y-6 border-t pt-6">
-      {/* Contact Information */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Contact Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className={validationErrors.phone ? "text-red-600" : ""}>Phone *</Label>
-            <Input 
-              value={formData.phone} 
-              onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))}
-              className={validationErrors.phone ? "border-red-500" : ""}
-              placeholder="0764822492"
-            />
-            {validationErrors.phone && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                Phone number is required
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label className={validationErrors.email ? "text-red-600" : ""}>Email *</Label>
-            <Input 
-              value={formData.email} 
-              onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
-              className={validationErrors.email ? "border-red-500" : ""}
-              placeholder="navaneethansivakumaran@gmail.com"
-            />
-            {validationErrors.email && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                Email is required
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tenure Information */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Tenure Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Start Date</Label>
-            <Input
-              value={formData.tenure.startDate.english}
-              onChange={(e) => handleTenureChange('startDate', e.target.value)}
-              placeholder="e.g., January 2023"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Current Term</Label>
-            <Input
-              value={formData.tenure.currentTerm.english}
-              onChange={(e) => handleTenureChange('currentTerm', e.target.value)}
-              placeholder="e.g., 2023-2027"
-            />
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          Note: Tenure information will be automatically applied to all languages
-        </p>
-      </div>
-
-      {/* Role & Profile */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Role & Profile</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select 
-              value={formData.role.english} 
-              onValueChange={handleRoleChange}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.english} value={role.english}>
-                    {role.english}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-gray-500">
-              Role will be automatically translated to all languages
-            </p>
-          </div>
-
-          <ImageUpload 
-            profile={formData.profile}
-            onImageChange={handleImageUpload}
-            onImageRemove={handleImageRemove}
-          />
-        </div>
-      </div>
-
-      {/* Auto-fill Message and Address */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Additional Information (Auto-fill)</h3>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Message (English)</Label>
-            <Textarea
-              value={formData.message.english}
-              onChange={(e) => handleEnglishFieldChange('message', e.target.value)}
-              placeholder="Enter message in English (will auto-fill other languages)"
-              rows={3}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Address (English)</Label>
-            <Input
-              value={formData.address.english}
-              onChange={(e) => handleEnglishFieldChange('address', e.target.value)}
-              placeholder="Enter address in English (will auto-fill other languages)"
-            />
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          Note: Message and Address entered in English will be automatically applied to all languages
-        </p>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-4">
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Council Members</h1>
           <p className="text-gray-600">Manage council members, roles and contacts</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <Select value={currentLanguage} onValueChange={setCurrentLanguage}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full md:w-40">
               <Languages className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Select Language" />
             </SelectTrigger>
@@ -766,102 +601,129 @@ export default function CouncilMemberPage() {
             </SelectContent>
           </Select>
 
-          <Dialog open={isAddOpen} onOpenChange={(open) => {
-            setIsAddOpen(open);
-            if (!open) {
-              resetForm();
-              setAlert(null);
-            }
-          }}>
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full md:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Member
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Council Member</DialogTitle>
-                <p className="text-sm text-gray-600">
-                  Fill in the member details - names are required in all languages, other fields auto-fill
-                </p>
               </DialogHeader>
-              
-              <div className="grid gap-6 py-4">
-                {/* Language Tabs for Names Only */}
-                <Tabs defaultValue="english" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="english">English</TabsTrigger>
-                    <TabsTrigger value="tamil">Tamil</TabsTrigger>
-                    <TabsTrigger value="sinhala">Sinhala</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="english" className="mt-6 space-y-6">
-                    <LanguageFormSection
-                      language="english"
-                      formData={formData}
-                      onFormDataChange={setFormData}
-                      validationErrors={validationErrors}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="tamil" className="mt-6 space-y-6">
-                    <LanguageFormSection
-                      language="tamil"
-                      formData={formData}
-                      onFormDataChange={setFormData}
-                      validationErrors={validationErrors}
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="sinhala" className="mt-6 space-y-6">
-                    <LanguageFormSection
-                      language="sinhala"
-                      formData={formData}
-                      onFormDataChange={setFormData}
-                      validationErrors={validationErrors}
-                    />
-                  </TabsContent>
-                </Tabs>
+              <div className="grid gap-4 py-4">
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Personal Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Name (English) *</Label>
+                      <Input 
+                        value={formName.english} 
+                        onChange={(e) => setFormName({...formName, english: e.target.value})} 
+                        className={formErrors.nameEnglish ? "border-red-500" : ""}
+                      />
+                      {formErrors.nameEnglish && (
+                        <p className="text-red-500 text-sm">{formErrors.nameEnglish}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Name (Tamil)</Label>
+                      <Input value={formName.tamil} onChange={(e) => setFormName({...formName, tamil: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Name (Sinhala)</Label>
+                      <Input value={formName.sinhala} onChange={(e) => setFormName({...formName, sinhala: e.target.value})} />
+                    </div>
+                  </div>
 
-                {/* Common Fields */}
-                <CommonFormFields />
+                  <div className="space-y-2">
+                    <Label>Role *</Label>
+                    <Select value={formRole.english} onValueChange={(val) => setFormRole(roles.find(r => r.english === val) || roles[0])}>
+                      <SelectTrigger className={formErrors.role ? "border-red-500" : ""}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((role) => (
+                          <SelectItem key={role.english} value={role.english}>
+                            {role.english}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formErrors.role && (
+                      <p className="text-red-500 text-sm">{formErrors.role}</p>
+                    )}
+                  </div>
 
-                {/* Alert */}
-                {alert && (
-                  <Alert
-                    type={alert.type}
-                    message={alert.message}
-                    onClose={() => setAlert(null)}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Phone *</Label>
+                      <Input 
+                        value={formPhone} 
+                        onChange={(e) => setFormPhone(e.target.value)} 
+                        className={formErrors.phone ? "border-red-500" : ""}
+                      />
+                      {formErrors.phone && (
+                        <p className="text-red-500 text-sm">{formErrors.phone}</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email *</Label>
+                      <Input 
+                        value={formEmail} 
+                        onChange={(e) => setFormEmail(e.target.value)} 
+                        className={formErrors.email ? "border-red-500" : ""}
+                      />
+                      {formErrors.email && (
+                        <p className="text-red-500 text-sm">{formErrors.email}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Profile Image */}
+                <div className="space-y-2">
+                  <Label>Profile Image</Label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageUpload} 
+                    className="w-full p-2 border rounded-md"
                   />
-                )}
+                  {formProfile && (
+                    <img src={formProfile} alt="Preview" className="w-20 h-20 rounded-full object-cover mt-2" />
+                  )}
+                </div>
               </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                <Button onClick={handleAddMember}>Add Member</Button>
+              <DialogFooter className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  {showFormError && (
+                    <p className="text-red-500 text-sm font-medium">
+                      Please fix the form errors before saving.
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                  <Button onClick={handleAddMember}>Add Member</Button>
+                </div>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Global Alert */}
-      {alert && (
-        <Alert
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
-        />
-      )}
-
       {/* Search */}
-      <Input
-        placeholder="Search by name or role..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="max-w-md"
-      />
+      <div className="w-full">
+        <Input
+          placeholder="Search by name or role..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md w-full"
+        />
+      </div>
 
       {/* Member List */}
       <Card>
@@ -871,7 +733,65 @@ export default function CouncilMemberPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full table-auto border border-gray-200">
+            {/* Mobile View */}
+            <div className="block md:hidden space-y-4">
+              {paginatedMembers.map((member) => (
+                <Card key={member.id} className="p-4">
+                  <div className="flex items-start space-x-4">
+                    <img src={member.profile} alt={getText(member.name)} className="w-16 h-16 rounded-full object-cover" />
+                    <div className="flex-1 space-y-2">
+                      <div>
+                        <h3 className="font-semibold text-lg">{getText(member.name)}</h3>
+                        <p className="text-gray-600">{getText(member.role)}</p>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <Phone className="w-4 h-4 text-green-600" />
+                          <span>{member.phone}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail className="w-4 h-4 text-blue-600" />
+                          <span className="truncate">{member.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <ToggleRight className="w-4 h-4 text-gray-600" />
+                          <span className={member.enabled ? "text-green-600" : "text-gray-500"}>
+                            {member.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
+                    <Button variant="outline" size="sm" onClick={() => openViewModal(member)}>
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEditModal(member)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleToggleStatus(member.id)}
+                      className={member.enabled ? "text-orange-600" : "text-green-600"}
+                    >
+                      {member.enabled ? <ToggleLeft className="w-4 h-4" /> : <ToggleRight className="w-4 h-4" />}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleDeleteMember(member.id)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop View */}
+            <table className="w-full table-auto border border-gray-200 hidden md:table">
               <thead>
                 <tr className="bg-gray-100">
                   <th className="border px-4 py-3 text-left">Profile</th>
@@ -938,18 +858,26 @@ export default function CouncilMemberPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex justify-between items-center mt-4">
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-4">
             <div className="text-sm text-gray-600">
               Showing {paginatedMembers.length} of {filteredMembers.length} members
             </div>
-            <div className="flex space-x-2">
-              <Button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+            <div className="flex items-center space-x-2">
+              <Button 
+                disabled={currentPage === 1} 
+                onClick={() => setCurrentPage(p => p - 1)}
+                size="sm"
+              >
                 Previous
               </Button>
               <span className="px-3 py-2 text-sm">
                 Page {currentPage} of {totalPages || 1}
               </span>
-              <Button disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)}>
+              <Button 
+                disabled={currentPage === totalPages || totalPages === 0} 
+                onClick={() => setCurrentPage(p => p + 1)}
+                size="sm"
+              >
                 Next
               </Button>
             </div>
@@ -957,11 +885,11 @@ export default function CouncilMemberPage() {
         </CardContent>
       </Card>
 
-      {/* View Modal with All Languages */}
+      {/* View Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Member Details - All Languages</DialogTitle>
+            <DialogTitle>Member Details</DialogTitle>
           </DialogHeader>
           {selectedMember && (
             <div className="space-y-6">
@@ -973,54 +901,41 @@ export default function CouncilMemberPage() {
                 </div>
               </div>
 
-              {/* Language Tabs for Details */}
-              <Tabs defaultValue="english" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="english">English</TabsTrigger>
-                  <TabsTrigger value="tamil">Tamil</TabsTrigger>
-                  <TabsTrigger value="sinhala">Sinhala</TabsTrigger>
-                </TabsList>
-                
-                {(['english', 'tamil', 'sinhala'] as const).map((lang) => (
-                  <TabsContent key={lang} value={lang} className="mt-6 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Phone className="w-4 h-4 text-green-600" />
-                          <span>{selectedMember.phone}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Mail className="w-4 h-4 text-blue-600" />
-                          <span>{selectedMember.email}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="w-4 h-4 text-red-600" />
-                          <span>{selectedMember.address[lang]}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-purple-600" />
-                          <span>Term: {selectedMember.tenure.currentTerm[lang]}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <User className="w-4 h-4 text-orange-600" />
-                          <span>Since: {selectedMember.tenure.startDate[lang]}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <ToggleRight className="w-4 h-4 text-gray-600" />
-                          <span>Status: {selectedMember.enabled ? "Enabled" : "Disabled"}</span>
-                        </div>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-4 h-4 text-green-600" />
+                    <span>{selectedMember.phone}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-blue-600" />
+                    <span>{selectedMember.email}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-red-600" />
+                    <span>{getText(selectedMember.address)}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-4 h-4 text-purple-600" />
+                    <span>Term: {getText(selectedMember.tenure.currentTerm)}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4 text-orange-600" />
+                    <span>Since: {getText(selectedMember.tenure.startDate)}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <ToggleRight className="w-4 h-4 text-gray-600" />
+                    <span>Status: {selectedMember.enabled ? "Enabled" : "Disabled"}</span>
+                  </div>
+                </div>
+              </div>
 
-                    <div>
-                      <h4 className="font-semibold mb-2">Member's Message ({lang})</h4>
-                      <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">"{selectedMember.message[lang]}"</p>
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
+              <div>
+                <h4 className="font-semibold mb-2">Member's Message</h4>
+                <p className="text-gray-700">"{getText(selectedMember.message)}"</p>
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -1030,77 +945,135 @@ export default function CouncilMemberPage() {
       </Dialog>
 
       {/* Edit Modal */}
-      <Dialog open={isEditOpen} onOpenChange={(open) => {
-        setIsEditOpen(open);
-        if (!open) {
-          setAlert(null);
-          clearValidationErrors();
-        }
-      }}>
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Member Profile</DialogTitle>
-            <p className="text-sm text-gray-600">
-              Update the member details - names are required in all languages, other fields auto-fill
-            </p>
           </DialogHeader>
           {selectedMember && (
             <div className="grid gap-6 py-4">
-              {/* Language Tabs for Names Only */}
-              <Tabs defaultValue="english" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="english">English</TabsTrigger>
-                  <TabsTrigger value="tamil">Tamil</TabsTrigger>
-                  <TabsTrigger value="sinhala">Sinhala</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="english" className="mt-6 space-y-6">
-                  <LanguageFormSection
-                    language="english"
-                    formData={formData}
-                    onFormDataChange={setFormData}
-                    validationErrors={validationErrors}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="tamil" className="mt-6 space-y-6">
-                  <LanguageFormSection
-                    language="tamil"
-                    formData={formData}
-                    onFormDataChange={setFormData}
-                    validationErrors={validationErrors}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="sinhala" className="mt-6 space-y-6">
-                  <LanguageFormSection
-                    language="sinhala"
-                    formData={formData}
-                    onFormDataChange={setFormData}
-                    validationErrors={validationErrors}
-                  />
-                </TabsContent>
-              </Tabs>
+              {/* Personal Information */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Personal Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Name (English) *</Label>
+                    <Input 
+                      value={formName.english} 
+                      onChange={(e) => setFormName({...formName, english: e.target.value})} 
+                      className={formErrors.nameEnglish ? "border-red-500" : ""}
+                    />
+                    {formErrors.nameEnglish && (
+                      <p className="text-red-500 text-sm">{formErrors.nameEnglish}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Name (Tamil)</Label>
+                    <Input value={formName.tamil} onChange={(e) => setFormName({...formName, tamil: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Name (Sinhala)</Label>
+                    <Input value={formName.sinhala} onChange={(e) => setFormName({...formName, sinhala: e.target.value})} />
+                  </div>
+                </div>
 
-              {/* Common Fields */}
-              <CommonFormFields />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Phone *</Label>
+                    <Input 
+                      value={formPhone} 
+                      onChange={(e) => setFormPhone(e.target.value)} 
+                      className={formErrors.phone ? "border-red-500" : ""}
+                    />
+                    {formErrors.phone && (
+                      <p className="text-red-500 text-sm">{formErrors.phone}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email *</Label>
+                    <Input 
+                      value={formEmail} 
+                      onChange={(e) => setFormEmail(e.target.value)} 
+                      className={formErrors.email ? "border-red-500" : ""}
+                    />
+                    {formErrors.email && (
+                      <p className="text-red-500 text-sm">{formErrors.email}</p>
+                    )}
+                  </div>
+                </div>
 
-              {/* Alert */}
-              {alert && (
-                <Alert
-                  type={alert.type}
-                  message={alert.message}
-                  onClose={() => setAlert(null)}
+                <div className="space-y-2">
+                  <Label>Role *</Label>
+                  <Select value={formRole.english} onValueChange={(val) => setFormRole(roles.find(r => r.english === val) || roles[0])}>
+                    <SelectTrigger className={formErrors.role ? "border-red-500" : ""}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.english} value={role.english}>
+                          {role.english}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formErrors.role && (
+                    <p className="text-red-500 text-sm">{formErrors.role}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Profile Image */}
+              <div className="space-y-2">
+                <Label>Profile Image</Label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageUpload} 
+                  className="w-full p-2 border rounded-md"
                 />
-              )}
+                {formProfile && (
+                  <img src={formProfile} alt="Preview" className="w-20 h-20 rounded-full object-cover mt-2" />
+                )}
+              </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-            <Button onClick={handleEditMember}>Save Changes</Button>
+          <DialogFooter className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              {showFormError && (
+                <p className="text-red-500 text-sm font-medium">
+                  Please fix the form errors before saving.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditMember}>Save Changes</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Academics & Honours Section */}
+      {/* {selectedMember && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <InfoCard 
+            title="Academics & Qualifications" 
+            description="Educational background and qualifications" 
+            icon={Award} 
+            items={academics} 
+            setItems={setAcademics}
+            language={currentLanguage}
+          />
+          <InfoCard 
+            title="Honours & Recognitions" 
+            description="Awards and recognitions received" 
+            icon={Crown} 
+            items={honours} 
+            setItems={setHonours}
+            language={currentLanguage}
+          />
+        </div>
+      )} */}
     </div>
   );
 }
