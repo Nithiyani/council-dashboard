@@ -48,7 +48,6 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-
   const navigation: NavigationItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Chairman', href: '/dashboard/chairman', icon: Crown },
@@ -64,9 +63,6 @@ export default function DashboardLayout({
         { name: 'notices', href: '/dashboard/events/notices', icon: Bell },
       ]
     },
-    // { name: 'Departments', href: '/dashboard/departments', icon: Building2 },
-    // { name: 'Gallery', href: '/dashboard/gallery', icon: Images },
-    // { name: 'Documents', href: '/dashboard/documents', icon: FileText },
     { 
       name: 'Information', 
       href: '/dashboard/information', 
@@ -75,12 +71,9 @@ export default function DashboardLayout({
         { name: 'services', href: '/dashboard/information/services', icon: FolderTree },
         { name: 'tourism', href: '/dashboard/information/tourism', icon: Globe },
         { name: 'ads', href: '/dashboard/information/ads', icon: MapPin },
-       
-       
       ]
     },
     { name: 'User Management', href: '/dashboard/users', icon: UserCog },
-    // { name: 'Reports & Logs', href: '/dashboard/reports', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 

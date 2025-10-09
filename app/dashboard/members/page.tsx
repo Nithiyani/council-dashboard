@@ -59,6 +59,48 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// ✅ Constants for reusable configuration
+const LANGUAGES = [
+  { code: 'english', label: 'English' },
+  { code: 'tamil', label: 'Tamil' },
+  { code: 'sinhala', label: 'Sinhala' }
+] as const;
+
+const ROLES = [
+  { 
+    english: "Member", 
+    tamil: "உறுப்பினர்", 
+    sinhala: "සාමාජික" 
+  },
+  { 
+    english: "Chairperson", 
+    tamil: "தலைவர்", 
+    sinhala: "ප්‍රධානියා" 
+  },
+  { 
+    english: "Secretary", 
+    tamil: "செயலாளர்", 
+    sinhala: "ලේකම්" 
+  },
+  { 
+    english: "Assistant Secretary", 
+    tamil: "உதவி செயலாளர்", 
+    sinhala: "උප ලේකම්" 
+  }
+] as const;
+
+// ✅ Validation types
+type ValidationError = {
+  field: string;
+  message: string;
+  language?: string;
+};
+
+type ValidationResult = {
+  isValid: boolean;
+  errors: ValidationError[];
+};
+
 // ✅ Multilingual Member interface
 interface Member {
   id: number;
@@ -126,6 +168,51 @@ const Alert = ({ type, message, onClose }: AlertProps) => {
         >
           <X className="w-3 h-3" />
         </Button>
+      </div>
+    </div>
+  );
+};
+
+// ✅ Validation Alert Component for multiple errors
+const ValidationAlert = ({ 
+  errors, 
+  onClose 
+}: { 
+  errors: ValidationError[]; 
+  onClose: () => void;
+}) => {
+  if (errors.length === 0) return null;
+
+  return (
+    <div className="mt-4 animate-in slide-in-from-top duration-300">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-red-800 font-medium mb-2">
+              Please fix the following errors:
+            </p>
+            <ul className="text-red-700 text-sm space-y-1">
+              {errors.map((error, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span>
+                    {error.language && <strong>{error.language}: </strong>}
+                    {error.message}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-red-600 hover:bg-red-100 flex-shrink-0"
+            onClick={onClose}
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -201,35 +288,111 @@ const ImageUpload = ({
   );
 };
 
-// ✅ Language Support
-const languages = [
-  { value: 'english', label: 'English' },
-  { value: 'tamil', label: 'Tamil' },
-  { value: 'sinhala', label: 'Sinhala' }
-];
+// ✅ Language Form Section Component
+const LanguageFormSection = ({
+  language,
+  formData,
+  onFormDataChange,
+  validationErrors,
+}: {
+  language: 'english' | 'tamil' | 'sinhala';
+  formData: any;
+  onFormDataChange: (data: any) => void;
+  validationErrors: ValidationError[];
+}) => {
+  const languageNames = {
+    english: "English",
+    tamil: "Tamil", 
+    sinhala: "Sinhala"
+  };
 
-const roles = [
-  { 
-    english: "Member", 
-    tamil: "உறுப்பினர்", 
-    sinhala: "සාමාජික" 
-  },
-  { 
-    english: "Chairperson", 
-    tamil: "தலைவர்", 
-    sinhala: "ප්‍රධානියා" 
-  },
-  { 
-    english: "Secretary", 
-    tamil: "செயலாளர்", 
-    sinhala: "ලේකම්" 
-  },
-  { 
-    english: "Assistant Secretary", 
-    tamil: "உதவி செயலாளர்", 
-    sinhala: "උප ලේකම්" 
-  }
-];
+  const handleFieldChange = (field: string, value: string) => {
+    const updatedData = {
+      ...formData,
+      [field]: {
+        ...formData[field],
+        [language]: value
+      }
+    };
+    onFormDataChange(updatedData);
+  };
+
+  // Get errors specific to this language and field
+  const getFieldError = (field: string): ValidationError | undefined => {
+    return validationErrors.find(error => 
+      error.field === field && error.language === languageNames[language]
+    );
+  };
+
+  const nameError = getFieldError('name');
+  const hasNameError = !!nameError;
+
+  return (
+    <div className="space-y-4">
+      <div className={`p-3 rounded-lg ${hasNameError ? "bg-red-50 border border-red-200" : "bg-blue-50"}`}>
+        <div className="flex items-center gap-2">
+          {hasNameError ? (
+            <AlertCircle className="w-4 h-4 text-red-600" />
+          ) : (
+            <CheckCircle className="w-4 h-4 text-blue-600" />
+          )}
+          <span className={`font-medium ${hasNameError ? "text-red-800" : "text-blue-800"}`}>
+            {languageNames[language]} {hasNameError && "- Required field"}
+          </span>
+        </div>
+      </div>
+
+      {/* Name Field */}
+      <div>
+        <Label htmlFor={`name-${language}`} className={hasNameError ? "text-red-600" : ""}>
+          Name in {languageNames[language]} *
+        </Label>
+        <Input
+          id={`name-${language}`}
+          value={formData.name[language]}
+          onChange={(e) => handleFieldChange('name', e.target.value)}
+          placeholder={`Enter name in ${languageNames[language]}`}
+          className={`mt-1 ${hasNameError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
+        />
+        {hasNameError && (
+          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            {nameError.message}
+          </p>
+        )}
+      </div>
+
+      {/* Message Field */}
+      <div>
+        <Label htmlFor={`message-${language}`}>
+          Message in {languageNames[language]}
+        </Label>
+        <Textarea
+          id={`message-${language}`}
+          value={formData.message[language]}
+          onChange={(e) => handleFieldChange('message', e.target.value)}
+          placeholder={`Enter message in ${languageNames[language]}`}
+          rows={3}
+          className="mt-1"
+        />
+      </div>
+
+      {/* Address Field */}
+      <div>
+        <Label htmlFor={`address-${language}`}>
+          Address in {languageNames[language]}
+        </Label>
+        <Input
+          id={`address-${language}`}
+          value={formData.address[language]}
+          onChange={(e) => handleFieldChange('address', e.target.value)}
+          placeholder={`Enter address in ${languageNames[language]}`}
+          className="mt-1"
+        />
+      </div>
+    </div>
+  );
+};
 
 // ✅ Initial Members with multilingual data
 const initialMembers: Member[] = [
@@ -274,104 +437,6 @@ const initialMembers: Member[] = [
   }
 ];
 
-// ✅ Language Form Section Component
-const LanguageFormSection = ({
-  language,
-  formData,
-  onFormDataChange,
-  validationErrors,
-}: {
-  language: 'english' | 'tamil' | 'sinhala';
-  formData: any;
-  onFormDataChange: (data: any) => void;
-  validationErrors: { [key: string]: boolean };
-}) => {
-  const languageNames = {
-    english: "English",
-    tamil: "Tamil", 
-    sinhala: "Sinhala"
-  };
-
-  const handleFieldChange = (field: string, value: string) => {
-    const updatedData = {
-      ...formData,
-      [field]: {
-        ...formData[field],
-        [language]: value
-      }
-    };
-    onFormDataChange(updatedData);
-  };
-
-  const hasNameError = validationErrors[`name-${language}`];
-
-  return (
-    <div className="space-y-4">
-      <div className={`p-3 rounded-lg ${hasNameError ? "bg-red-50 border border-red-200" : "bg-blue-50"}`}>
-        <div className="flex items-center gap-2">
-          {hasNameError ? (
-            <AlertCircle className="w-4 h-4 text-red-600" />
-          ) : (
-            <CheckCircle className="w-4 h-4 text-blue-600" />
-          )}
-          <span className={`font-medium ${hasNameError ? "text-red-800" : "text-blue-800"}`}>
-            {languageNames[language]} {hasNameError && "- Required field"}
-          </span>
-        </div>
-      </div>
-
-      {/* Name Field */}
-      <div>
-        <Label htmlFor={`name-${language}`} className={hasNameError ? "text-red-600" : ""}>
-          Name in {languageNames[language]} *
-        </Label>
-        <Input
-          id={`name-${language}`}
-          value={formData.name[language]}
-          onChange={(e) => handleFieldChange('name', e.target.value)}
-          placeholder={`Enter name in ${languageNames[language]}`}
-          className={`mt-1 ${hasNameError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}`}
-        />
-        {hasNameError && (
-          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            Name in {languageNames[language]} is required
-          </p>
-        )}
-      </div>
-
-      {/* Message Field */}
-      <div>
-        <Label htmlFor={`message-${language}`}>
-          Message in {languageNames[language]}
-        </Label>
-        <Textarea
-          id={`message-${language}`}
-          value={formData.message[language]}
-          onChange={(e) => handleFieldChange('message', e.target.value)}
-          placeholder={`Enter message in ${languageNames[language]}`}
-          rows={3}
-          className="mt-1"
-        />
-      </div>
-
-      {/* Address Field */}
-      <div>
-        <Label htmlFor={`address-${language}`}>
-          Address in {languageNames[language]}
-        </Label>
-        <Input
-          id={`address-${language}`}
-          value={formData.address[language]}
-          onChange={(e) => handleFieldChange('address', e.target.value)}
-          placeholder={`Enter address in ${languageNames[language]}`}
-          className="mt-1"
-        />
-      </div>
-    </div>
-  );
-};
-
 export default function CouncilMemberPage() {
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [searchTerm, setSearchTerm] = useState("");
@@ -387,7 +452,7 @@ export default function CouncilMemberPage() {
   // Form states
   const [formData, setFormData] = useState({
     name: { english: "", tamil: "", sinhala: "" },
-    role: roles[0],
+    role: ROLES[0],
     phone: "",
     email: "",
     profile: "",
@@ -399,11 +464,98 @@ export default function CouncilMemberPage() {
     message: { english: "", tamil: "", sinhala: "" }
   });
 
-  const [validationErrors, setValidationErrors] = useState<{[key: string]: boolean}>({});
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  // ✅ Enhanced Validation Function
+  const validateMemberForm = (data: typeof formData): ValidationResult => {
+    const errors: ValidationError[] = [];
+
+    // Validate names in all languages
+    LANGUAGES.forEach(({ code, label }) => {
+      if (!data.name[code]?.trim()) {
+        errors.push({
+          field: 'name',
+          message: 'Name is required',
+          language: label
+        });
+      } else if (data.name[code].trim().length < 2) {
+        errors.push({
+          field: 'name',
+          message: 'Name must be at least 2 characters',
+          language: label
+        });
+      }
+    });
+
+    // Validate contact information
+    if (!data.phone.trim()) {
+      errors.push({
+        field: 'phone',
+        message: 'Phone number is required'
+      });
+    } else if (!/^[\d\s+\-()]+$/.test(data.phone)) {
+      errors.push({
+        field: 'phone',
+        message: 'Please enter a valid phone number'
+      });
+    }
+
+    if (!data.email.trim()) {
+      errors.push({
+        field: 'email',
+        message: 'Email address is required'
+      });
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      errors.push({
+        field: 'email',
+        message: 'Please enter a valid email address'
+      });
+    }
+
+    // Validate tenure dates format (optional but helpful)
+    if (data.tenure.startDate.english && !/^[a-zA-Z]+\s\d{4}$/.test(data.tenure.startDate.english)) {
+      errors.push({
+        field: 'tenure',
+        message: 'Start date should be in format "Month Year" (e.g., January 2023)'
+      });
+    }
+
+    if (data.tenure.currentTerm.english && !/^\d{4}-\d{4}$/.test(data.tenure.currentTerm.english)) {
+      errors.push({
+        field: 'tenure',
+        message: 'Current term should be in format "YYYY-YYYY" (e.g., 2023-2027)'
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
+
+  // ✅ Real-time field validation helper
+  const getFieldError = (field: string, language?: string): ValidationError | undefined => {
+    return validationErrors.find(error => 
+      error.field === field && 
+      (!language || error.language === language)
+    );
+  };
+
+  const hasFieldError = (field: string, language?: string): boolean => {
+    return !!getFieldError(field, language);
+  };
+
+  const clearValidationErrors = () => {
+    setValidationErrors([]);
+  };
+
+  const clearFieldErrors = (field: string) => {
+    setValidationErrors(prev => prev.filter(error => error.field !== field));
+  };
 
   // Helper function to get text in current language
   const getText = (text: { english: string; tamil: string; sinhala: string }) => {
@@ -433,29 +585,6 @@ export default function CouncilMemberPage() {
 
   const totalPages = Math.ceil(filteredMembers.length / itemsPerPage);
 
-  // ✅ Validation
-  const validateMemberForm = (data: typeof formData): boolean => {
-    const errors: {[key: string]: boolean} = {};
-    
-    // Check all three languages for name
-    (['english', 'tamil', 'sinhala'] as const).forEach(lang => {
-      if (!data.name[lang]?.trim()) {
-        errors[`name-${lang}`] = true;
-      }
-    });
-
-    // Check required fields
-    if (!data.phone.trim()) errors.phone = true;
-    if (!data.email.trim()) errors.email = true;
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const clearValidationErrors = () => {
-    setValidationErrors({});
-  };
-
   // ✅ Image Upload Handler
   const handleImageUpload = (file: File) => {
     const reader = new FileReader();
@@ -469,7 +598,7 @@ export default function CouncilMemberPage() {
     setFormData(prev => ({...prev, profile: ""}));
   };
 
-  // ✅ Auto-fill tenure data when English is filled
+  // ✅ Auto-fill handlers
   const handleTenureChange = (field: 'startDate' | 'currentTerm', value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -477,38 +606,51 @@ export default function CouncilMemberPage() {
         ...prev.tenure,
         [field]: {
           english: value,
-          tamil: value, // Auto-fill same value for other languages
+          tamil: value,
           sinhala: value
         }
       }
     }));
+    clearFieldErrors('tenure');
   };
 
-  // ✅ Auto-fill role data when English role is selected
   const handleRoleChange = (englishRole: string) => {
-    const selectedRole = roles.find(r => r.english === englishRole) || roles[0];
+    const selectedRole = ROLES.find(r => r.english === englishRole) || ROLES[0];
     setFormData(prev => ({
       ...prev,
       role: selectedRole
     }));
   };
 
-  // ✅ Auto-fill message and address when English is filled
   const handleEnglishFieldChange = (field: 'message' | 'address', value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: {
         english: value,
-        tamil: value, // Auto-fill same value for other languages
+        tamil: value,
         sinhala: value
       }
     }));
   };
 
-  // ✅ Member Operations
+  // ✅ Real-time field validation handlers
+  const handlePhoneChange = (value: string) => {
+    setFormData(prev => ({...prev, phone: value}));
+    clearFieldErrors('phone');
+  };
+
+  const handleEmailChange = (value: string) => {
+    setFormData(prev => ({...prev, email: value}));
+    clearFieldErrors('email');
+  };
+
+  // ✅ Member Operations with enhanced validation
   const handleAddMember = () => {
-    if (!validateMemberForm(formData)) {
-      showAlert("error", "Please fill all required fields in all languages!");
+    const validation = validateMemberForm(formData);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      showAlert("error", "Please fix the validation errors below!");
       return;
     }
     
@@ -532,8 +674,11 @@ export default function CouncilMemberPage() {
   };
 
   const handleEditMember = () => {
-    if (!validateMemberForm(formData)) {
-      showAlert("error", "Please fill all required fields in all languages!");
+    const validation = validateMemberForm(formData);
+    
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      showAlert("error", "Please fix the validation errors below!");
       return;
     }
 
@@ -599,7 +744,7 @@ export default function CouncilMemberPage() {
   const resetForm = () => {
     setFormData({
       name: { english: "", tamil: "", sinhala: "" },
-      role: roles[0],
+      role: ROLES[0],
       phone: "",
       email: "",
       profile: "",
@@ -613,135 +758,149 @@ export default function CouncilMemberPage() {
     clearValidationErrors();
   };
 
-  // ✅ Common Form Sections
-  const CommonFormFields = () => (
-    <div className="space-y-6 border-t pt-6">
-      {/* Contact Information */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Contact Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className={validationErrors.phone ? "text-red-600" : ""}>Phone *</Label>
-            <Input 
-              value={formData.phone} 
-              onChange={(e) => setFormData(prev => ({...prev, phone: e.target.value}))}
-              className={validationErrors.phone ? "border-red-500" : ""}
-              placeholder="0764822492"
-            />
-            {validationErrors.phone && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                Phone number is required
-              </p>
-            )}
-          </div>
+  // ✅ Common Form Sections with real-time validation
+  const CommonFormFields = () => {
+    const phoneError = getFieldError('phone');
+    const emailError = getFieldError('email');
+    const tenureError = getFieldError('tenure');
 
-          <div className="space-y-2">
-            <Label className={validationErrors.email ? "text-red-600" : ""}>Email *</Label>
-            <Input 
-              value={formData.email} 
-              onChange={(e) => setFormData(prev => ({...prev, email: e.target.value}))}
-              className={validationErrors.email ? "border-red-500" : ""}
-              placeholder="navaneethansivakumaran@gmail.com"
-            />
-            {validationErrors.email && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                Email is required
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Tenure Information */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Tenure Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Start Date</Label>
-            <Input
-              value={formData.tenure.startDate.english}
-              onChange={(e) => handleTenureChange('startDate', e.target.value)}
-              placeholder="e.g., January 2023"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Current Term</Label>
-            <Input
-              value={formData.tenure.currentTerm.english}
-              onChange={(e) => handleTenureChange('currentTerm', e.target.value)}
-              placeholder="e.g., 2023-2027"
-            />
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          Note: Tenure information will be automatically applied to all languages
-        </p>
-      </div>
-
-      {/* Role & Profile */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Role & Profile</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select 
-              value={formData.role.english} 
-              onValueChange={handleRoleChange}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.english} value={role.english}>
-                    {role.english}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-gray-500">
-              Role will be automatically translated to all languages
-            </p>
-          </div>
-
-          <ImageUpload 
-            profile={formData.profile}
-            onImageChange={handleImageUpload}
-            onImageRemove={handleImageRemove}
-          />
-        </div>
-      </div>
-
-      {/* Auto-fill Message and Address */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Additional Information (Auto-fill)</h3>
+    return (
+      <div className="space-y-6 border-t pt-6">
+        {/* Contact Information */}
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Message (English)</Label>
-            <Textarea
-              value={formData.message.english}
-              onChange={(e) => handleEnglishFieldChange('message', e.target.value)}
-              placeholder="Enter message in English (will auto-fill other languages)"
-              rows={3}
-            />
+          <h3 className="font-semibold text-lg">Contact Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className={phoneError ? "text-red-600" : ""}>Phone *</Label>
+              <Input 
+                value={formData.phone} 
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                className={phoneError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                placeholder="0764822492"
+              />
+              {phoneError && (
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {phoneError.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className={emailError ? "text-red-600" : ""}>Email *</Label>
+              <Input 
+                value={formData.email} 
+                onChange={(e) => handleEmailChange(e.target.value)}
+                className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                placeholder="navaneethansivakumaran@gmail.com"
+              />
+              {emailError && (
+                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {emailError.message}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Address (English)</Label>
-            <Input
-              value={formData.address.english}
-              onChange={(e) => handleEnglishFieldChange('address', e.target.value)}
-              placeholder="Enter address in English (will auto-fill other languages)"
+        </div>
+
+        {/* Tenure Information */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Tenure Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Input
+                value={formData.tenure.startDate.english}
+                onChange={(e) => handleTenureChange('startDate', e.target.value)}
+                placeholder="e.g., January 2023"
+                className={tenureError ? "border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500" : ""}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Current Term</Label>
+              <Input
+                value={formData.tenure.currentTerm.english}
+                onChange={(e) => handleTenureChange('currentTerm', e.target.value)}
+                placeholder="e.g., 2023-2027"
+                className={tenureError ? "border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500" : ""}
+              />
+            </div>
+          </div>
+          {tenureError && (
+            <p className="text-yellow-700 text-sm mt-1 flex items-center gap-1 bg-yellow-50 p-2 rounded">
+              <AlertCircle className="w-3 h-3" />
+              {tenureError.message}
+            </p>
+          )}
+          <p className="text-sm text-gray-500">
+            Note: Tenure information will be automatically applied to all languages
+          </p>
+        </div>
+
+        {/* Role & Profile */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Role & Profile</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Select 
+                value={formData.role.english} 
+                onValueChange={handleRoleChange}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((role) => (
+                    <SelectItem key={role.english} value={role.english}>
+                      {role.english}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-500">
+                Role will be automatically translated to all languages
+              </p>
+            </div>
+
+            <ImageUpload 
+              profile={formData.profile}
+              onImageChange={handleImageUpload}
+              onImageRemove={handleImageRemove}
             />
           </div>
         </div>
-        <p className="text-sm text-gray-500">
-          Note: Message and Address entered in English will be automatically applied to all languages
-        </p>
+
+        {/* Auto-fill Message and Address */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Additional Information (Auto-fill)</h3>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Message (English)</Label>
+              <Textarea
+                value={formData.message.english}
+                onChange={(e) => handleEnglishFieldChange('message', e.target.value)}
+                placeholder="Enter message in English (will auto-fill other languages)"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Address (English)</Label>
+              <Input
+                value={formData.address.english}
+                onChange={(e) => handleEnglishFieldChange('address', e.target.value)}
+                placeholder="Enter address in English (will auto-fill other languages)"
+              />
+            </div>
+          </div>
+          <p className="text-sm text-gray-500">
+            Note: Message and Address entered in English will be automatically applied to all languages
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -758,8 +917,8 @@ export default function CouncilMemberPage() {
               <SelectValue placeholder="Select Language" />
             </SelectTrigger>
             <SelectContent>
-              {languages.map((lang) => (
-                <SelectItem key={lang.value} value={lang.value}>
+              {LANGUAGES.map((lang) => (
+                <SelectItem key={lang.code} value={lang.code}>
                   {lang.label}
                 </SelectItem>
               ))}
@@ -827,7 +986,15 @@ export default function CouncilMemberPage() {
                 {/* Common Fields */}
                 <CommonFormFields />
 
-                {/* Alert */}
+                {/* Validation Alert */}
+                {validationErrors.length > 0 && (
+                  <ValidationAlert
+                    errors={validationErrors}
+                    onClose={clearValidationErrors}
+                  />
+                )}
+
+                {/* Success/Error Alert */}
                 {alert && (
                   <Alert
                     type={alert.type}
@@ -981,8 +1148,8 @@ export default function CouncilMemberPage() {
                   <TabsTrigger value="sinhala">Sinhala</TabsTrigger>
                 </TabsList>
                 
-                {(['english', 'tamil', 'sinhala'] as const).map((lang) => (
-                  <TabsContent key={lang} value={lang} className="mt-6 space-y-4">
+                {LANGUAGES.map(({ code, label }) => (
+                  <TabsContent key={code} value={code} className="mt-6 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
@@ -995,17 +1162,17 @@ export default function CouncilMemberPage() {
                         </div>
                         <div className="flex items-center space-x-2">
                           <MapPin className="w-4 h-4 text-red-600" />
-                          <span>{selectedMember.address[lang]}</span>
+                          <span>{selectedMember.address[code]}</span>
                         </div>
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <Calendar className="w-4 h-4 text-purple-600" />
-                          <span>Term: {selectedMember.tenure.currentTerm[lang]}</span>
+                          <span>Term: {selectedMember.tenure.currentTerm[code]}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <User className="w-4 h-4 text-orange-600" />
-                          <span>Since: {selectedMember.tenure.startDate[lang]}</span>
+                          <span>Since: {selectedMember.tenure.startDate[code]}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <ToggleRight className="w-4 h-4 text-gray-600" />
@@ -1015,8 +1182,8 @@ export default function CouncilMemberPage() {
                     </div>
 
                     <div>
-                      <h4 className="font-semibold mb-2">Member's Message ({lang})</h4>
-                      <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">"{selectedMember.message[lang]}"</p>
+                      <h4 className="font-semibold mb-2">Member's Message ({label})</h4>
+                      <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">"{selectedMember.message[code]}"</p>
                     </div>
                   </TabsContent>
                 ))}
@@ -1085,7 +1252,15 @@ export default function CouncilMemberPage() {
               {/* Common Fields */}
               <CommonFormFields />
 
-              {/* Alert */}
+              {/* Validation Alert */}
+              {validationErrors.length > 0 && (
+                <ValidationAlert
+                  errors={validationErrors}
+                  onClose={clearValidationErrors}
+                />
+              )}
+
+              {/* Success/Error Alert */}
               {alert && (
                 <Alert
                   type={alert.type}
