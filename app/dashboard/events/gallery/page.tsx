@@ -403,11 +403,20 @@ const validateForm = (form: AlbumFormData | MediaFormData, type: 'album' | 'medi
   const missingFields: string[] = [];
 
   LANGUAGES.forEach(({ value, label }) => {
-    if (!form.name?.[value]?.trim() && !form.title?.[value]?.trim()) {
-      missingFields.push(`${label} ${type === 'album' ? 'name' : 'title'}`);
-    }
-    if (!form.description?.[value]?.trim()) {
-      missingFields.push(`${label} description`);
+    if (type === 'album') {
+      if (!(form as AlbumFormData).name?.[value]?.trim()) {
+        missingFields.push(`${label} name`);
+      }
+      if (!(form as AlbumFormData).description?.[value]?.trim()) {
+        missingFields.push(`${label} description`);
+      }
+    } else {
+      if (!(form as MediaFormData).title?.[value]?.trim()) {
+        missingFields.push(`${label} title`);
+      }
+      if (!(form as MediaFormData).description?.[value]?.trim()) {
+        missingFields.push(`${label} description`);
+      }
     }
   });
 

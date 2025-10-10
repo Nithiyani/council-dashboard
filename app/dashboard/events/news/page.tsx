@@ -406,7 +406,7 @@ const LanguageTabs = ({
   value: Language; 
   onValueChange: (value: Language) => void;
 }) => (
-  <Tabs value={value} onValueChange={onValueChange}>
+  <Tabs value={value} onValueChange={(val) => onValueChange(val as Language)}>
     <TabsList className="grid w-full grid-cols-3">
       {LANGUAGES.map((lang) => (
         <TabsTrigger key={lang.value} value={lang.value}>
@@ -581,8 +581,8 @@ export default function NewsListPage() {
     excerpt: { en: '', ta: '', si: '' },
     author: '',
     category: '',
-    status: 'draft' as const,
-    priority: 'medium' as const,
+    status: 'draft' as 'published' | 'draft' | 'archived',
+    priority: 'medium' as 'low' | 'medium' | 'high',
     isPinned: false
   });
 
@@ -749,7 +749,7 @@ export default function NewsListPage() {
         author: article.author,
         category: article.category,
         status: article.status,
-        priority: article.priority || 'medium',
+        priority: (article.priority ?? 'medium') as 'low' | 'medium' | 'high',
         isPinned: article.isPinned || false
       });
     }
