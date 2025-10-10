@@ -25,7 +25,8 @@ import {
   MapPin,
   Globe,
   Info,
-  FolderTree
+  FolderTree,
+  HeartHandshake
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -71,6 +72,7 @@ export default function DashboardLayout({
         { name: 'services', href: '/dashboard/information/services', icon: FolderTree },
         { name: 'tourism', href: '/dashboard/information/tourism', icon: Globe },
         { name: 'ads', href: '/dashboard/information/ads', icon: MapPin },
+        { name: 'social work', href: '/dashboard/information/social_work', icon: HeartHandshake },
       ]
     },
     { name: 'User Management', href: '/dashboard/users', icon: UserCog },
