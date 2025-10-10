@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Crown, Edit, Calendar, MapPin, Phone, Mail, Award, Languages, AlertCircle, CheckCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -295,6 +295,56 @@ const SuccessAlert = ({ message, onClose }: SuccessAlertProps) => {
   );
 };
 
+// ✅ Form Alert Component for inline form errors
+interface FormAlertProps {
+  errorMessage: string;
+  errors?: ValidationError[];
+  onClose: () => void;
+}
+
+const FormAlert = ({ errorMessage, errors = [], onClose }: FormAlertProps) => {
+  if (!errorMessage && errors.length === 0) return null;
+
+  const errorCount = errors.filter(e => e.type === 'error').length;
+  const warningCount = errors.filter(e => e.type === 'warning').length;
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
+      <div className="flex items-start">
+        <AlertCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-red-800 font-medium">
+            {errorMessage || `Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} before saving.`}
+          </p>
+          {errors.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {errors.slice(0, 5).map((error, index) => (
+                <p key={index} className="text-red-600 text-sm">
+                  • {error.language && <strong>{error.language}: </strong>}
+                  {error.message}
+                </p>
+              ))}
+              {errors.length > 5 && (
+                <p className="text-red-600 text-sm">
+                  • ... and {errors.length - 5} more error{errors.length - 5 > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 hover:bg-red-100 text-red-800 flex-shrink-0"
+          onClick={onClose}
+        >
+          ×
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // ✅ Real-time Validation Hook
 const useRealTimeValidation = () => {
   const [fieldErrors, setFieldErrors] = useState<Map<string, ValidationError>>(new Map());
@@ -371,6 +421,8 @@ export default function ChairmanPage() {
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [langTab, setLangTab] = useState<Language>("en");
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const [formErrorMessage, setFormErrorMessage] = useState<string>("");
+  const [formValidationErrors, setFormValidationErrors] = useState<ValidationError[]>([]);
 
   const { 
     chairmanData, 
@@ -430,14 +482,37 @@ export default function ChairmanPage() {
     
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
+      setFormValidationErrors(validation.errors);
+      
+      // Set form error message
+      const errorCount = validation.errors.filter(e => e.type === 'error').length;
+      const warningCount = validation.errors.filter(e => e.type === 'warning').length;
+      
+      let errorMessage = '';
+      if (errorCount > 0) {
+        errorMessage = `Please fix ${errorCount} required field${errorCount > 1 ? 's' : ''} before saving.`;
+      }
+      if (warningCount > 0 && errorCount === 0) {
+        errorMessage = `There are ${warningCount} warning${warningCount > 1 ? 's' : ''}. You can still save, but please review them.`;
+      }
+      
+      setFormErrorMessage(errorMessage);
       return;
     }
 
+    // If only warnings, allow save but show success with warning note
+    if (validation.hasWarnings && !validation.hasErrors) {
+      setSuccessMessage("Profile updated successfully with warnings. Please review the warnings.");
+    } else {
+      setSuccessMessage("Chairman profile updated successfully!");
+    }
+
     setValidationErrors([]);
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     updateChairmanData(data);
     setIsEditDialogOpen(false);
-    setSuccessMessage("Chairman profile updated successfully!");
     setTimeout(() => setSuccessMessage(""), 5000);
   };
 
@@ -463,16 +538,33 @@ export default function ChairmanPage() {
       }
     });
 
-    if (errors.some(e => e.type === 'error')) {
+    const hasErrors = errors.some(e => e.type === 'error');
+    const hasWarnings = errors.some(e => e.type === 'warning');
+
+    if (hasErrors) {
       setValidationErrors(errors);
+      setFormValidationErrors(errors);
+      
+      const errorCount = errors.filter(e => e.type === 'error').length;
+      let errorMessage = `Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} in the message fields before saving.`;
+      
+      setFormErrorMessage(errorMessage);
       return;
     }
 
+    // If only warnings, allow save but show success with warning note
+    if (hasWarnings && !hasErrors) {
+      setSuccessMessage("Message updated successfully with warnings. Please review the message length.");
+    } else {
+      setSuccessMessage("Chairman's message updated successfully!");
+    }
+
     setValidationErrors([]);
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     updateChairmanData({ ...chairmanData, message: data.message });
     setIsMessageDialogOpen(false);
-    setSuccessMessage("Chairman's message updated successfully!");
     setTimeout(() => setSuccessMessage(""), 5000);
   };
 
@@ -486,6 +578,8 @@ export default function ChairmanPage() {
     
     // Clear previous errors for this field
     realTimeValidation.clearFieldError(fullFieldName);
+    setFormErrorMessage('');
+    setFormValidationErrors(prev => prev.filter(error => error.field !== fullFieldName));
     
     // Validate based on field type
     const rules = getValidationRules(field);
@@ -507,6 +601,9 @@ export default function ChairmanPage() {
       case 'photo':
         rules.pattern = /^https?:\/\/.+\..+/;
         break;
+      case 'message':
+        rules.minLength = 10;
+        break;
       default:
         rules.minLength = 2;
     }
@@ -517,7 +614,8 @@ export default function ChairmanPage() {
   const getFieldError = (field: string, language?: string): ValidationError | undefined => {
     const fullFieldName = language ? `${field}.${language}` : field;
     return realTimeValidation.getFieldError(fullFieldName) || 
-           validationErrors.find(error => error.field === fullFieldName);
+           validationErrors.find(error => error.field === fullFieldName) ||
+           formValidationErrors.find(error => error.field === fullFieldName);
   };
 
   const hasFieldError = (field: string, language?: string): boolean => {
@@ -527,6 +625,8 @@ export default function ChairmanPage() {
   const handleEditOpen = () => {
     editForm.reset(chairmanData);
     clearValidationErrors();
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     setIsEditDialogOpen(true);
   };
@@ -534,6 +634,8 @@ export default function ChairmanPage() {
   const handleMessageOpen = () => {
     messageForm.reset({ message: chairmanData.message });
     clearValidationErrors();
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     setIsMessageDialogOpen(true);
   };
@@ -541,6 +643,14 @@ export default function ChairmanPage() {
   const getText = (text: { en: string; ta: string; si: string }) => {
     return text[currentLanguage] || text.en;
   };
+
+  // Reset form errors when dialog closes
+  useEffect(() => {
+    if (!isEditDialogOpen && !isMessageDialogOpen) {
+      setFormErrorMessage('');
+      setFormValidationErrors([]);
+    }
+  }, [isEditDialogOpen, isMessageDialogOpen]);
 
   // Check if required files/components are available
   const missingComponents = [];
@@ -870,6 +980,16 @@ export default function ChairmanPage() {
                 </div>
               </div>
 
+              {/* Alert Messages under the form */}
+              <FormAlert 
+                errorMessage={formErrorMessage}
+                errors={formValidationErrors}
+                onClose={() => {
+                  setFormErrorMessage('');
+                  setFormValidationErrors([]);
+                }}
+              />
+
               <DialogFooter className="flex flex-col sm:flex-row gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto">
                   Cancel
@@ -923,6 +1043,17 @@ export default function ChairmanPage() {
                   </TabsContent>
                 ))}
               </Tabs>
+
+              {/* Alert Messages under the form */}
+              <FormAlert 
+                errorMessage={formErrorMessage}
+                errors={formValidationErrors}
+                onClose={() => {
+                  setFormErrorMessage('');
+                  setFormValidationErrors([]);
+                }}
+              />
+
               <DialogFooter className="flex flex-col sm:flex-row gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsMessageDialogOpen(false)} className="w-full sm:w-auto">
                   Cancel

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -20,6 +20,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Upload, 
   FolderPlus, 
@@ -43,7 +44,11 @@ import {
   Maximize,
   Minimize,
   Clock,
-  FileText
+  FileText,
+  AlertCircle,
+  CheckCircle,
+  Languages,
+  Eye
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -51,11 +56,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+
+// Types
+type Language = 'en' | 'ta' | 'si';
+type MediaType = 'image' | 'video';
+type ViewMode = 'grid' | 'list';
+
+interface LocalizedText {
+  en: string;
+  ta: string;
+  si: string;
+}
 
 interface Album {
   id: number;
-  name: string;
-  description: string;
+  name: LocalizedText;
+  description: LocalizedText;
   coverImage: string;
   itemCount: number;
   createdAt: string;
@@ -63,9 +81,9 @@ interface Album {
 
 interface MediaItem {
   id: number;
-  title: string;
+  title: LocalizedText;
   url: string;
-  type: 'image' | 'video';
+  type: MediaType;
   albumId: number;
   uploadDate: string;
   size?: string;
@@ -82,7 +100,6 @@ interface NavigationState {
   view: 'albums' | 'album-detail' | 'media-detail';
   albumId?: number;
   mediaId?: number;
-  previousState?: NavigationState;
 }
 
 interface VideoControls {
@@ -95,44 +112,79 @@ interface VideoControls {
   playbackRate: number;
 }
 
-const defaultCoverImages = [
+interface AlbumFormData {
+  name: LocalizedText;
+  description: LocalizedText;
+}
+
+interface MediaFormData {
+  title: LocalizedText;
+  description: LocalizedText;
+}
+
+interface MessageState {
+  type: 'error' | 'success';
+  title: string;
+  message: string;
+}
+
+// Constants
+const LANGUAGES: { value: Language; label: string }[] = [
+  { value: 'en', label: 'English' },
+  { value: 'ta', label: 'Tamil' },
+  { value: 'si', label: 'Sinhala' }
+];
+
+const DEFAULT_COVER_IMAGES = [
   "https://images.unsplash.com/photo-1542736667-069246bdbc6d?w=300&h=200&fit=crop",
   "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop",
   "https://images.unsplash.com/photo-1554629947-334ff61d85dc?w=300&h=200&fit=crop",
   "https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=300&h=200&fit=crop"
 ];
 
-const galleryData: Gallery = {
+const INITIAL_GALLERY_DATA: Gallery = {
   albums: [
     {
       id: 1,
-      name: "Summer Vacation 2024",
-      description: "Beautiful memories from our summer trip",
+      name: {
+        en: "Summer Vacation 2024",
+        ta: "கோடை விடுமுறை 2024",
+        si: "2024 ගිම්හාන නිවාඩු"
+      },
+      description: {
+        en: "Beautiful memories from our summer trip",
+        ta: "எங்கள் கோடை பயணத்திலிருந்து அழகான நினைவுகள்",
+        si: "අපගේ ගිම්හාන චාරිකාවෙන් ලස්සන මතකයන්"
+      },
       coverImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&h=200&fit=crop",
-      itemCount: 12,
+      itemCount: 3,
       createdAt: "2024-06-15",
     },
     {
       id: 2,
-      name: "Family Events",
-      description: "All our family gatherings and celebrations",
+      name: {
+        en: "Family Events",
+        ta: "குடும்ப நிகழ்வுகள்",
+        si: "පවුල් ඉසව්"
+      },
+      description: {
+        en: "All our family gatherings and celebrations",
+        ta: "எங்கள் குடும்பக் கூட்டங்கள் மற்றும் கொண்டாட்டங்கள் அனைத்தும்",
+        si: "අපගේ පවුල් රැස්වීම් සහ උත්සව සියල්ල"
+      },
       coverImage: "https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=300&h=200&fit=crop",
-      itemCount: 8,
+      itemCount: 2,
       createdAt: "2024-05-20",
-    },
-    {
-      id: 3,
-      name: "Work Projects",
-      description: "Documentation of ongoing work projects",
-      coverImage: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=300&h=200&fit=crop",
-      itemCount: 5,
-      createdAt: "2024-07-10",
-    },
+    }
   ],
   media: [
     {
       id: 1,
-      title: "Beach Sunset",
+      title: {
+        en: "Beach Sunset",
+        ta: "கடற்கரை சூரிய அஸ்தமனம்",
+        si: "වෙරළ සූර්යාස්තමයන්"
+      },
       url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop",
       type: 'image',
       albumId: 1,
@@ -142,7 +194,11 @@ const galleryData: Gallery = {
     },
     {
       id: 2,
-      title: "Mountain Hike",
+      title: {
+        en: "Mountain Hike",
+        ta: "மலை ஹைக்கிங்",
+        si: "පර්වත ගමන්"
+      },
       url: "https://images.unsplash.com/photo-1464822759844-b28c9536c9b4?w=800&h=600&fit=crop",
       type: 'image',
       albumId: 1,
@@ -152,59 +208,518 @@ const galleryData: Gallery = {
     },
     {
       id: 3,
-      title: "Project Meeting Recording",
-      url: "https://videos.pexels.com/video-files/3195393/3195393-uhd_2560_1440_25fps.mp4",
-      type: 'video',
-      albumId: 3,
-      uploadDate: "2024-07-10",
-      duration: "2:30",
-      size: "15.7 MB",
-      dimensions: "2560x1440"
-    },
-    {
-      id: 4,
-      title: "Birthday Party Celebration",
-      url: "https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=800&h=600&fit=crop",
+      title: {
+        en: "Forest Adventure",
+        ta: "காட்டு சாகசம்",
+        si: "වන සාරය"
+      },
+      url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop",
       type: 'image',
-      albumId: 2,
-      uploadDate: "2024-05-20",
+      albumId: 1,
+      uploadDate: "2024-06-17",
       size: "5.1 MB",
       dimensions: "1920x1080"
     },
     {
-      id: 5,
-      title: "Nature Documentary Clip",
-      url: "https://videos.pexels.com/video-files/857139/857139-hd_1920_1080_30fps.mp4",
-      type: 'video',
-      albumId: 1,
-      uploadDate: "2024-06-20",
-      duration: "1:45",
-      size: "12.3 MB",
+      id: 4,
+      title: {
+        en: "Birthday Celebration",
+        ta: "பிறந்தநாள் கொண்டாட்டம்",
+        si: "උපන්දින උත්සවය"
+      },
+      url: "https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=800&h=600&fit=crop",
+      type: 'image',
+      albumId: 2,
+      uploadDate: "2024-05-20",
+      size: "4.5 MB",
       dimensions: "1920x1080"
     },
+    {
+      id: 5,
+      title: {
+        en: "Family Gathering",
+        ta: "குடும்ப கூட்டம்",
+        si: "පවුල් රැස්වීම"
+      },
+      url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=600&fit=crop",
+      type: 'image',
+      albumId: 2,
+      uploadDate: "2024-05-21",
+      size: "4.8 MB",
+      dimensions: "1920x1080"
+    }
   ],
 };
 
+// Custom Hooks
+const useGallery = () => {
+  const [gallery, setGallery] = useState<Gallery>(INITIAL_GALLERY_DATA);
+  
+  const addAlbum = useCallback((album: Omit<Album, 'id' | 'coverImage' | 'itemCount' | 'createdAt'>) => {
+    const newAlbum: Album = {
+      ...album,
+      id: Math.max(0, ...gallery.albums.map(a => a.id)) + 1,
+      coverImage: DEFAULT_COVER_IMAGES[Math.floor(Math.random() * DEFAULT_COVER_IMAGES.length)],
+      itemCount: 0,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    setGallery(prev => ({ ...prev, albums: [...prev.albums, newAlbum] }));
+    return newAlbum;
+  }, [gallery.albums]);
+
+  const updateAlbum = useCallback((id: number, updates: Partial<Album>) => {
+    setGallery(prev => ({
+      ...prev,
+      albums: prev.albums.map(album => 
+        album.id === id ? { ...album, ...updates } : album
+      )
+    }));
+  }, []);
+
+  const deleteAlbum = useCallback((id: number) => {
+    setGallery(prev => ({
+      albums: prev.albums.filter(album => album.id !== id),
+      media: prev.media.filter(media => media.albumId !== id)
+    }));
+  }, []);
+
+  const addMedia = useCallback((mediaItems: Omit<MediaItem, 'id'>[]) => {
+    const baseId = Math.max(0, ...gallery.media.map(m => m.id));
+    const newMediaItems: MediaItem[] = mediaItems.map((item, index) => ({
+      ...item,
+      id: baseId + index + 1
+    }));
+
+    setGallery(prev => {
+      const updatedMedia = [...prev.media, ...newMediaItems];
+      const albumItemCounts = updatedMedia.reduce((acc, media) => {
+        acc[media.albumId] = (acc[media.albumId] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
+
+      return {
+        ...prev,
+        media: updatedMedia,
+        albums: prev.albums.map(album => ({
+          ...album,
+          itemCount: albumItemCounts[album.id] || 0
+        }))
+      };
+    });
+
+    return newMediaItems;
+  }, [gallery.media]);
+
+  const updateMedia = useCallback((id: number, updates: Partial<MediaItem>) => {
+    setGallery(prev => ({
+      ...prev,
+      media: prev.media.map(media => 
+        media.id === id ? { ...media, ...updates } : media
+      )
+    }));
+  }, []);
+
+  const deleteMedia = useCallback((id: number) => {
+    setGallery(prev => {
+      const mediaToDelete = prev.media.find(media => media.id === id);
+      const updatedMedia = prev.media.filter(media => media.id !== id);
+      
+      return {
+        ...prev,
+        media: updatedMedia,
+        albums: prev.albums.map(album => ({
+          ...album,
+          itemCount: updatedMedia.filter(m => m.albumId === album.id).length
+        }))
+      };
+    });
+  }, []);
+
+  return { gallery, addAlbum, updateAlbum, deleteAlbum, addMedia, updateMedia, deleteMedia };
+};
+
+const useAlbumForm = (initialState: AlbumFormData) => {
+  const [form, setForm] = useState<AlbumFormData>(initialState);
+
+  const updateField = useCallback((
+    field: 'name' | 'description',
+    language: Language,
+    value: string
+  ) => {
+    setForm(prev => ({
+      ...prev,
+      [field]: { ...prev[field], [language]: value }
+    }));
+  }, []);
+
+  const setFormData = useCallback((data: AlbumFormData) => {
+    setForm(data);
+  }, []);
+
+  const reset = useCallback(() => setForm(initialState), [initialState]);
+
+  return { form, updateField, setFormData, reset };
+};
+
+const useMediaForm = (initialState: MediaFormData) => {
+  const [form, setForm] = useState<MediaFormData>(initialState);
+
+  const updateField = useCallback((
+    field: 'title' | 'description',
+    language: Language,
+    value: string
+  ) => {
+    setForm(prev => ({
+      ...prev,
+      [field]: { ...prev[field], [language]: value }
+    }));
+  }, []);
+
+  const setFormData = useCallback((data: MediaFormData) => {
+    setForm(data);
+  }, []);
+
+  const reset = useCallback(() => setForm(initialState), [initialState]);
+
+  return { form, updateField, setFormData, reset };
+};
+
+// Utility Functions
+const getLanguageLabel = (lang: Language): string => {
+  return LANGUAGES.find(l => l.value === lang)?.label || lang;
+};
+
+const getRandomCoverImage = (): string => {
+  return DEFAULT_COVER_IMAGES[Math.floor(Math.random() * DEFAULT_COVER_IMAGES.length)];
+};
+
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const validateForm = (form: AlbumFormData | MediaFormData, type: 'album' | 'media'): string | null => {
+  const missingFields: string[] = [];
+
+  LANGUAGES.forEach(({ value, label }) => {
+    if (!form.name?.[value]?.trim() && !form.title?.[value]?.trim()) {
+      missingFields.push(`${label} ${type === 'album' ? 'name' : 'title'}`);
+    }
+    if (!form.description?.[value]?.trim()) {
+      missingFields.push(`${label} description`);
+    }
+  });
+
+  if (missingFields.length > 0) {
+    return `Please fill in: ${missingFields.join(', ')}`;
+  }
+
+  return null;
+};
+
+const getFileType = (file: File): MediaType => {
+  return file.type.startsWith('video/') ? 'video' : 'image';
+};
+
+const formatFileSize = (bytes: number): string => {
+  const mb = bytes / (1024 * 1024);
+  return `${mb.toFixed(1)} MB`;
+};
+
+// Components
+const LanguageTabs: React.FC<{
+  value: Language;
+  onChange: (value: Language) => void;
+}> = ({ value, onChange }) => (
+  <Tabs value={value} onValueChange={(val) => onChange(val as Language)}>
+    <TabsList className="grid w-full grid-cols-3">
+      {LANGUAGES.map(lang => (
+        <TabsTrigger key={lang.value} value={lang.value}>
+          {lang.label}
+        </TabsTrigger>
+      ))}
+    </TabsList>
+  </Tabs>
+);
+
+const AlertMessage: React.FC<{
+  type: 'error' | 'success';
+  title: string;
+  message: string;
+}> = ({ type, title, message }) => {
+  const styles = {
+    error: 'bg-red-50 border-red-200 text-red-800',
+    success: 'bg-green-50 border-green-200 text-green-800'
+  };
+  
+  return (
+    <div className={`border rounded-md p-4 ${styles[type]}`}>
+      <div className="flex items-center">
+        {type === 'error' ? 
+          <AlertCircle className="w-5 h-5 mr-2" /> : 
+          <CheckCircle className="w-5 h-5 mr-2" />
+        }
+        <div>
+          <p className="font-medium">{title}</p>
+          <p className="text-sm">{message}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StatsCard: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  color: string;
+}> = ({ icon, label, value, color }) => (
+  <Card className="bg-white/80 backdrop-blur-sm border-blue-200">
+    <CardContent className="p-6">
+      <div className="flex items-center">
+        <div className={`p-3 rounded-full ${color}`}>
+          {icon}
+        </div>
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-600">{label}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const AlbumCard: React.FC<{
+  album: Album;
+  currentLanguage: Language;
+  onView: (album: Album) => void;
+  onEdit: (album: Album) => void;
+  onDelete: (album: Album) => void;
+}> = ({ album, currentLanguage, onView, onEdit, onDelete }) => (
+  <Card 
+    key={album.id} 
+    className="group cursor-pointer bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
+    onClick={() => onView(album)}
+  >
+    <div className="aspect-square relative overflow-hidden">
+      <img
+        src={album.coverImage}
+        alt={album.name[currentLanguage]}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      
+      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="secondary" size="sm" className="rounded-full w-8 h-8 bg-white/90 backdrop-blur-sm">
+              <MoreVertical className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(album); }}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={(e) => { e.stopPropagation(); onDelete(album); }}
+              className="text-red-600"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+        <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 mb-2">
+          {album.itemCount} items
+        </Badge>
+        <CardTitle className="text-lg font-semibold line-clamp-1">
+          {album.name[currentLanguage]}
+        </CardTitle>
+        <CardDescription className="text-white/80 line-clamp-2 text-sm">
+          {album.description[currentLanguage]}
+        </CardDescription>
+      </div>
+    </div>
+  </Card>
+);
+
+const MediaCard: React.FC<{
+  media: MediaItem;
+  currentLanguage: Language;
+  viewMode: ViewMode;
+  onView: (media: MediaItem) => void;
+  onEdit: (media: MediaItem) => void;
+  onDelete: (media: MediaItem) => void;
+  onDownload: (media: MediaItem) => void;
+}> = ({ media, currentLanguage, viewMode, onView, onEdit, onDelete, onDownload }) => {
+  if (viewMode === 'grid') {
+    return (
+      <Card 
+        className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
+        onClick={() => onView(media)}
+      >
+        <div className="aspect-square relative overflow-hidden">
+          <img
+            src={media.url}
+            alt={media.title[currentLanguage]}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+          
+          <div className="absolute top-2 left-2">
+            <Badge className="bg-blue-500/90 text-white backdrop-blur-sm border-0">
+              <ImageIcon className="w-3 h-3 mr-1" />
+              {media.type}
+            </Badge>
+          </div>
+
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="rounded-full w-8 h-8 p-0 bg-white/90 backdrop-blur-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(media);
+              }}
+            >
+              <Download className="w-3 h-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="rounded-full w-8 h-8 p-0 bg-white/90 backdrop-blur-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(media);
+              }}
+            >
+              <Edit className="w-3 h-3" />
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="rounded-full w-8 h-8 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(media);
+              }}
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+            <div className="text-white">
+              <p className="font-semibold text-sm line-clamp-1">{media.title[currentLanguage]}</p>
+              <div className="flex items-center gap-2 text-xs text-white/80 mt-1">
+                <span>{media.uploadDate}</span>
+                <span>•</span>
+                <span>{media.size}</span>
+                <span>•</span>
+                <span>{media.dimensions}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card 
+      className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
+      onClick={() => onView(media)}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+            <img
+              src={media.url}
+              alt={media.title[currentLanguage]}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-semibold text-gray-900 truncate">{media.title[currentLanguage]}</p>
+              <Badge variant="outline" className="text-xs">
+                {media.type}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <span>{media.uploadDate}</span>
+              <span>•</span>
+              <span>{media.size}</span>
+              <span>•</span>
+              <span>{media.dimensions}</span>
+            </div>
+          </div>
+          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDownload(media);
+              }}
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(media);
+              }}
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(media);
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Main Component
 export default function GalleryPage() {
+  // State Management
+  const { gallery, addAlbum, updateAlbum, deleteAlbum, addMedia, updateMedia, deleteMedia } = useGallery();
   const [searchTerm, setSearchTerm] = useState("");
-  const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false);
-  const [isUploadMediaOpen, setIsUploadMediaOpen] = useState(false);
-  const [isEditAlbumOpen, setIsEditAlbumOpen] = useState(false);
-  const [isDeleteAlbumOpen, setIsDeleteAlbumOpen] = useState(false);
-  const [isDeleteMediaOpen, setIsDeleteMediaOpen] = useState(false);
-  const [isMediaViewerOpen, setIsMediaViewerOpen] = useState(false);
-  const [gallery, setGallery] = useState<Gallery>(galleryData);
-  const [newAlbum, setNewAlbum] = useState({ name: "", description: "" });
-  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
-  const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null);
-  const [mediaToDelete, setMediaToDelete] = useState<MediaItem | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('en');
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [navigationStack, setNavigationStack] = useState<NavigationState[]>([
-    { view: 'albums' }
-  ]);
+  const [message, setMessage] = useState<MessageState | null>(null);
   
+  // Unified Dialog State
+  const [dialogState, setDialogState] = useState({
+    createAlbum: false,
+    editAlbum: false,
+    uploadMedia: false,
+    editMedia: false,
+    deleteAlbum: false,
+    deleteMedia: false,
+    mediaViewer: false
+  });
+
   // Video controls state
   const [videoControls, setVideoControls] = useState<VideoControls>({
     isPlaying: false,
@@ -219,168 +734,40 @@ export default function GalleryPage() {
   const [showVideoControls, setShowVideoControls] = useState(true);
   const [videoProgress, setVideoProgress] = useState(0);
   
+  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaViewerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Get current navigation state
+  // Navigation state
+  const [navigationStack, setNavigationStack] = useState<NavigationState[]>([
+    { view: 'albums' }
+  ]);
   const currentState = navigationStack[navigationStack.length - 1];
   const canGoBack = navigationStack.length > 1;
 
-  // Navigation functions
-  const navigateTo = (newState: NavigationState) => {
-    setNavigationStack(prev => [...prev, newState]);
-  };
+  // Form states
+  const albumForm = useAlbumForm({
+    name: { en: '', ta: '', si: '' },
+    description: { en: '', ta: '', si: '' }
+  });
 
-  const navigateBack = () => {
-    if (canGoBack) {
-      setNavigationStack(prev => prev.slice(0, -1));
-    }
-  };
+  const mediaForm = useMediaForm({
+    title: { en: '', ta: '', si: '' },
+    description: { en: '', ta: '', si: '' }
+  });
 
-  const navigateToAlbums = () => {
-    setNavigationStack([{ view: 'albums' }]);
-  };
+  // Selected items state
+  const [selectedItems, setSelectedItems] = useState<{
+    album: Album | null;
+    media: MediaItem | null;
+  }>({
+    album: null,
+    media: null
+  });
 
-  const navigateToAlbum = (album: Album) => {
-    navigateTo({
-      view: 'album-detail',
-      albumId: album.id
-    });
-  };
-
-  const navigateToMedia = (media: MediaItem) => {
-    navigateTo({
-      view: 'media-detail',
-      albumId: media.albumId,
-      mediaId: media.id
-    });
-    setSelectedMedia(media);
-    setIsMediaViewerOpen(true);
-    
-    // Reset video controls when opening new media
-    if (media.type === 'video') {
-      setVideoControls({
-        isPlaying: false,
-        volume: 1,
-        isMuted: false,
-        isFullscreen: false,
-        currentTime: 0,
-        duration: 0,
-        playbackRate: 1
-      });
-    }
-  };
-
-  // Video control functions
-  const togglePlayPause = () => {
-    if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play();
-        setVideoControls(prev => ({ ...prev, isPlaying: true }));
-      } else {
-        videoRef.current.pause();
-        setVideoControls(prev => ({ ...prev, isPlaying: false }));
-      }
-    }
-  };
-
-  const handleVolumeChange = (volume: number) => {
-    if (videoRef.current) {
-      videoRef.current.volume = volume;
-      setVideoControls(prev => ({ 
-        ...prev, 
-        volume,
-        isMuted: volume === 0 
-      }));
-    }
-  };
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setVideoControls(prev => ({ 
-        ...prev, 
-        isMuted: !prev.isMuted 
-      }));
-    }
-  };
-
-  const handleSeek = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      setVideoControls(prev => ({ ...prev, currentTime: time }));
-    }
-  };
-
-  const toggleFullscreen = () => {
-    if (mediaViewerRef.current) {
-      if (!document.fullscreenElement) {
-        mediaViewerRef.current.requestFullscreen();
-        setVideoControls(prev => ({ ...prev, isFullscreen: true }));
-      } else {
-        document.exitFullscreen();
-        setVideoControls(prev => ({ ...prev, isFullscreen: false }));
-      }
-    }
-  };
-
-  const changePlaybackRate = (rate: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = rate;
-      setVideoControls(prev => ({ ...prev, playbackRate: rate }));
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Auto-hide controls for video
-  const showControlsTemporarily = () => {
-    setShowVideoControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (videoControls.isPlaying) {
-        setShowVideoControls(false);
-      }
-    }, 3000);
-  };
-
-  // Video event handlers
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const currentTime = videoRef.current.currentTime;
-      const duration = videoRef.current.duration;
-      setVideoControls(prev => ({ 
-        ...prev, 
-        currentTime,
-        duration 
-      }));
-      setVideoProgress((currentTime / duration) * 100);
-    }
-  };
-
-  const handleVideoEnd = () => {
-    setVideoControls(prev => ({ ...prev, isPlaying: false }));
-    setShowVideoControls(true);
-  };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Get current album and media based on navigation state
+  // Computed values
   const currentAlbum = currentState.view === 'album-detail' || currentState.view === 'media-detail'
     ? gallery.albums.find(album => album.id === currentState.albumId) || null
     : null;
@@ -389,84 +776,167 @@ export default function GalleryPage() {
     ? gallery.media.filter(media => media.albumId === currentAlbum.id)
     : [];
 
-  const filteredAlbums = gallery.albums.filter(
-    (album) =>
-      album.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      album.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getRandomCoverImage = () => {
-    return defaultCoverImages[Math.floor(Math.random() * defaultCoverImages.length)];
-  };
-
-  const handleCreateAlbum = () => {
-    if (!newAlbum.name.trim()) return;
-
-    const album: Album = {
-      id: Math.max(...gallery.albums.map(a => a.id), 0) + 1,
-      ...newAlbum,
-      coverImage: getRandomCoverImage(),
-      itemCount: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    
-    setGallery({ ...gallery, albums: [...gallery.albums, album] });
-    setNewAlbum({ name: "", description: "" });
-    setIsCreateAlbumOpen(false);
-    navigateToAlbum(album);
-  };
-
-  const handleEditAlbum = () => {
-    if (!editingAlbum || !editingAlbum.name.trim()) return;
-
-    setGallery({
-      ...gallery,
-      albums: gallery.albums.map(album => 
-        album.id === editingAlbum.id ? editingAlbum : album
+  const filteredAlbums = useMemo(() => {
+    return gallery.albums.filter(album =>
+      Object.values(album.name).some(name =>
+        name.toLowerCase().includes(searchTerm.toLowerCase())
+      ) ||
+      Object.values(album.description).some(desc =>
+        desc.toLowerCase().includes(searchTerm.toLowerCase())
       )
+    );
+  }, [gallery.albums, searchTerm]);
+
+  const stats = useMemo(() => ({
+    totalAlbums: gallery.albums.length,
+    totalMedia: gallery.media.length,
+    totalImages: gallery.media.filter(m => m.type === 'image').length,
+    totalVideos: gallery.media.filter(m => m.type === 'video').length
+  }), [gallery]);
+
+  // Navigation functions
+  const navigateTo = useCallback((newState: NavigationState) => {
+    setNavigationStack(prev => [...prev, newState]);
+  }, []);
+
+  const navigateBack = useCallback(() => {
+    if (canGoBack) {
+      setNavigationStack(prev => prev.slice(0, -1));
+    }
+  }, [canGoBack]);
+
+  const navigateToAlbums = useCallback(() => {
+    setNavigationStack([{ view: 'albums' }]);
+  }, []);
+
+  const navigateToAlbum = useCallback((album: Album) => {
+    navigateTo({
+      view: 'album-detail',
+      albumId: album.id
     });
+  }, [navigateTo]);
+
+  const navigateToMedia = useCallback((media: MediaItem) => {
+    navigateTo({
+      view: 'media-detail',
+      albumId: media.albumId,
+      mediaId: media.id
+    });
+    setSelectedMedia(media);
+    setDialogState(prev => ({ ...prev, mediaViewer: true }));
+  }, [navigateTo]);
+
+  // Dialog management
+  const openDialog = useCallback((dialog: keyof typeof dialogState, item?: Album | MediaItem) => {
+    if (item) {
+      if ('type' in item) {
+        setSelectedItems(prev => ({ ...prev, media: item }));
+        if (dialog === 'editMedia') {
+          mediaForm.setFormData({
+            title: item.title,
+            description: { en: '', ta: '', si: '' } // Add description field if needed
+          });
+        }
+      } else {
+        setSelectedItems(prev => ({ ...prev, album: item }));
+        if (dialog === 'editAlbum') {
+          albumForm.setFormData({
+            name: item.name,
+            description: item.description
+          });
+        }
+      }
+    }
+    setDialogState(prev => ({ ...prev, [dialog]: true }));
+    setMessage(null);
+  }, [albumForm, mediaForm]);
+
+  const closeDialog = useCallback((dialog: keyof typeof dialogState) => {
+    setDialogState(prev => ({ ...prev, [dialog]: false }));
+    setMessage(null);
+    albumForm.reset();
+    mediaForm.reset();
+    setSelectedItems({ album: null, media: null });
+  }, [albumForm, mediaForm]);
+
+  // Album operations
+  const handleCreateAlbum = useCallback(() => {
+    const error = validateForm(albumForm.form, 'album');
+    if (error) {
+      setMessage({ type: 'error', title: 'Validation Error', message: error });
+      return;
+    }
+
+    const newAlbum = addAlbum(albumForm.form);
+    albumForm.reset();
+    setMessage({ type: 'success', title: 'Success!', message: 'Album created successfully!' });
     
-    setIsEditAlbumOpen(false);
-    setEditingAlbum(null);
-  };
+    setTimeout(() => {
+      setMessage(null);
+      closeDialog('createAlbum');
+      navigateToAlbum(newAlbum);
+    }, 2000);
+  }, [addAlbum, albumForm, closeDialog, navigateToAlbum]);
 
-  const handleDeleteAlbum = () => {
-    if (!albumToDelete) return;
+  const handleEditAlbum = useCallback(() => {
+    if (!selectedItems.album) return;
 
-    setGallery({
-      albums: gallery.albums.filter(album => album.id !== albumToDelete.id),
-      media: gallery.media.filter(media => media.albumId !== albumToDelete.id)
-    });
+    const error = validateForm(albumForm.form, 'album');
+    if (error) {
+      setMessage({ type: 'error', title: 'Validation Error', message: error });
+      return;
+    }
 
-    setIsDeleteAlbumOpen(false);
-    setAlbumToDelete(null);
+    updateAlbum(selectedItems.album.id, albumForm.form);
+    setMessage({ type: 'success', title: 'Success!', message: 'Album updated successfully!' });
+    
+    setTimeout(() => {
+      setMessage(null);
+      closeDialog('editAlbum');
+    }, 2000);
+  }, [selectedItems.album, albumForm.form, updateAlbum, closeDialog]);
+
+  const handleDeleteAlbum = useCallback(() => {
+    if (!selectedItems.album) return;
+    deleteAlbum(selectedItems.album.id);
+    closeDialog('deleteAlbum');
     navigateToAlbums();
-  };
+  }, [selectedItems.album, deleteAlbum, closeDialog, navigateToAlbums]);
 
-  const handleDeleteMedia = () => {
-    if (!mediaToDelete) return;
+  // Media operations
+  const handleEditMedia = useCallback(() => {
+    if (!selectedItems.media) return;
 
-    const updatedMedia = gallery.media.filter(media => media.id !== mediaToDelete.id);
-    setGallery({ 
-      ...gallery, 
-      media: updatedMedia,
-      albums: gallery.albums.map(album =>
-        album.id === mediaToDelete.albumId
-          ? { ...album, itemCount: updatedMedia.filter(m => m.albumId === mediaToDelete.albumId).length }
-          : album
-      )
+    const error = validateForm(mediaForm.form, 'media');
+    if (error) {
+      setMessage({ type: 'error', title: 'Validation Error', message: error });
+      return;
+    }
+
+    updateMedia(selectedItems.media.id, {
+      title: mediaForm.form.title
     });
+    setMessage({ type: 'success', title: 'Success!', message: 'Media updated successfully!' });
+    
+    setTimeout(() => {
+      setMessage(null);
+      closeDialog('editMedia');
+    }, 2000);
+  }, [selectedItems.media, mediaForm.form, updateMedia, closeDialog]);
 
-    setIsDeleteMediaOpen(false);
-    setMediaToDelete(null);
+  const handleDeleteMedia = useCallback(() => {
+    if (!selectedItems.media) return;
+    deleteMedia(selectedItems.media.id);
+    closeDialog('deleteMedia');
     
     // Close media viewer if the deleted media is currently open
-    if (selectedMedia?.id === mediaToDelete.id) {
-      setIsMediaViewerOpen(false);
+    if (selectedMedia?.id === selectedItems.media.id) {
+      setDialogState(prev => ({ ...prev, mediaViewer: false }));
     }
-  };
+  }, [selectedItems.media, selectedMedia, deleteMedia, closeDialog]);
 
-  const simulateUploadProgress = (fileName: string) => {
+  // Upload operations
+  const simulateUploadProgress = useCallback((fileName: string) => {
     let progress = 0;
     const interval = setInterval(() => {
       progress += Math.random() * 15;
@@ -483,26 +953,28 @@ export default function GalleryPage() {
       }
       setUploadProgress(prev => ({ ...prev, [fileName]: progress }));
     }, 200);
-  };
+  }, []);
 
-  const handleUploadFiles = (files: FileList | null) => {
+  const handleUploadFiles = useCallback((files: FileList | null) => {
     if (!currentAlbum || !files) return;
 
-    const newMediaItems: MediaItem[] = [];
+    const newMediaItems: Omit<MediaItem, 'id'>[] = [];
     
-    Array.from(files).forEach((file, index) => {
-      const fileType = file.type.startsWith('video/') ? 'video' : 'image';
-      const baseId = Math.max(...gallery.media.map(m => m.id), 0);
+    Array.from(files).forEach((file) => {
+      const fileType = getFileType(file);
+      const fileName = file.name.replace(/\.[^/.]+$/, "");
       
-      const newItem: MediaItem = {
-        id: baseId + index + 1,
-        title: file.name.replace(/\.[^/.]+$/, ""),
+      const newItem: Omit<MediaItem, 'id'> = {
+        title: {
+          en: fileName,
+          ta: fileName,
+          si: fileName
+        },
         url: URL.createObjectURL(file),
         type: fileType,
         albumId: currentAlbum.id,
         uploadDate: new Date().toISOString().split('T')[0],
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        duration: fileType === 'video' ? '0:30' : undefined,
+        size: formatFileSize(file.size),
         dimensions: fileType === 'image' ? '1920x1080' : '1280x720'
       };
       
@@ -510,56 +982,124 @@ export default function GalleryPage() {
       simulateUploadProgress(file.name);
     });
 
-    const updatedMedia = [...gallery.media, ...newMediaItems];
-    setGallery({ 
-      ...gallery, 
-      media: updatedMedia,
-      albums: gallery.albums.map(album =>
-        album.id === currentAlbum.id
-          ? { ...album, itemCount: updatedMedia.filter(m => m.albumId === currentAlbum.id).length }
-          : album
-      )
-    });
-    
-    setIsUploadMediaOpen(false);
+    addMedia(newMediaItems);
+    closeDialog('uploadMedia');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, [currentAlbum, simulateUploadProgress, addMedia, closeDialog]);
 
-  const openEditAlbum = (album: Album) => {
-    setEditingAlbum({ ...album });
-    setIsEditAlbumOpen(true);
-  };
+  // Video control functions
+  const togglePlayPause = useCallback(() => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+        setVideoControls(prev => ({ ...prev, isPlaying: true }));
+      } else {
+        videoRef.current.pause();
+        setVideoControls(prev => ({ ...prev, isPlaying: false }));
+      }
+    }
+  }, []);
 
-  const openDeleteAlbum = (album: Album) => {
-    setAlbumToDelete(album);
-    setIsDeleteAlbumOpen(true);
-  };
+  const handleVolumeChange = useCallback((volume: number) => {
+    if (videoRef.current) {
+      videoRef.current.volume = volume;
+      setVideoControls(prev => ({ 
+        ...prev, 
+        volume,
+        isMuted: volume === 0 
+      }));
+    }
+  }, []);
 
-  const openDeleteMedia = (media: MediaItem) => {
-    setMediaToDelete(media);
-    setIsDeleteMediaOpen(true);
-  };
+  const toggleMute = useCallback(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setVideoControls(prev => ({ 
+        ...prev, 
+        isMuted: !prev.isMuted 
+      }));
+    }
+  }, []);
 
-  const triggerFileInput = () => {
+  const handleSeek = useCallback((time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+      setVideoControls(prev => ({ ...prev, currentTime: time }));
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (mediaViewerRef.current) {
+      if (!document.fullscreenElement) {
+        mediaViewerRef.current.requestFullscreen();
+        setVideoControls(prev => ({ ...prev, isFullscreen: true }));
+      } else {
+        document.exitFullscreen();
+        setVideoControls(prev => ({ ...prev, isFullscreen: false }));
+      }
+    }
+  }, []);
+
+  const changePlaybackRate = useCallback((rate: number) => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+      setVideoControls(prev => ({ ...prev, playbackRate: rate }));
+    }
+  }, []);
+
+  // Auto-hide controls for video
+  const showControlsTemporarily = useCallback(() => {
+    setShowVideoControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (videoControls.isPlaying) {
+        setShowVideoControls(false);
+      }
+    }, 3000);
+  }, [videoControls.isPlaying]);
+
+  // Video event handlers
+  const handleTimeUpdate = useCallback(() => {
+    if (videoRef.current) {
+      const currentTime = videoRef.current.currentTime;
+      const duration = videoRef.current.duration;
+      setVideoControls(prev => ({ 
+        ...prev, 
+        currentTime,
+        duration 
+      }));
+      setVideoProgress((currentTime / duration) * 100);
+    }
+  }, []);
+
+  const handleVideoEnd = useCallback(() => {
+    setVideoControls(prev => ({ ...prev, isPlaying: false }));
+    setShowVideoControls(true);
+  }, []);
+
+  // Utility functions
+  const triggerFileInput = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, []);
 
-  const downloadMedia = (media: MediaItem) => {
+  const downloadMedia = useCallback((media: MediaItem) => {
     const link = document.createElement('a');
     link.href = media.url;
-    link.download = media.title;
+    link.download = media.title[currentLanguage];
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [currentLanguage]);
 
-  const shareMedia = async (media: MediaItem) => {
+  const shareMedia = useCallback(async (media: MediaItem) => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: media.title,
+          title: media.title[currentLanguage],
           text: `Check out this ${media.type} from my gallery`,
           url: media.url,
         });
@@ -570,7 +1110,20 @@ export default function GalleryPage() {
       navigator.clipboard.writeText(media.url);
       alert('Media URL copied to clipboard!');
     }
-  };
+  }, [currentLanguage]);
+
+  const resetFilters = useCallback(() => {
+    setSearchTerm('');
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Render based on current navigation state
   const renderContent = () => {
@@ -588,53 +1141,14 @@ export default function GalleryPage() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredAlbums.map((album) => (
-          <Card 
-            key={album.id} 
-            className="group cursor-pointer bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
-            onClick={() => navigateToAlbum(album)}
-          >
-            <div className="aspect-square relative overflow-hidden">
-              <img
-                src={album.coverImage}
-                alt={album.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              
-              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" size="sm" className="rounded-full w-8 h-8 bg-white/90 backdrop-blur-sm">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditAlbum(album); }}>
-                      <Edit className="w-4 h-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => { e.stopPropagation(); openDeleteAlbum(album); }}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-4 text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 mb-2">
-                  {album.itemCount} items
-                </Badge>
-                <CardTitle className="text-lg font-semibold line-clamp-1">{album.name}</CardTitle>
-                <CardDescription className="text-white/80 line-clamp-2 text-sm">
-                  {album.description}
-                </CardDescription>
-              </div>
-            </div>
-          </Card>
+          <AlbumCard
+            key={album.id}
+            album={album}
+            currentLanguage={currentLanguage}
+            onView={navigateToAlbum}
+            onEdit={(album) => openDialog('editAlbum', album)}
+            onDelete={(album) => openDialog('deleteAlbum', album)}
+          />
         ))}
       </div>
 
@@ -646,7 +1160,7 @@ export default function GalleryPage() {
           <h3 className="text-xl font-semibold text-gray-600 mb-2">No albums found</h3>
           <p className="text-gray-500 mb-6">Create your first album to get started</p>
           <Button 
-            onClick={() => setIsCreateAlbumOpen(true)}
+            onClick={() => openDialog('createAlbum')}
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full"
           >
             Create Album
@@ -673,9 +1187,9 @@ export default function GalleryPage() {
                 </Button>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 truncate">
-                    {currentAlbum?.name}
+                    {currentAlbum?.name[currentLanguage]}
                   </h2>
-                  <p className="text-gray-600 mt-1">{currentAlbum?.description}</p>
+                  <p className="text-gray-600 mt-1">{currentAlbum?.description[currentLanguage]}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -688,26 +1202,18 @@ export default function GalleryPage() {
             <div className="flex flex-wrap gap-2">
               <Button 
                 variant="outline" 
-                onClick={() => currentAlbum && openEditAlbum(currentAlbum)}
+                onClick={() => currentAlbum && openDialog('editAlbum', currentAlbum)}
                 className="rounded-full border-gray-300"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
               <Button 
-                onClick={() => setIsUploadMediaOpen(true)}
+                onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Media
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={() => currentAlbum && openDeleteAlbum(currentAlbum)}
-                className="rounded-full"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
               </Button>
             </div>
           </div>
@@ -744,163 +1250,31 @@ export default function GalleryPage() {
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {currentAlbumMedia.map((media) => (
-              <Card 
-                key={media.id} 
-                className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
-                onClick={() => navigateToMedia(media)}
-              >
-                <div className="aspect-square relative overflow-hidden">
-                  {media.type === 'image' ? (
-                    <img
-                      src={media.url}
-                      alt={media.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <>
-                      <video
-                        src={media.url}
-                        className="w-full h-full object-cover"
-                        muted
-                      />
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div className="bg-black/50 rounded-full p-3 backdrop-blur-sm">
-                          <Play className="w-6 h-6 text-white fill-white" />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  
-                  <div className="absolute top-2 left-2">
-                    <Badge className={`${
-                      media.type === 'image' 
-                        ? 'bg-blue-500/90 text-white' 
-                        : 'bg-purple-500/90 text-white'
-                    } backdrop-blur-sm border-0`}>
-                      {media.type === 'image' ? <ImageIcon className="w-3 h-3 mr-1" /> : <VideoIcon className="w-3 h-3 mr-1" />}
-                      {media.type}
-                    </Badge>
-                  </div>
-
-                  {media.type === 'video' && (
-                    <div className="absolute top-2 right-2">
-                      <Badge variant="secondary" className="bg-black/50 text-white border-0 backdrop-blur-sm">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {media.duration}
-                      </Badge>
-                    </div>
-                  )}
-
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full w-8 h-8 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openDeleteMedia(media);
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                    <div className="text-white">
-                      <p className="font-semibold text-sm line-clamp-1">{media.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-white/80 mt-1">
-                        <span>{media.uploadDate}</span>
-                        {media.size && (
-                          <>
-                            <span>•</span>
-                            <span>{media.size}</span>
-                          </>
-                        )}
-                        {media.duration && (
-                          <>
-                            <span>•</span>
-                            <span>{media.duration}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+              <MediaCard
+                key={media.id}
+                media={media}
+                currentLanguage={currentLanguage}
+                viewMode={viewMode}
+                onView={navigateToMedia}
+                onEdit={(media) => openDialog('editMedia', media)}
+                onDelete={(media) => openDialog('deleteMedia', media)}
+                onDownload={downloadMedia}
+              />
             ))}
           </div>
         ) : (
           <div className="space-y-2">
             {currentAlbumMedia.map((media) => (
-              <Card 
+              <MediaCard
                 key={media.id}
-                className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
-                onClick={() => navigateToMedia(media)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative">
-                      {media.type === 'image' ? (
-                        <img
-                          src={media.url}
-                          alt={media.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <>
-                          <video
-                            src={media.url}
-                            className="w-full h-full object-cover"
-                            muted
-                          />
-                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                            <Play className="w-4 h-4 text-white fill-white" />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="font-semibold text-gray-900 truncate">{media.title}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {media.type}
-                        </Badge>
-                        {media.type === 'video' && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {media.duration}
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-500">
-                        <span>{media.uploadDate}</span>
-                        {media.size && <span>• {media.size}</span>}
-                        {media.dimensions && <span>• {media.dimensions}</span>}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadMedia(media);
-                        }}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDeleteMedia(media);
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                media={media}
+                currentLanguage={currentLanguage}
+                viewMode={viewMode}
+                onView={navigateToMedia}
+                onEdit={(media) => openDialog('editMedia', media)}
+                onDelete={(media) => openDialog('deleteMedia', media)}
+                onDownload={downloadMedia}
+              />
             ))}
           </div>
         )
@@ -915,7 +1289,7 @@ export default function GalleryPage() {
               Start by uploading photos and videos to your album
             </p>
             <Button 
-              onClick={() => setIsUploadMediaOpen(true)}
+              onClick={() => openDialog('uploadMedia')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full shadow-lg"
             >
               <Upload className="w-4 h-4 mr-2" />
@@ -934,30 +1308,36 @@ export default function GalleryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              {/* {canGoBack && (
-                <Button 
-                  variant="ghost" 
-                  onClick={navigateBack}
-                  className="rounded-full w-10 h-10 p-0 hover:bg-gray-100"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              )} */}
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {currentState.view === 'albums' ? 'Gallery' : currentAlbum?.name}
+                {currentState.view === 'albums' ? 'Gallery' : currentAlbum?.name[currentLanguage]}
               </h1>
             </div>
             <p className="text-gray-600 text-lg">
               {currentState.view === 'albums' 
                 ? 'Organize your memories and media collections' 
-                : currentAlbum?.description}
+                : currentAlbum?.description[currentLanguage]}
             </p>
           </div>
           
           <div className="flex flex-wrap gap-3">
+            {/* Language Switcher */}
+            <Select value={currentLanguage} onValueChange={(val: Language) => setCurrentLanguage(val)}>
+              <SelectTrigger className="w-32">
+                <Languages className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map(lang => (
+                  <SelectItem key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {currentState.view === 'album-detail' && (
               <Button 
-                onClick={() => setIsUploadMediaOpen(true)}
+                onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -966,7 +1346,7 @@ export default function GalleryPage() {
             )}
             {currentState.view === 'albums' && (
               <Button 
-                onClick={() => setIsCreateAlbumOpen(true)}
+                onClick={() => openDialog('createAlbum')}
                 className="bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 <FolderPlus className="w-4 h-4 mr-2" />
@@ -974,6 +1354,34 @@ export default function GalleryPage() {
               </Button>
             )}
           </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <StatsCard 
+            icon={<FolderPlus className="w-6 h-6 text-blue-600" />}
+            label="Total Albums"
+            value={stats.totalAlbums}
+            color="bg-blue-100"
+          />
+          <StatsCard 
+            icon={<ImageIcon className="w-6 h-6 text-green-600" />}
+            label="Total Media"
+            value={stats.totalMedia}
+            color="bg-green-100"
+          />
+          <StatsCard 
+            icon={<FileText className="w-6 h-6 text-yellow-600" />}
+            label="Images"
+            value={stats.totalImages}
+            color="bg-yellow-100"
+          />
+          <StatsCard 
+            icon={<VideoIcon className="w-6 h-6 text-purple-600" />}
+            label="Videos"
+            value={stats.totalVideos}
+            color="bg-purple-100"
+          />
         </div>
 
         {/* Search Bar - Only show in albums view */}
@@ -992,326 +1400,142 @@ export default function GalleryPage() {
         {/* Main Content */}
         {renderContent()}
 
-        {/* Media Viewer Dialog */}
-        <Dialog open={isMediaViewerOpen} onOpenChange={setIsMediaViewerOpen}>
-          <DialogContent className="max-w-7xl rounded-2xl p-0 overflow-hidden bg-black">
-            <div 
-              ref={mediaViewerRef}
-              className="relative w-full h-[80vh] bg-black flex items-center justify-center"
-              onMouseMove={showControlsTemporarily}
-              onMouseLeave={() => {
-                if (videoControls.isPlaying) {
-                  setShowVideoControls(false);
-                }
-              }}
-            >
-              {selectedMedia?.type === 'image' ? (
-                <>
-                  <img
-                    src={selectedMedia.url}
-                    alt={selectedMedia.title}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                  {/* Image Controls */}
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => selectedMedia && downloadMedia(selectedMedia)}
-                      className="bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => selectedMedia && shareMedia(selectedMedia)}
-                      className="bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
-                    >
-                      <Share className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setIsMediaViewerOpen(false)}
-                      className="bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Video Player */}
-                  <video
-                    ref={videoRef}
-                    src={selectedMedia?.url}
-                    className="w-full h-full object-contain cursor-pointer"
-                    onClick={togglePlayPause}
-                    onTimeUpdate={handleTimeUpdate}
-                    onEnded={handleVideoEnd}
-                    onLoadedMetadata={() => {
-                      if (videoRef.current) {
-                        setVideoControls(prev => ({
-                          ...prev,
-                          duration: videoRef.current?.duration || 0
-                        }));
-                      }
-                    }}
-                  />
-                  
-                  {/* Video Overlay Controls */}
-                  <div 
-                    className={`absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent transition-opacity duration-300 ${
-                      showVideoControls ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  >
-                    {/* Top Bar */}
-                    <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsMediaViewerOpen(false)}
-                          className="text-white hover:bg-white/20 rounded-full"
-                        >
-                          <ArrowLeft className="w-5 h-5" />
-                        </Button>
-                        <div className="text-white">
-                          <h3 className="font-semibold">{selectedMedia?.title}</h3>
-                          <p className="text-sm text-gray-300">
-                            {formatTime(videoControls.currentTime)} / {formatTime(videoControls.duration)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-white hover:bg-white/20 rounded-full"
-                            >
-                              {videoControls.playbackRate}x
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                              <DropdownMenuItem
-                                key={rate}
-                                onClick={() => changePlaybackRate(rate)}
-                                className={videoControls.playbackRate === rate ? 'bg-blue-50' : ''}
-                              >
-                                {rate}x
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => selectedMedia && downloadMedia(selectedMedia)}
-                          className="text-white hover:bg-white/20 rounded-full"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => selectedMedia && shareMedia(selectedMedia)}
-                          className="text-white hover:bg-white/20 rounded-full"
-                        >
-                          <Share className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={toggleFullscreen}
-                          className="text-white hover:bg-white/20 rounded-full"
-                        >
-                          {videoControls.isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Center Play Button */}
-                    {!videoControls.isPlaying && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Button
-                          onClick={togglePlayPause}
-                          className="bg-black/50 hover:bg-black/70 text-white rounded-full w-16 h-16 backdrop-blur-sm"
-                        >
-                          <Play className="w-8 h-8 fill-white" />
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Bottom Controls */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
-                      {/* Progress Bar */}
-                      <div 
-                        className="w-full bg-white/30 rounded-full h-1 cursor-pointer"
-                        onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const percent = (e.clientX - rect.left) / rect.width;
-                          const newTime = percent * videoControls.duration;
-                          handleSeek(newTime);
-                        }}
-                      >
-                        <div 
-                          className="bg-blue-500 h-1 rounded-full relative transition-all duration-100"
-                          style={{ width: `${videoProgress}%` }}
-                        >
-                          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full shadow-lg opacity-0 hover:opacity-100 transition-opacity" />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {/* Play/Pause */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={togglePlayPause}
-                            className="text-white hover:bg-white/20 rounded-full"
-                          >
-                            {videoControls.isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 fill-white" />}
-                          </Button>
-
-                          {/* Volume Control */}
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={toggleMute}
-                              className="text-white hover:bg-white/20 rounded-full"
-                            >
-                              {videoControls.isMuted || videoControls.volume === 0 ? (
-                                <VolumeX className="w-4 h-4" />
-                              ) : (
-                                <Volume2 className="w-4 h-4" />
-                              )}
-                            </Button>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.1"
-                              value={videoControls.volume}
-                              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                              className="w-20 accent-white"
-                            />
-                          </div>
-
-                          {/* Time Display */}
-                          <span className="text-white text-sm font-mono">
-                            {formatTime(videoControls.currentTime)} / {formatTime(videoControls.duration)}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-white text-sm">
-                          <FileText className="w-4 h-4" />
-                          <span>{selectedMedia?.dimensions}</span>
-                          <span>•</span>
-                          <span>{selectedMedia?.size}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Other Dialogs (Create Album, Edit Album, Upload Media, Delete Confirmations) */}
-        {/* Create Album Dialog */}
-        <Dialog open={isCreateAlbumOpen} onOpenChange={setIsCreateAlbumOpen}>
-          <DialogContent className="sm:max-w-md rounded-2xl">
+        {/* Create/Edit Album Dialog */}
+        <Dialog open={dialogState.createAlbum || dialogState.editAlbum} onOpenChange={(open) => {
+          if (!open) closeDialog(dialogState.createAlbum ? 'createAlbum' : 'editAlbum');
+        }}>
+          <DialogContent className="sm:max-w-2xl rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl">Create New Album</DialogTitle>
+              <DialogTitle className="text-xl">
+                {dialogState.createAlbum ? 'Create New Album' : 'Edit Album'}
+              </DialogTitle>
               <DialogDescription>
-                Create a new album to organize your photos and videos
+                {dialogState.createAlbum 
+                  ? 'Create a new album to organize your photos and videos in multiple languages' 
+                  : 'Update the album details in all languages'}
               </DialogDescription>
             </DialogHeader>
+            
             <div className="space-y-4 py-4">
+              {/* Language Tabs */}
+              <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
+
+              {/* Album Name */}
               <div className="space-y-2">
-                <Label htmlFor="album-name" className="text-sm font-medium">Album Name</Label>
+                <Label className="text-sm font-medium">
+                  Album Name ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
                 <Input
-                  id="album-name"
-                  placeholder="Enter album name"
-                  value={newAlbum.name}
-                  onChange={(e) => setNewAlbum({ ...newAlbum, name: e.target.value })}
+                  value={albumForm.form.name[selectedLanguage]}
+                  onChange={(e) => albumForm.updateField('name', selectedLanguage, e.target.value)}
+                  placeholder={`Enter album name in ${getLanguageLabel(selectedLanguage)}`}
                   className="rounded-lg"
                 />
               </div>
+
+              {/* Album Description */}
               <div className="space-y-2">
-                <Label htmlFor="album-description" className="text-sm font-medium">Description (Optional)</Label>
-                <Input
-                  id="album-description"
-                  placeholder="Add a description"
-                  value={newAlbum.description}
-                  onChange={(e) => setNewAlbum({ ...newAlbum, description: e.target.value })}
+                <Label className="text-sm font-medium">
+                  Description ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
+                <Textarea
+                  value={albumForm.form.description[selectedLanguage]}
+                  onChange={(e) => albumForm.updateField('description', selectedLanguage, e.target.value)}
+                  placeholder={`Enter description in ${getLanguageLabel(selectedLanguage)}`}
+                  rows={3}
                   className="rounded-lg"
                 />
               </div>
             </div>
+
+            {/* Alert Messages */}
+            {message && (
+              <AlertMessage 
+                type={message.type} 
+                title={message.title} 
+                message={message.message} 
+              />
+            )}
+
             <DialogFooter>
               <Button 
                 variant="outline" 
-                onClick={() => setIsCreateAlbumOpen(false)}
+                onClick={() => closeDialog(dialogState.createAlbum ? 'createAlbum' : 'editAlbum')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
               <Button 
-                onClick={handleCreateAlbum} 
-                disabled={!newAlbum.name.trim()}
+                onClick={dialogState.createAlbum ? handleCreateAlbum : handleEditAlbum}
                 className="rounded-lg bg-blue-600 hover:bg-blue-700"
               >
-                Create Album
+                {dialogState.createAlbum ? 'Create Album' : 'Save Changes'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Edit Album Dialog */}
-        <Dialog open={isEditAlbumOpen} onOpenChange={setIsEditAlbumOpen}>
-          <DialogContent className="sm:max-w-md rounded-2xl">
+        {/* Edit Media Dialog */}
+        <Dialog open={dialogState.editMedia} onOpenChange={(open) => !open && closeDialog('editMedia')}>
+          <DialogContent className="sm:max-w-2xl rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl">Edit Album</DialogTitle>
+              <DialogTitle className="text-xl">Edit Media</DialogTitle>
+              <DialogDescription>
+                Update the media details in all languages
+              </DialogDescription>
             </DialogHeader>
+            
             <div className="space-y-4 py-4">
+              {/* Language Tabs */}
+              <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
+
+              {/* Media Title */}
               <div className="space-y-2">
-                <Label htmlFor="edit-album-name" className="text-sm font-medium">Album Name</Label>
+                <Label className="text-sm font-medium">
+                  Title ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
                 <Input
-                  id="edit-album-name"
-                  value={editingAlbum?.name || ""}
-                  onChange={(e) => setEditingAlbum(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  value={mediaForm.form.title[selectedLanguage]}
+                  onChange={(e) => mediaForm.updateField('title', selectedLanguage, e.target.value)}
+                  placeholder={`Enter title in ${getLanguageLabel(selectedLanguage)}`}
                   className="rounded-lg"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-album-description" className="text-sm font-medium">Description</Label>
-                <Input
-                  id="edit-album-description"
-                  value={editingAlbum?.description || ""}
-                  onChange={(e) => setEditingAlbum(prev => prev ? { ...prev, description: e.target.value } : null)}
-                  className="rounded-lg"
-                />
-              </div>
+
+              {/* Media Preview */}
+              {selectedItems.media && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Preview</Label>
+                  <div className="w-32 h-32 rounded-lg overflow-hidden border">
+                    <img
+                      src={selectedItems.media.url}
+                      alt={selectedItems.media.title[currentLanguage]}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Alert Messages */}
+            {message && (
+              <AlertMessage 
+                type={message.type} 
+                title={message.title} 
+                message={message.message} 
+              />
+            )}
+
             <DialogFooter>
               <Button 
                 variant="outline" 
-                onClick={() => setIsEditAlbumOpen(false)}
+                onClick={() => closeDialog('editMedia')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
               <Button 
-                onClick={handleEditAlbum} 
-                disabled={!editingAlbum?.name.trim()}
+                onClick={handleEditMedia}
                 className="rounded-lg bg-blue-600 hover:bg-blue-700"
               >
                 Save Changes
@@ -1321,12 +1545,12 @@ export default function GalleryPage() {
         </Dialog>
 
         {/* Upload Media Dialog */}
-        <Dialog open={isUploadMediaOpen} onOpenChange={setIsUploadMediaOpen}>
+        <Dialog open={dialogState.uploadMedia} onOpenChange={(open) => !open && closeDialog('uploadMedia')}>
           <DialogContent className="sm:max-w-lg rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-xl">Add Media to Album</DialogTitle>
               <DialogDescription>
-                Upload photos and videos to "{currentAlbum?.name}"
+                Upload photos and videos to "{currentAlbum?.name[currentLanguage]}"
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -1336,7 +1560,7 @@ export default function GalleryPage() {
               >
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-lg font-medium text-gray-700 mb-2">Drop files here or click to upload</p>
-                <p className="text-sm text-gray-500">Supports images and videos</p>
+                <p className="text-sm text-gray-500">Supports images and videos (Max: 10 files, 50MB each)</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1350,6 +1574,7 @@ export default function GalleryPage() {
               {/* Upload Progress */}
               {Object.keys(uploadProgress).length > 0 && (
                 <div className="space-y-2">
+                  <Label className="text-sm font-medium">Upload Progress</Label>
                   {Object.entries(uploadProgress).map(([fileName, progress]) => (
                     <div key={fileName} className="space-y-1">
                       <div className="flex justify-between text-sm">
@@ -1370,7 +1595,7 @@ export default function GalleryPage() {
             <DialogFooter>
               <Button 
                 variant="outline" 
-                onClick={() => setIsUploadMediaOpen(false)}
+                onClick={() => closeDialog('uploadMedia')}
                 className="rounded-lg"
               >
                 Cancel
@@ -1380,18 +1605,19 @@ export default function GalleryPage() {
         </Dialog>
 
         {/* Delete Album Confirmation */}
-        <Dialog open={isDeleteAlbumOpen} onOpenChange={setIsDeleteAlbumOpen}>
+        <Dialog open={dialogState.deleteAlbum} onOpenChange={(open) => !open && closeDialog('deleteAlbum')}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-xl">Delete Album</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{albumToDelete?.name}"? This will also remove all {albumToDelete?.itemCount} items in this album.
+                Are you sure you want to delete "{selectedItems.album?.name[currentLanguage]}"? 
+                This will also remove all {selectedItems.album?.itemCount} items in this album.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button 
                 variant="outline" 
-                onClick={() => setIsDeleteAlbumOpen(false)}
+                onClick={() => closeDialog('deleteAlbum')}
                 className="rounded-lg"
               >
                 Cancel
@@ -1408,20 +1634,21 @@ export default function GalleryPage() {
         </Dialog>
 
         {/* Delete Media Confirmation */}
-        <Dialog open={isDeleteMediaOpen} onOpenChange={setIsDeleteMediaOpen}>
+        <Dialog open={dialogState.deleteMedia} onOpenChange={(open) => !open && closeDialog('deleteMedia')}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-xl">
-                Delete {mediaToDelete?.type === 'image' ? 'Photo' : 'Video'}
+                Delete Media
               </DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{mediaToDelete?.title}"? This action cannot be undone.
+                Are you sure you want to delete "{selectedItems.media?.title[currentLanguage]}"? 
+                This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button 
                 variant="outline" 
-                onClick={() => setIsDeleteMediaOpen(false)}
+                onClick={() => closeDialog('deleteMedia')}
                 className="rounded-lg"
               >
                 Cancel
@@ -1431,9 +1658,72 @@ export default function GalleryPage() {
                 onClick={handleDeleteMedia}
                 className="rounded-lg"
               >
-                Delete {mediaToDelete?.type === 'image' ? 'Photo' : 'Video'}
+                Delete Media
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Media Viewer Dialog */}
+        <Dialog open={dialogState.mediaViewer} onOpenChange={(open) => !open && closeDialog('mediaViewer')}>
+          <DialogContent className="max-w-7xl rounded-2xl p-0 overflow-hidden bg-black">
+            <div 
+              ref={mediaViewerRef}
+              className="relative w-full h-[80vh] bg-black flex items-center justify-center"
+            >
+              {selectedMedia && (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <img
+                    src={selectedMedia.url}
+                    alt={selectedMedia.title[currentLanguage]}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                  
+                  {/* Media Info Overlay */}
+                  <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+                    <div className="text-white">
+                      <h3 className="text-xl font-semibold">{selectedMedia.title[currentLanguage]}</h3>
+                      <div className="flex items-center gap-4 text-sm text-gray-300 mt-1">
+                        <span>{selectedMedia.type}</span>
+                        <span>•</span>
+                        <span>{selectedMedia.size}</span>
+                        <span>•</span>
+                        <span>{selectedMedia.dimensions}</span>
+                        <span>•</span>
+                        <span>{selectedMedia.uploadDate}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => downloadMedia(selectedMedia)}
+                        className="bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => openDialog('editMedia', selectedMedia)}
+                        className="bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => closeDialog('mediaViewer')}
+                        className="bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
