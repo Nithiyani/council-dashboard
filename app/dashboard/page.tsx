@@ -11,72 +11,50 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   PieChart,
   Pie,
-  Cell,
-  Area,
-  AreaChart
+  Cell
 } from 'recharts';
 import {
-  Users,
   Calendar,
   Bell,
-  Download,
+  Image,
+  Newspaper,
+  Megaphone,
+  Settings,
   TrendingUp,
-  Eye,
-  FileText,
   Activity,
-  Crown,
+  FileText,
   Building2
 } from 'lucide-react';
 
-// Types for chart data
-interface DashboardData {
-  name: string;
-  users: number;
-  events: number;
-  notices: number;
-}
-
-interface VisitorsData {
-  name: string;
-  visitors: number;
-}
-
-interface DepartmentData {
-  name: string;
-  value: number;
-  color: string;
-}
-
-// Chart data
-const dashboardData: DashboardData[] = [
-  { name: 'Jan', users: 400, events: 24, notices: 12 },
-  { name: 'Feb', users: 300, events: 18, notices: 15 },
-  { name: 'Mar', users: 500, events: 32, notices: 8 },
-  { name: 'Apr', users: 450, events: 28, notices: 20 },
-  { name: 'May', users: 600, events: 35, notices: 18 },
-  { name: 'Jun', users: 750, events: 42, notices: 25 },
+const dashboardData = [
+  { name: 'Jan', events: 24, gallery: 8, news: 12, announcements: 6, notices: 12, service: 18 },
+  { name: 'Feb', events: 18, gallery: 12, news: 8, announcements: 9, notices: 15, service: 22 },
+  { name: 'Mar', events: 32, gallery: 15, news: 14, announcements: 12, notices: 8, service: 25 },
+  { name: 'Apr', events: 28, gallery: 10, news: 16, announcements: 8, notices: 20, service: 30 },
+  { name: 'May', events: 35, gallery: 18, news: 20, announcements: 15, notices: 18, service: 28 },
+  { name: 'Jun', events: 42, gallery: 22, news: 25, announcements: 18, notices: 25, service: 35 },
 ];
 
-const visitorsData: VisitorsData[] = [
-  { name: 'Mon', visitors: 1200 },
-  { name: 'Tue', visitors: 1900 },
-  { name: 'Wed', visitors: 1600 },
-  { name: 'Thu', visitors: 2100 },
-  { name: 'Fri', visitors: 1800 },
-  { name: 'Sat', visitors: 1400 },
-  { name: 'Sun', visitors: 1000 },
+const activityData = [
+  { name: 'Mon', activities: 45 },
+  { name: 'Tue', activities: 68 },
+  { name: 'Wed', activities: 52 },
+  { name: 'Thu', activities: 75 },
+  { name: 'Fri', activities: 60 },
+  { name: 'Sat', activities: 38 },
+  { name: 'Sun', activities: 25 },
 ];
 
-const departmentData: DepartmentData[] = [
-  { name: 'Health', value: 35, color: '#3B82F6' },
-  { name: 'Education', value: 25, color: '#10B981' },
-  { name: 'Infrastructure', value: 20, color: '#F59E0B' },
-  { name: 'Social Services', value: 15, color: '#EF4444' },
-  { name: 'Others', value: 5, color: '#8B5CF6' },
+const categoryData = [
+  { name: 'Events', value: 35, color: '#3B82F6' },
+  { name: 'News', value: 25, color: '#10B981' },
+  { name: 'Services', value: 20, color: '#F59E0B' },
+  { name: 'Announcements', value: 15, color: '#EF4444' },
+  { name: 'Gallery', value: 5, color: '#8B5CF6' },
 ];
 
 // Activity item component
@@ -133,25 +111,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-lg sm:text-2xl font-bold">2,847</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
-              <TrendingUp className="h-3 w-3 mr-1" />
-              +12% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Events</CardTitle>
-            <Calendar className="h-4 w-4 text-emerald-600" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Events</CardTitle>
+            <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <div className="text-lg sm:text-2xl font-bold">42</div>
@@ -162,10 +126,52 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Notices</CardTitle>
-            <Bell className="h-4 w-4 text-orange-600" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Gallery</CardTitle>
+            <Image className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">22</div>
+            <p className="text-xs text-muted-foreground flex items-center">
+              <Activity className="h-3 w-3 mr-1" />
+              3 new albums
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">News</CardTitle>
+            <Newspaper className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">25</div>
+            <p className="text-xs text-muted-foreground flex items-center">
+              <TrendingUp className="h-3 w-3 mr-1" />
+              +5 this week
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Announcements</CardTitle>
+            <Megaphone className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">18</div>
+            <p className="text-xs text-muted-foreground flex items-center">
+              <Activity className="h-3 w-3 mr-1" />
+              2 active
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Notices</CardTitle>
+            <Bell className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <div className="text-lg sm:text-2xl font-bold">25</div>
@@ -176,16 +182,16 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Downloads</CardTitle>
-            <Download className="h-4 w-4 text-purple-600" />
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Services</CardTitle>
+            <Settings className="h-4 w-4 text-green-600" />
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-lg sm:text-2xl font-bold">1,254</div>
-            <p className="text-xs text-muted-foreground flex items-center mt-1">
+          <CardContent>
+            <div className="text-2xl font-bold">35</div>
+            <p className="text-xs text-muted-foreground flex items-center">
               <TrendingUp className="h-3 w-3 mr-1" />
-              +23% this week
+              +7 this month
             </p>
           </CardContent>
         </Card>
@@ -194,10 +200,10 @@ export default function DashboardPage() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Monthly Activity Chart */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg">Monthly Activity</CardTitle>
-            <CardDescription className="text-sm">Users, Events, and Notices over time</CardDescription>
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <CardTitle>Monthly Content Overview</CardTitle>
+            <CardDescription>All content types over time</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <div className="h-64 sm:h-80">
@@ -211,25 +217,28 @@ export default function DashboardPage() {
                   />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="users" fill="#3B82F6" name="Users" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="events" fill="#10B981" name="Events" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="notices" fill="#F59E0B" name="Notices" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="events" fill="#3B82F6" name="Events" />
+                  <Bar dataKey="gallery" fill="#10B981" name="Gallery" />
+                  <Bar dataKey="news" fill="#F59E0B" name="News" />
+                  <Bar dataKey="announcements" fill="#EF4444" name="Announcements" />
+                  <Bar dataKey="notices" fill="#8B5CF6" name="Notices" />
+                  <Bar dataKey="service" fill="#06B6D4" name="Services" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* Weekly Visitors */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg">Weekly Visitors</CardTitle>
-            <CardDescription className="text-sm">Website traffic for the past week</CardDescription>
+        {/* Weekly Activity Trend */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <CardTitle>Weekly Activity Trend</CardTitle>
+            <CardDescription>Overall platform engagement</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <div className="h-64 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={visitorsData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
+                <AreaChart data={activityData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
@@ -239,7 +248,7 @@ export default function DashboardPage() {
                   <Tooltip />
                   <Area
                     type="monotone"
-                    dataKey="visitors"
+                    dataKey="activities"
                     stroke="#3B82F6"
                     fill="#3B82F6"
                     fillOpacity={0.2}
@@ -251,20 +260,20 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Department Distribution and Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Department Distribution */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-base sm:text-lg">Department Distribution</CardTitle>
-            <CardDescription className="text-sm">Services by department</CardDescription>
+      {/* Category Distribution and Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Category Distribution */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <CardTitle>Content Distribution</CardTitle>
+            <CardDescription>By content type</CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
             <div className="h-48 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={departmentData}
+                    data={categoryData}
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
@@ -272,7 +281,7 @@ export default function DashboardPage() {
                     dataKey="value"
                     labelLine={false}
                   >
-                    {departmentData.map((entry, index) => (
+                    {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -281,7 +290,7 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
             <div className="space-y-2 mt-4">
-              {departmentData.map((item) => (
+              {categoryData.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div
@@ -303,35 +312,62 @@ export default function DashboardPage() {
             <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
             <CardDescription className="text-sm">Latest updates and actions</CardDescription>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="space-y-0 divide-y">
-              <ActivityItem
-                icon={<Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />}
-                title="New council member added"
-                description="John Smith from Ward 5"
-                time="2 min ago"
-              />
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">New event scheduled</p>
+                  <p className="text-sm text-gray-500">Summer Festival 2025 - July 15</p>
+                </div>
+                <Badge variant="secondary">2 min ago</Badge>
+              </div>
               
-              <ActivityItem
-                icon={<Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />}
-                title="Community Meeting scheduled"
-                description="July 15, 2025 at Town Hall"
-                time="1 hour ago"
-              />
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <Image className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Gallery album created</p>
+                  <p className="text-sm text-gray-500">Community Garden Photos</p>
+                </div>
+                <Badge variant="secondary">1 hour ago</Badge>
+              </div>
 
-              <ActivityItem
-                icon={<Bell className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />}
-                title="New notice published"
-                description="Road closure announcement"
-                time="3 hours ago"
-              />
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                  <Newspaper className="w-4 h-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">News article published</p>
+                  <p className="text-sm text-gray-500">Infrastructure Development Update</p>
+                </div>
+                <Badge variant="secondary">3 hours ago</Badge>
+              </div>
 
-              <ActivityItem
-                icon={<FileText className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />}
-                title="Document uploaded"
-                description="Budget Report 2025.pdf"
-                time="5 hours ago"
-              />
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Megaphone className="w-4 h-4 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">New announcement</p>
+                  <p className="text-sm text-gray-500">Public Hearing Schedule</p>
+                </div>
+                <Badge variant="secondary">5 hours ago</Badge>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <Settings className="w-4 h-4 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Service updated</p>
+                  <p className="text-sm text-gray-500">Online Permit Application</p>
+                </div>
+                <Badge variant="secondary">1 day ago</Badge>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -343,32 +379,32 @@ export default function DashboardPage() {
           <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
           <CardDescription className="text-sm">Common administrative tasks</CardDescription>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0">
-          <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
-            <QuickAction
-              icon={<Bell className="w-full h-full" />}
-              label="Add Notice"
-            />
-            <QuickAction
-              icon={<Calendar className="w-full h-full" />}
-              label="New Event"
-            />
-            <QuickAction
-              icon={<Users className="w-full h-full" />}
-              label="Add Member"
-            />
-            <QuickAction
-              icon={<FileText className="w-full h-full" />}
-              label="Upload Doc"
-            />
-            <QuickAction
-              icon={<Activity className="w-full h-full" />}
-              label="View Reports"
-            />
-            <QuickAction
-              icon={<Building2 className="w-full h-full" />}
-              label="Departments"
-            />
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <Button variant="outline" className="h-20 flex flex-col items-center space-y-2">
+              <Calendar className="w-6 h-6" />
+              <span className="text-xs">Add Event</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex flex-col items-center space-y-2">
+              <Image className="w-6 h-6" />
+              <span className="text-xs">Manage Gallery</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex flex-col items-center space-y-2">
+              <Newspaper className="w-6 h-6" />
+              <span className="text-xs">Create News</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex flex-col items-center space-y-2">
+              <Megaphone className="w-6 h-6" />
+              <span className="text-xs">Post Announcement</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex flex-col items-center space-y-2">
+              <Bell className="w-6 h-6" />
+              <span className="text-xs">Add Notice</span>
+            </Button>
+            <Button variant="outline" className="h-20 flex flex-col items-center space-y-2">
+              <Settings className="w-6 h-6" />
+              <span className="text-xs">Manage Services</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
