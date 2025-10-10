@@ -57,13 +57,57 @@ const categoryData = [
   { name: 'Gallery', value: 5, color: '#8B5CF6' },
 ];
 
+// Activity item component
+interface ActivityItemProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  time: string;
+  badgeVariant?: "default" | "secondary" | "destructive" | "outline";
+}
+
+const ActivityItem = ({ icon, title, description, time, badgeVariant = "secondary" }: ActivityItemProps) => (
+  <div className="flex items-start space-x-3 sm:space-x-4 py-3">
+    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+      {icon}
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium text-gray-900 truncate">{title}</p>
+      <p className="text-sm text-gray-500 truncate">{description}</p>
+    </div>
+    <Badge variant={badgeVariant} className="flex-shrink-0 text-xs whitespace-nowrap">
+      {time}
+    </Badge>
+  </div>
+);
+
+// Quick Action Button component
+interface QuickActionProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+}
+
+const QuickAction = ({ icon, label, onClick }: QuickActionProps) => (
+  <Button 
+    variant="outline" 
+    className="h-16 sm:h-20 flex flex-col items-center space-y-1 sm:space-y-2 p-2"
+    onClick={onClick}
+  >
+    <div className="w-5 h-5 sm:w-6 sm:h-6">
+      {icon}
+    </div>
+    <span className="text-xs text-center leading-tight">{label}</span>
+  </Button>
+);
+
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Header */}
       <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-        <p className="text-gray-600">Welcome to the administrative dashboard</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+        <p className="text-gray-600 text-sm sm:text-base mt-1">Welcome to the administrative dashboard</p>
       </div>
 
       {/* Quick Stats */}
@@ -73,9 +117,9 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">Events</CardTitle>
             <Calendar className="h-4 w-4 text-blue-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">42</div>
-            <p className="text-xs text-muted-foreground flex items-center">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold">42</div>
+            <p className="text-xs text-muted-foreground flex items-center mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
               +8 this month
             </p>
@@ -129,9 +173,9 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">Notices</CardTitle>
             <Bell className="h-4 w-4 text-red-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">25</div>
-            <p className="text-xs text-muted-foreground flex items-center">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold">25</div>
+            <p className="text-xs text-muted-foreground flex items-center mt-1">
               <Activity className="h-3 w-3 mr-1" />
               5 published today
             </p>
@@ -154,20 +198,24 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Monthly Activity Chart */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle>Monthly Content Overview</CardTitle>
             <CardDescription>All content types over time</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-80">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="h-64 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dashboardData}>
+                <BarChart data={dashboardData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 12 }}
+                    interval={0}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Bar dataKey="events" fill="#3B82F6" name="Events" />
                   <Bar dataKey="gallery" fill="#10B981" name="Gallery" />
@@ -187,13 +235,16 @@ export default function DashboardPage() {
             <CardTitle>Weekly Activity Trend</CardTitle>
             <CardDescription>Overall platform engagement</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-80">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="h-64 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={activityData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
+                  <XAxis 
+                    dataKey="name" 
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Area
                     type="monotone"
@@ -217,8 +268,8 @@ export default function DashboardPage() {
             <CardTitle>Content Distribution</CardTitle>
             <CardDescription>By content type</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-64">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="h-48 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -226,8 +277,9 @@ export default function DashboardPage() {
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
-                    outerRadius={80}
+                    outerRadius={70}
                     dataKey="value"
+                    labelLine={false}
                   >
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
@@ -242,12 +294,12 @@ export default function DashboardPage() {
                 <div key={item.name} className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-3 h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="text-sm">{item.name}</span>
+                    <span className="text-xs sm:text-sm truncate">{item.name}</span>
                   </div>
-                  <span className="text-sm font-medium">{item.value}%</span>
+                  <span className="text-xs sm:text-sm font-medium flex-shrink-0">{item.value}%</span>
                 </div>
               ))}
             </div>
@@ -255,10 +307,10 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="lg:col-span-2 hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest updates and actions</CardDescription>
+        <Card className="lg:col-span-2 hover:shadow-lg transition-shadow duration-300">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
+            <CardDescription className="text-sm">Latest updates and actions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -322,10 +374,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common administrative tasks</CardDescription>
+      <Card className="hover:shadow-lg transition-shadow duration-300">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
+          <CardDescription className="text-sm">Common administrative tasks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
