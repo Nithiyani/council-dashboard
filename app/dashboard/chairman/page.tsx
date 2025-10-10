@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Crown, Edit, Calendar, MapPin, Phone, Mail, Award, Languages, AlertCircle, CheckCircle, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Crown, Edit, Calendar, MapPin, Phone, Mail, Award, Languages, AlertCircle, CheckCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
@@ -21,79 +21,29 @@ import { chairmanDataSchema } from "@/lib/validation";
 import { InfoCard } from "@/components/chairman/info-card";
 import { MultilingualField } from "@/components/chairman/multilingual-field";
 
-// ✅ Enhanced Alert System Types
-type AlertType = "success" | "error" | "warning" | "info";
-
-interface AlertState {
-  id: string;
-  type: AlertType;
-  title: string;
-  message: string;
-  duration?: number;
-  autoClose?: boolean;
-}
-
-interface ValidationError {
+// ✅ Enhanced Validation Types
+type ValidationError = {
   field: string;
   message: string;
   language?: string;
   type: 'error' | 'warning';
-}
+};
 
-interface ValidationResult {
+type ValidationResult = {
   isValid: boolean;
   errors: ValidationError[];
   hasErrors: boolean;
   hasWarnings: boolean;
-}
-
-// ✅ Custom hooks with enhanced alert system
-const useAlertSystem = () => {
-  const [alerts, setAlerts] = useState<AlertState[]>([]);
-
-  const showAlert = (
-    type: AlertType, 
-    title: string, 
-    message: string, 
-    duration = 5000,
-    autoClose = true
-  ) => {
-    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    const newAlert: AlertState = { id, type, title, message, duration, autoClose };
-    
-    setAlerts(prev => [...prev, newAlert]);
-
-    if (autoClose && duration > 0) {
-      setTimeout(() => {
-        removeAlert(id);
-      }, duration);
-    }
-
-    return id;
-  };
-
-  const removeAlert = (id: string) => {
-    setAlerts(prev => prev.filter(alert => alert.id !== id));
-  };
-
-  const clearAllAlerts = () => {
-    setAlerts([]);
-  };
-
-  return {
-    alerts,
-    showAlert,
-    removeAlert,
-    clearAllAlerts
-  };
 };
 
+// ✅ Custom hooks with enhanced validation
 const useChairmanForm = (initialData: ChairmanData) => {
   const [chairmanData, setChairmanData] = useState<ChairmanData>(initialData);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   
   const updateChairmanData = (data: ChairmanData) => {
     setChairmanData(data);
+    // Clear validation errors when data is successfully updated
     setValidationErrors([]);
   };
 
@@ -153,14 +103,14 @@ const validateChairmanData = (data: ChairmanData): ValidationResult => {
       if (!value || !String(value).trim()) {
         errors.push({
           field: `${field}.${lang.value}`,
-          message: `${label} is required in ${lang.label}`,
+          message: `${label} is required`,
           language: lang.label,
           type: 'error'
         });
       } else if (String(value).trim().length < 2) {
         errors.push({
           field: `${field}.${lang.value}`,
-          message: `${label} must be at least 2 characters in ${lang.label}`,
+          message: `${label} must be at least 2 characters`,
           language: lang.label,
           type: 'error'
         });
@@ -175,7 +125,7 @@ const validateChairmanData = (data: ChairmanData): ValidationResult => {
       if (!value || !String(value).trim()) {
         errors.push({
           field: `contact.${field}.${lang.value}`,
-          message: `Contact ${label.toLowerCase()} is required in ${lang.label}`,
+          message: `Contact ${label.toLowerCase()} is required`,
           language: lang.label,
           type: 'error'
         });
@@ -190,7 +140,7 @@ const validateChairmanData = (data: ChairmanData): ValidationResult => {
       if (!value || !String(value).trim()) {
         errors.push({
           field: `tenure.${field}.${lang.value}`,
-          message: `Tenure ${label.toLowerCase()} is required in ${lang.label}`,
+          message: `Tenure ${label.toLowerCase()} is required`,
           language: lang.label,
           type: 'error'
         });
@@ -241,6 +191,16 @@ const validateChairmanData = (data: ChairmanData): ValidationResult => {
     });
   }
 
+  // Validate tenure format (warnings)
+  if (data.tenure.currentTerm.en && !/^.{3,}$/.test(data.tenure.currentTerm.en)) {
+    errors.push({
+      field: 'tenure.currentTerm.en',
+      message: 'Current term seems too short',
+      language: 'English',
+      type: 'warning'
+    });
+  }
+
   return {
     isValid: errors.filter(e => e.type === 'error').length === 0,
     errors,
@@ -250,65 +210,6 @@ const validateChairmanData = (data: ChairmanData): ValidationResult => {
 };
 
 // ✅ Enhanced Alert Components
-interface AlertDisplayProps {
-  alert: AlertState;
-  onClose: () => void;
-}
-
-const AlertDisplay = ({ alert, onClose }: AlertDisplayProps) => {
-  const getAlertStyles = (type: AlertType) => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-50 border-green-200 text-green-800';
-      case 'error':
-        return 'bg-red-50 border-red-200 text-red-800';
-      case 'warning':
-        return 'bg-amber-50 border-amber-200 text-amber-800';
-      case 'info':
-        return 'bg-blue-50 border-blue-200 text-blue-800';
-      default:
-        return 'bg-gray-50 border-gray-200 text-gray-800';
-    }
-  };
-
-  const getAlertIcon = (type: AlertType) => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
-      case 'warning':
-        return <AlertCircle className="h-4 w-4 text-amber-600" />;
-      case 'info':
-        return <AlertCircle className="h-4 w-4 text-blue-600" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  return (
-    <Alert className={`mb-3 ${getAlertStyles(alert.type)}`}>
-      <div className="flex items-start gap-3">
-        {getAlertIcon(alert.type)}
-        <div className="flex-1 space-y-1">
-          <p className="font-semibold">{alert.title}</p>
-          <AlertDescription className="text-current opacity-90">
-            {alert.message}
-          </AlertDescription>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 hover:bg-transparent opacity-70 hover:opacity-100"
-          onClick={onClose}
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
-    </Alert>
-  );
-};
-
 interface ValidationAlertProps {
   errors: ValidationError[];
   onClose: () => void;
@@ -365,6 +266,82 @@ const ValidationAlert = ({ errors, onClose }: ValidationAlertProps) => {
         </div>
       </AlertDescription>
     </Alert>
+  );
+};
+
+interface SuccessAlertProps {
+  message: string;
+  onClose: () => void;
+}
+
+const SuccessAlert = ({ message, onClose }: SuccessAlertProps) => {
+  return (
+    <Alert className="mb-4 bg-green-50 border-green-200">
+      <CheckCircle className="h-4 w-4 text-green-600" />
+      <AlertDescription className="text-green-800">
+        <div className="flex justify-between items-center">
+          <span className="font-medium">{message}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-green-100 text-green-800"
+            onClick={onClose}
+          >
+            ×
+          </Button>
+        </div>
+      </AlertDescription>
+    </Alert>
+  );
+};
+
+// ✅ Form Alert Component for inline form errors
+interface FormAlertProps {
+  errorMessage: string;
+  errors?: ValidationError[];
+  onClose: () => void;
+}
+
+const FormAlert = ({ errorMessage, errors = [], onClose }: FormAlertProps) => {
+  if (!errorMessage && errors.length === 0) return null;
+
+  const errorCount = errors.filter(e => e.type === 'error').length;
+  const warningCount = errors.filter(e => e.type === 'warning').length;
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4">
+      <div className="flex items-start">
+        <AlertCircle className="w-5 h-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-red-800 font-medium">
+            {errorMessage || `Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} before saving.`}
+          </p>
+          {errors.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {errors.slice(0, 5).map((error, index) => (
+                <p key={index} className="text-red-600 text-sm">
+                  • {error.language && <strong>{error.language}: </strong>}
+                  {error.message}
+                </p>
+              ))}
+              {errors.length > 5 && (
+                <p className="text-red-600 text-sm">
+                  • ... and {errors.length - 5} more error{errors.length - 5 > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 hover:bg-red-100 text-red-800 flex-shrink-0"
+          onClick={onClose}
+        >
+          ×
+        </Button>
+      </div>
+    </div>
   );
 };
 
@@ -443,9 +420,9 @@ export default function ChairmanPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   const [langTab, setLangTab] = useState<Language>("en");
-
-  // ✅ Use the enhanced alert system
-  const { alerts, showAlert, removeAlert, clearAllAlerts } = useAlertSystem();
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [formErrorMessage, setFormErrorMessage] = useState<string>("");
+  const [formValidationErrors, setFormValidationErrors] = useState<ValidationError[]>([]);
 
   const { 
     chairmanData, 
@@ -499,43 +476,44 @@ export default function ChairmanPage() {
     defaultValues: { message: chairmanData.message },
   });
 
-  // ✅ Enhanced validation handlers with alert system
+  // ✅ Enhanced validation handlers
   const handleSaveProfile = (data: ChairmanData) => {
     const validation = validateChairmanData(data);
     
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
+      setFormValidationErrors(validation.errors);
       
-      // Show specific field errors under each field
-      validation.errors.forEach(error => {
-        if (error.type === 'error') {
-          realTimeValidation.validateField(error.field, '', { required: true });
-        }
-      });
-
-      // Show error alert
-      const missingLanguages = getMissingLanguages(validation.errors);
-      showAlert(
-        "error", 
-        "Incomplete Information", 
-        `Please fill all required fields in ${missingLanguages} before saving.`,
-        6000
-      );
+      // Set form error message
+      const errorCount = validation.errors.filter(e => e.type === 'error').length;
+      const warningCount = validation.errors.filter(e => e.type === 'warning').length;
+      
+      let errorMessage = '';
+      if (errorCount > 0) {
+        errorMessage = `Please fix ${errorCount} required field${errorCount > 1 ? 's' : ''} before saving.`;
+      }
+      if (warningCount > 0 && errorCount === 0) {
+        errorMessage = `There are ${warningCount} warning${warningCount > 1 ? 's' : ''}. You can still save, but please review them.`;
+      }
+      
+      setFormErrorMessage(errorMessage);
       return;
     }
 
+    // If only warnings, allow save but show success with warning note
+    if (validation.hasWarnings && !validation.hasErrors) {
+      setSuccessMessage("Profile updated successfully with warnings. Please review the warnings.");
+    } else {
+      setSuccessMessage("Chairman profile updated successfully!");
+    }
+
     setValidationErrors([]);
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     updateChairmanData(data);
     setIsEditDialogOpen(false);
-    
-    // Show success alert
-    showAlert(
-      "success", 
-      "Profile Updated", 
-      "Chairman profile has been updated successfully!",
-      5000
-    );
+    setTimeout(() => setSuccessMessage(""), 5000);
   };
 
   const handleSaveMessage = (data: { message: { en: string; ta: string; si: string } }) => {
@@ -560,51 +538,34 @@ export default function ChairmanPage() {
       }
     });
 
-    if (errors.some(e => e.type === 'error')) {
-      setValidationErrors(errors);
-      
-      // Show specific field errors under each field
-      errors.forEach(error => {
-        if (error.type === 'error') {
-          realTimeValidation.validateField(error.field, '', { required: true });
-        }
-      });
+    const hasErrors = errors.some(e => e.type === 'error');
+    const hasWarnings = errors.some(e => e.type === 'warning');
 
-      // Show error alert
-      showAlert(
-        "error", 
-        "Message Validation Failed", 
-        "Please complete the message in all languages before saving.",
-        5000
-      );
+    if (hasErrors) {
+      setValidationErrors(errors);
+      setFormValidationErrors(errors);
+      
+      const errorCount = errors.filter(e => e.type === 'error').length;
+      let errorMessage = `Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} in the message fields before saving.`;
+      
+      setFormErrorMessage(errorMessage);
       return;
     }
 
+    // If only warnings, allow save but show success with warning note
+    if (hasWarnings && !hasErrors) {
+      setSuccessMessage("Message updated successfully with warnings. Please review the message length.");
+    } else {
+      setSuccessMessage("Chairman's message updated successfully!");
+    }
+
     setValidationErrors([]);
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     updateChairmanData({ ...chairmanData, message: data.message });
     setIsMessageDialogOpen(false);
-    
-    // Show success alert
-    showAlert(
-      "success", 
-      "Message Updated", 
-      "Chairman's message has been updated successfully!",
-      5000
-    );
-  };
-
-  // ✅ Helper function to get missing languages
-  const getMissingLanguages = (errors: ValidationError[]): string => {
-    const missingLangs = new Set<string>();
-    
-    errors.forEach(error => {
-      if (error.language) {
-        missingLangs.add(error.language);
-      }
-    });
-
-    return Array.from(missingLangs).join(', ');
+    setTimeout(() => setSuccessMessage(""), 5000);
   };
 
   // ✅ Real-time field validation handlers
@@ -617,16 +578,12 @@ export default function ChairmanPage() {
     
     // Clear previous errors for this field
     realTimeValidation.clearFieldError(fullFieldName);
-    setValidationErrors(prev => prev.filter(error => error.field !== fullFieldName));
+    setFormErrorMessage('');
+    setFormValidationErrors(prev => prev.filter(error => error.field !== fullFieldName));
     
     // Validate based on field type
     const rules = getValidationRules(field);
-    const isValid = realTimeValidation.validateField(fullFieldName, value, rules);
-    
-    // If field becomes valid, remove from validation errors
-    if (isValid) {
-      setValidationErrors(prev => prev.filter(error => error.field !== fullFieldName));
-    }
+    realTimeValidation.validateField(fullFieldName, value, rules);
   };
 
   const getValidationRules = (field: string) => {
@@ -644,6 +601,9 @@ export default function ChairmanPage() {
       case 'photo':
         rules.pattern = /^https?:\/\/.+\..+/;
         break;
+      case 'message':
+        rules.minLength = 10;
+        break;
       default:
         rules.minLength = 2;
     }
@@ -653,27 +613,20 @@ export default function ChairmanPage() {
 
   const getFieldError = (field: string, language?: string): ValidationError | undefined => {
     const fullFieldName = language ? `${field}.${language}` : field;
-    
-    // Check real-time validation errors first
-    const realTimeError = realTimeValidation.getFieldError(fullFieldName);
-    if (realTimeError) return realTimeError;
-    
-    // Then check form validation errors
-    return validationErrors.find(error => error.field === fullFieldName);
+    return realTimeValidation.getFieldError(fullFieldName) || 
+           validationErrors.find(error => error.field === fullFieldName) ||
+           formValidationErrors.find(error => error.field === fullFieldName);
   };
 
   const hasFieldError = (field: string, language?: string): boolean => {
     return !!getFieldError(field, language);
   };
 
-  const getFieldErrorMessage = (field: string, language?: string): string | undefined => {
-    const error = getFieldError(field, language);
-    return error?.message;
-  };
-
   const handleEditOpen = () => {
     editForm.reset(chairmanData);
     clearValidationErrors();
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     setIsEditDialogOpen(true);
   };
@@ -681,6 +634,8 @@ export default function ChairmanPage() {
   const handleMessageOpen = () => {
     messageForm.reset({ message: chairmanData.message });
     clearValidationErrors();
+    setFormErrorMessage('');
+    setFormValidationErrors([]);
     realTimeValidation.clearAllErrors();
     setIsMessageDialogOpen(true);
   };
@@ -688,6 +643,14 @@ export default function ChairmanPage() {
   const getText = (text: { en: string; ta: string; si: string }) => {
     return text[currentLanguage] || text.en;
   };
+
+  // Reset form errors when dialog closes
+  useEffect(() => {
+    if (!isEditDialogOpen && !isMessageDialogOpen) {
+      setFormErrorMessage('');
+      setFormValidationErrors([]);
+    }
+  }, [isEditDialogOpen, isMessageDialogOpen]);
 
   // Check if required files/components are available
   const missingComponents = [];
@@ -731,16 +694,13 @@ export default function ChairmanPage() {
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
-      {/* ✅ Enhanced Alert Display System */}
-      <div className="fixed top-4 right-4 z-50 w-96 max-w-[calc(100vw-2rem)] space-y-3">
-        {alerts.map((alert) => (
-          <AlertDisplay
-            key={alert.id}
-            alert={alert}
-            onClose={() => removeAlert(alert.id)}
-          />
-        ))}
-      </div>
+      {/* Success Alert */}
+      {successMessage && (
+        <SuccessAlert 
+          message={successMessage} 
+          onClose={() => setSuccessMessage("")} 
+        />
+      )}
 
       {/* Validation Alert */}
       {validationErrors.length > 0 && (
@@ -896,8 +856,8 @@ export default function ChairmanPage() {
                         className={hasFieldError('name', lang) ? "border-red-500" : ""}
                       />
                       {hasFieldError('name', lang) && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {getFieldErrorMessage('name', lang)}
+                        <p className="text-red-500 text-sm">
+                          {getFieldError('name', lang)?.message}
                         </p>
                       )}
                     </div>
@@ -914,8 +874,8 @@ export default function ChairmanPage() {
                         className={hasFieldError('position', lang) ? "border-red-500" : ""}
                       />
                       {hasFieldError('position', lang) && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {getFieldErrorMessage('position', lang)}
+                        <p className="text-red-500 text-sm">
+                          {getFieldError('position', lang)?.message}
                         </p>
                       )}
                     </div>
@@ -932,8 +892,8 @@ export default function ChairmanPage() {
                         className={hasFieldError('contact.address', lang) ? "border-red-500" : ""}
                       />
                       {hasFieldError('contact.address', lang) && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {getFieldErrorMessage('contact.address', lang)}
+                        <p className="text-red-500 text-sm">
+                          {getFieldError('contact.address', lang)?.message}
                         </p>
                       )}
                     </div>
@@ -950,8 +910,8 @@ export default function ChairmanPage() {
                         className={hasFieldError('tenure.currentTerm', lang) ? "border-red-500" : ""}
                       />
                       {hasFieldError('tenure.currentTerm', lang) && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {getFieldErrorMessage('tenure.currentTerm', lang)}
+                        <p className="text-red-500 text-sm">
+                          {getFieldError('tenure.currentTerm', lang)?.message}
                         </p>
                       )}
                     </div>
@@ -974,8 +934,8 @@ export default function ChairmanPage() {
                     className={hasFieldError('contact.phone') ? "border-red-500" : ""}
                   />
                   {hasFieldError('contact.phone') && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {getFieldErrorMessage('contact.phone')}
+                    <p className="text-red-500 text-sm">
+                      {getFieldError('contact.phone')?.message}
                     </p>
                   )}
                 </div>
@@ -993,8 +953,8 @@ export default function ChairmanPage() {
                     className={hasFieldError('contact.email') ? "border-red-500" : ""}
                   />
                   {hasFieldError('contact.email') && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {getFieldErrorMessage('contact.email')}
+                    <p className="text-red-500 text-sm">
+                      {getFieldError('contact.email')?.message}
                     </p>
                   )}
                 </div>
@@ -1011,14 +971,24 @@ export default function ChairmanPage() {
                     className={hasFieldError('photo') ? "border-red-500" : ""}
                   />
                   {hasFieldError('photo') && (
-                    <p className={`text-sm mt-1 ${
+                    <p className={`text-sm ${
                       getFieldError('photo')?.type === 'error' ? 'text-red-500' : 'text-amber-600'
                     }`}>
-                      {getFieldErrorMessage('photo')}
+                      {getFieldError('photo')?.message}
                     </p>
                   )}
                 </div>
               </div>
+
+              {/* Alert Messages under the form */}
+              <FormAlert 
+                errorMessage={formErrorMessage}
+                errors={formValidationErrors}
+                onClose={() => {
+                  setFormErrorMessage('');
+                  setFormValidationErrors([]);
+                }}
+              />
 
               <DialogFooter className="flex flex-col sm:flex-row gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)} className="w-full sm:w-auto">
@@ -1063,16 +1033,27 @@ export default function ChairmanPage() {
                         }`}
                       />
                       {hasFieldError('message', lang) && (
-                        <p className={`text-sm mt-1 ${
+                        <p className={`text-sm ${
                           getFieldError('message', lang)?.type === 'error' ? 'text-red-500' : 'text-amber-600'
                         }`}>
-                          {getFieldErrorMessage('message', lang)}
+                          {getFieldError('message', lang)?.message}
                         </p>
                       )}
                     </div>
                   </TabsContent>
                 ))}
               </Tabs>
+
+              {/* Alert Messages under the form */}
+              <FormAlert 
+                errorMessage={formErrorMessage}
+                errors={formValidationErrors}
+                onClose={() => {
+                  setFormErrorMessage('');
+                  setFormValidationErrors([]);
+                }}
+              />
+
               <DialogFooter className="flex flex-col sm:flex-row gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsMessageDialogOpen(false)} className="w-full sm:w-auto">
                   Cancel
