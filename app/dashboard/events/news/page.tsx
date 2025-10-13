@@ -436,7 +436,7 @@ const useArticleForm = (initialData?: ArticleFormData) => {
         ...prev.content,
         [field]: {
           ...prev.content[field],
-          [subField]: language === 'all' ? value : {
+          [subField]: {
             ...(prev.content[field] as any)[subField],
             [language]: value
           }
@@ -621,7 +621,10 @@ const LanguageTabs = ({
   value: Language; 
   onValueChange: (value: Language) => void;
 }) => (
-  <Tabs value={value} onValueChange={onValueChange}>
+  <Tabs
+    value={value}
+    onValueChange={(val: string) => onValueChange(val as Language)}
+  >
     <TabsList className="grid w-full grid-cols-3">
       {LANGUAGES.map((lang) => (
         <TabsTrigger key={lang.value} value={lang.value}>

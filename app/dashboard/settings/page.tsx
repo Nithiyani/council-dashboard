@@ -735,7 +735,7 @@ export default function SettingsPage() {
                     onClick={() => setCurrentLanguage(lang)}
                     className="flex-1"
                   >
-                    <span className="text-base mr-2">{LANGUAGE_CONFIG[lang].flag}</span>
+                    {/* <span className="text-base mr-2">{LANGUAGE_CONFIG[lang].flag}</span> */}
                     <span className="hidden xs:inline">{LANGUAGE_CONFIG[lang].nativeName}</span>
                     <span className="xs:hidden">{LANGUAGE_CONFIG[lang].name}</span>
                   </Button>
