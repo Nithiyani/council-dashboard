@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,8 +30,6 @@ interface Announcement {
   ward: string;
   status: 'active' | 'expired' | 'draft';
   priority: 'high' | 'medium' | 'low';
-  views: number;
-  attachments: number;
   startDate: string;
   endDate: string;
   contactPerson: string;
@@ -39,8 +37,10 @@ interface Announcement {
   location: string;
   isPinned: boolean;
   isViewed?: boolean;
-  
+}
 
+interface ValidationErrors {
+  [key: string]: string;
 }
 
 // Constants
@@ -70,8 +70,6 @@ const SAMPLE_ANNOUNCEMENTS: Announcement[] = [
     ward: 'Ward 3 & 4',
     status: 'active',
     priority: 'high',
-    views: 1245,
-    attachments: 3,
     startDate: '2024-01-17',
     endDate: '2024-01-17',
     contactPerson: 'Mr. John Smith',
@@ -97,8 +95,6 @@ const SAMPLE_ANNOUNCEMENTS: Announcement[] = [
     ward: 'Ward 1',
     status: 'active',
     priority: 'medium',
-    views: 892,
-    attachments: 2,
     startDate: '2024-01-18',
     endDate: '2024-01-20',
     contactPerson: 'Ms. Sarah Johnson',
@@ -158,13 +154,12 @@ const LanguageTabs = ({
   </Tabs>
 );
 
-
 const StatsCard = ({ icon: Icon, title, value, color }: { icon: any; title: string; value: number; color: string }) => (
   <Card className="bg-white/80 backdrop-blur-sm border-blue-200">
     <CardContent className="p-6">
       <div className="flex items-center">
-        <div className={`p-3 rounded-full bg-${color}-100`}>
-          <Icon className={`w-6 h-6 text-${color}-600`} />
+        <div className={`p-3 rounded-full ${color === 'blue' ? 'bg-blue-100' : color === 'green' ? 'bg-green-100' : color === 'yellow' ? 'bg-yellow-100' : 'bg-purple-100'}`}>
+          <Icon className={`w-6 h-6 ${color === 'blue' ? 'text-blue-600' : color === 'green' ? 'text-green-600' : color === 'yellow' ? 'text-yellow-600' : 'text-purple-600'}`} />
         </div>
         <div className="ml-4">
           <p className="text-sm font-medium text-gray-600">{title}</p>
@@ -283,7 +278,7 @@ const AnnouncementCard = ({
 
 export default function PublicAnnouncementsPage() {
   // State
-  const [announcements, setAnnouncements] = useState<Announcement[]>(SAMPLE_ANNOUNCEMENTS);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -291,92 +286,136 @@ export default function PublicAnnouncementsPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('en');
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [dialogState, setDialogState] = useState({ create: false, view: false, edit: false, delete: false });
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [message, setMessage] = useState<{ type: 'error' | 'success' | ''; text: string }>({ type: '', text: '' });
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   const [newAnnouncement, setNewAnnouncement] = useState({
-  title: { en: '', ta: '', si: '' },
-  description: { en: '', ta: '', si: '' },
-  category: '',
-  ward: '',
-  priority: 'medium' as 'high' | 'medium' | 'low', // Fix: Cast to the correct union type
-  status: 'active' as 'active' | 'expired' | 'draft',
-  startDate: '',
-  endDate: '',
-  contactPerson: '',
-  contactPhone: '',
-  location: '',
-  isPinned: false
-});
+    title: { en: '', ta: '', si: '' },
+    description: { en: '', ta: '', si: '' },
+    category: '',
+    ward: '',
+    priority: 'medium' as 'high' | 'medium' | 'low',
+    status: 'active' as 'active' | 'expired' | 'draft',
+    startDate: '',
+    endDate: '',
+    contactPerson: '',
+    contactPhone: '',
+    location: '',
+    isPinned: false
+  });
+
+  // Initialize data
+  useEffect(() => {
+    const savedAnnouncements = localStorage.getItem('publicAnnouncements');
+    if (savedAnnouncements) {
+      setAnnouncements(JSON.parse(savedAnnouncements));
+    } else {
+      setAnnouncements(SAMPLE_ANNOUNCEMENTS);
+      localStorage.setItem('publicAnnouncements', JSON.stringify(SAMPLE_ANNOUNCEMENTS));
+    }
+  }, []);
 
   // Computed values
-  const sortedAnnouncements = [...announcements].sort((a, b) => {
-    if (a.isPinned && !b.isPinned) return -1;
-    if (!a.isPinned && b.isPinned) return 1;
-    if (!a.isViewed && b.isViewed) return -1;
-    if (a.isViewed && !b.isViewed) return 1;
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
-  });
+  const sortedAnnouncements = useMemo(() => 
+    [...announcements].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      if (!a.isViewed && b.isViewed) return -1;
+      if (a.isViewed && !b.isViewed) return 1;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }), [announcements]
+  );
 
-  const filteredAnnouncements = sortedAnnouncements.filter(announcement => {
-    const matchesSearch = Object.values(announcement.title).some(title => 
-      title.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || Object.values(announcement.description).some(desc =>
-      desc.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    const matchesStatus = filterStatus === 'all' || announcement.status === filterStatus;
-    const matchesCategory = filterCategory === 'all' || announcement.category === filterCategory;
-    
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+  const filteredAnnouncements = useMemo(() => 
+    sortedAnnouncements.filter(announcement => {
+      const matchesSearch = Object.values(announcement.title).some(title => 
+        title.toLowerCase().includes(searchTerm.toLowerCase())
+      ) || Object.values(announcement.description).some(desc =>
+        desc.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      const matchesStatus = filterStatus === 'all' || announcement.status === filterStatus;
+      const matchesCategory = filterCategory === 'all' || announcement.category === filterCategory;
+      
+      return matchesSearch && matchesStatus && matchesCategory;
+    }), [sortedAnnouncements, searchTerm, filterStatus, filterCategory]
+  );
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: announcements.length,
     active: announcements.filter(a => a.status === 'active').length,
-    views: announcements.reduce((sum, a) => sum + a.views, 0),
-    attachments: announcements.reduce((sum, a) => sum + a.attachments, 0)
-  };
+  }), [announcements]);
 
-  // Handlers
-  const validateAnnouncement = (): string | null => {
-    const missingFields = [];
+  // Validation function
+  const validateAnnouncement = useCallback((): boolean => {
+    const errors: ValidationErrors = {};
     
-    if (!newAnnouncement.category) missingFields.push('Category');
-    if (!newAnnouncement.ward) missingFields.push('Ward');
+    // Validate common fields
+    if (!newAnnouncement.category.trim()) {
+      errors.category = 'Category is required';
+    }
     
+    if (!newAnnouncement.ward.trim()) {
+      errors.ward = 'Ward is required';
+    }
+
+    // Validate language-specific fields
     LANGUAGES.forEach(lang => {
-      if (!newAnnouncement.title[lang.value].trim()) missingFields.push(`${lang.label} Title`);
-      if (!newAnnouncement.description[lang.value].trim()) missingFields.push(`${lang.label} Description`);
+      if (!newAnnouncement.title[lang.value]?.trim()) {
+        errors[`title_${lang.value}`] = `${lang.label} title is required`;
+      }
+      if (!newAnnouncement.description[lang.value]?.trim()) {
+        errors[`description_${lang.value}`] = `${lang.label} description is required`;
+      }
     });
 
-    return missingFields.length > 0 ? `Please fill in: ${missingFields.join(', ')}` : null;
-  };
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [newAnnouncement]);
 
-  const handleCreateAnnouncement = () => {
-    const error = validateAnnouncement();
-    if (error) {
-      setMessage({ type: 'error', text: error });
+  // Clear validation errors when language changes
+  useEffect(() => {
+    const newErrors = { ...validationErrors };
+    Object.keys(newErrors).forEach(key => {
+      if (key.startsWith('title_') || key.startsWith('description_')) {
+        delete newErrors[key];
+      }
+    });
+    setValidationErrors(newErrors);
+  }, [selectedLanguage]);
+
+  // Handlers
+  const handleCreateAnnouncement = useCallback(() => {
+    if (!validateAnnouncement()) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Please fix the validation errors before submitting.' 
+      });
       return;
     }
 
     const announcement: Announcement = {
       id: Date.now().toString(),
       ...newAnnouncement,
-      views: 0,
-      attachments: 0,
       date: new Date().toISOString().split('T')[0],
       isViewed: false
     };
     
-    setAnnouncements([announcement, ...announcements]);
+    const updatedAnnouncements = [announcement, ...announcements];
+    setAnnouncements(updatedAnnouncements);
+    localStorage.setItem('publicAnnouncements', JSON.stringify(updatedAnnouncements));
+    
     resetForm();
     setMessage({ type: 'success', text: 'Announcement created successfully!' });
-    setTimeout(() => setMessage({ type: '', text: '' }), 2000);
-  };
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    closeDialog('create');
+  }, [newAnnouncement, announcements, validateAnnouncement]);
 
-  const handleUpdateAnnouncement = () => {
-    const error = validateAnnouncement();
-    if (error) {
-      setMessage({ type: 'error', text: error });
+  const handleUpdateAnnouncement = useCallback(() => {
+    if (!validateAnnouncement()) {
+      setMessage({ 
+        type: 'error', 
+        text: 'Please fix the validation errors before submitting.' 
+      });
       return;
     }
 
@@ -389,18 +428,25 @@ export default function PublicAnnouncementsPage() {
     );
 
     setAnnouncements(updatedAnnouncements);
+    localStorage.setItem('publicAnnouncements', JSON.stringify(updatedAnnouncements));
+    
     resetForm();
     setMessage({ type: 'success', text: 'Announcement updated successfully!' });
-    setTimeout(() => setMessage({ type: '', text: '' }), 2000);
-  };
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    closeDialog('edit');
+  }, [newAnnouncement, selectedAnnouncement, announcements, validateAnnouncement]);
 
-  const handleDeleteAnnouncement = () => {
+  const handleDeleteAnnouncement = useCallback(() => {
     if (!selectedAnnouncement) return;
-    setAnnouncements(announcements.filter(a => a.id !== selectedAnnouncement.id));
+    const updatedAnnouncements = announcements.filter(a => a.id !== selectedAnnouncement.id);
+    setAnnouncements(updatedAnnouncements);
+    localStorage.setItem('publicAnnouncements', JSON.stringify(updatedAnnouncements));
     setDialogState(prev => ({ ...prev, delete: false }));
-  };
+    setMessage({ type: 'success', text: 'Announcement deleted successfully!' });
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+  }, [selectedAnnouncement, announcements]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setNewAnnouncement({
       title: { en: '', ta: '', si: '' },
       description: { en: '', ta: '', si: '' },
@@ -415,9 +461,10 @@ export default function PublicAnnouncementsPage() {
       location: '',
       isPinned: false
     });
-  };
+    setValidationErrors({});
+  }, []);
 
-  const openDialog = (type: keyof typeof dialogState, announcement?: Announcement) => {
+  const openDialog = useCallback((type: 'create' | 'view' | 'edit' | 'delete', announcement?: Announcement) => {
     if (announcement) setSelectedAnnouncement(announcement);
     if (type === 'edit' && announcement) {
       setNewAnnouncement({
@@ -439,214 +486,253 @@ export default function PublicAnnouncementsPage() {
       setAnnouncements(prev => 
         prev.map(a => 
           a.id === announcement.id 
-            ? { ...a, views: a.views + 1, isViewed: true }
+            ? { ...a, isViewed: true }
             : a
         )
       );
     }
     setDialogState(prev => ({ ...prev, [type]: true }));
-  };
+    setMessage({ type: '', text: '' });
+    setValidationErrors({});
+  }, []);
 
-  const closeDialog = (type: keyof typeof dialogState) => {
+  const closeDialog = useCallback((type: 'create' | 'view' | 'edit' | 'delete') => {
     setDialogState(prev => ({ ...prev, [type]: false }));
     setMessage({ type: '', text: '' });
     if (type === 'create' || type === 'edit') resetForm();
-  };
+  }, [resetForm]);
 
-  const updateAnnouncementField = (field: string, value: string) => {
+  const updateAnnouncementField = useCallback((field: string, value: string) => {
     setNewAnnouncement(prev => ({ ...prev, [field]: value }));
-  };
+    // Clear validation error for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  }, [validationErrors]);
 
-  const updateAnnouncementContent = (field: 'title' | 'description', value: string) => {
+  const updateAnnouncementContent = useCallback((field: 'title' | 'description', value: string) => {
     setNewAnnouncement(prev => ({
       ...prev,
       [field]: { ...prev[field], [selectedLanguage]: value }
     }));
-  };
+    // Clear validation error for this field in current language
+    const errorKey = `${field}_${selectedLanguage}`;
+    if (validationErrors[errorKey]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
+  }, [selectedLanguage, validationErrors]);
 
-  const togglePin = (id: string) => {
-    setAnnouncements(prev => 
-      prev.map(announcement => 
-        announcement.id === id 
-          ? { ...announcement, isPinned: !announcement.isPinned }
-          : announcement
-      )
+  const togglePin = useCallback((id: string) => {
+    const updatedAnnouncements = announcements.map(announcement => 
+      announcement.id === id 
+        ? { ...announcement, isPinned: !announcement.isPinned }
+        : announcement
     );
-  };
+    setAnnouncements(updatedAnnouncements);
+    localStorage.setItem('publicAnnouncements', JSON.stringify(updatedAnnouncements));
+  }, [announcements]);
 
-  const getLanguageLabel = (lang: Language) => {
+  const getLanguageLabel = useCallback((lang: Language) => {
     return LANGUAGES.find(l => l.value === lang)?.label || lang;
-  };
+  }, []);
 
   // Form Fields Component
-  const AnnouncementFormFields = () => (
-    <div className="grid gap-4 py-4">
-      {/* Language Tabs */}
-      <LanguageTabs value={selectedLanguage} onValueChange={setSelectedLanguage} type="edit" />
+  const AnnouncementFormFields = useMemo(() => {
+    const getFieldError = (fieldName: string) => {
+      return validationErrors[fieldName];
+    };
 
-      {/* Title Input */}
-      <div className="grid gap-2">
-        <Label htmlFor="title">
-          Title ({getLanguageLabel(selectedLanguage)}) *
-        </Label>
-        <Input
-          id="title"
-          value={newAnnouncement.title[selectedLanguage]}
-          onChange={(e) => updateAnnouncementContent('title', e.target.value)}
-          placeholder={`Enter title in ${getLanguageLabel(selectedLanguage)}`}
-          className={!newAnnouncement.title[selectedLanguage].trim() && message.type === 'error' ? "border-red-500" : ""}
-        />
-        {!newAnnouncement.title[selectedLanguage].trim() && message.type === 'error' && (
-          <p className="text-red-500 text-sm">Title is required in {getLanguageLabel(selectedLanguage)}</p>
-        )}
-      </div>
+    return (
+      <div className="grid gap-4 py-4">
+        {/* Language Tabs */}
+        <LanguageTabs value={selectedLanguage} onValueChange={setSelectedLanguage} type="edit" />
 
-      {/* Description Input */}
-      <div className="grid gap-2">
-        <Label htmlFor="description">
-          Description ({getLanguageLabel(selectedLanguage)}) *
-        </Label>
-        <Textarea
-          id="description"
-          value={newAnnouncement.description[selectedLanguage]}
-          onChange={(e) => updateAnnouncementContent('description', e.target.value)}
-          placeholder={`Enter description in ${getLanguageLabel(selectedLanguage)}`}
-          rows={4}
-          className={!newAnnouncement.description[selectedLanguage].trim() && message.type === 'error' ? "border-red-500" : ""}
-        />
-        {!newAnnouncement.description[selectedLanguage].trim() && message.type === 'error' && (
-          <p className="text-red-500 text-sm">Description is required in {getLanguageLabel(selectedLanguage)}</p>
-        )}
-      </div>
-
-      {/* Common Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Title Input */}
         <div className="grid gap-2">
-          <Label htmlFor="category">Category *</Label>
-          <Select value={newAnnouncement.category} onValueChange={(value) => updateAnnouncementField('category', value)}>
-            <SelectTrigger className={!newAnnouncement.category && message.type === 'error' ? "border-red-500" : ""}>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!newAnnouncement.category && message.type === 'error' && (
-            <p className="text-red-500 text-sm">Category is required</p>
+          <Label htmlFor="title">
+            Title ({getLanguageLabel(selectedLanguage)}) *
+          </Label>
+          <Input
+            id="title"
+            value={newAnnouncement.title[selectedLanguage]}
+            onChange={(e) => updateAnnouncementContent('title', e.target.value)}
+            placeholder={`Enter title in ${getLanguageLabel(selectedLanguage)}`}
+            className={getFieldError(`title_${selectedLanguage}`) ? "border-red-500" : ""}
+          />
+          {getFieldError(`title_${selectedLanguage}`) && (
+            <p className="text-red-500 text-sm">{getFieldError(`title_${selectedLanguage}`)}</p>
           )}
         </div>
+
+        {/* Description Input */}
         <div className="grid gap-2">
-          <Label htmlFor="ward">Ward *</Label>
-          <Select value={newAnnouncement.ward} onValueChange={(value) => updateAnnouncementField('ward', value)}>
-            <SelectTrigger className={!newAnnouncement.ward && message.type === 'error' ? "border-red-500" : ""}>
-              <SelectValue placeholder="Select ward" />
-            </SelectTrigger>
-            <SelectContent>
-              {WARDS.map(ward => (
-                <SelectItem key={ward} value={ward}>{ward}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!newAnnouncement.ward && message.type === 'error' && (
-            <p className="text-red-500 text-sm">Ward is required</p>
+          <Label htmlFor="description">
+            Description ({getLanguageLabel(selectedLanguage)}) *
+          </Label>
+          <Textarea
+            id="description"
+            value={newAnnouncement.description[selectedLanguage]}
+            onChange={(e) => updateAnnouncementContent('description', e.target.value)}
+            placeholder={`Enter description in ${getLanguageLabel(selectedLanguage)}`}
+            rows={4}
+            className={getFieldError(`description_${selectedLanguage}`) ? "border-red-500" : ""}
+          />
+          {getFieldError(`description_${selectedLanguage}`) && (
+            <p className="text-red-500 text-sm">{getFieldError(`description_${selectedLanguage}`)}</p>
           )}
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="priority">Priority</Label>
-          <Select value={newAnnouncement.priority} onValueChange={(value: 'high' | 'medium' | 'low') => updateAnnouncementField('priority', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Common Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="category">Category *</Label>
+            <Select value={newAnnouncement.category} onValueChange={(value) => updateAnnouncementField('category', value)}>
+              <SelectTrigger className={getFieldError('category') ? "border-red-500" : ""}>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {getFieldError('category') && (
+              <p className="text-red-500 text-sm">{getFieldError('category')}</p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="ward">Ward *</Label>
+            <Select value={newAnnouncement.ward} onValueChange={(value) => updateAnnouncementField('ward', value)}>
+              <SelectTrigger className={getFieldError('ward') ? "border-red-500" : ""}>
+                <SelectValue placeholder="Select ward" />
+              </SelectTrigger>
+              <SelectContent>
+                {WARDS.map(ward => (
+                  <SelectItem key={ward} value={ward}>{ward}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {getFieldError('ward') && (
+              <p className="text-red-500 text-sm">{getFieldError('ward')}</p>
+            )}
+          </div>
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="status">Status</Label>
-          <Select value={newAnnouncement.status} onValueChange={(value: 'active' | 'expired' | 'draft') => updateAnnouncementField('status', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="priority">Priority</Label>
+            <Select value={newAnnouncement.priority} onValueChange={(value: 'high' | 'medium' | 'low') => updateAnnouncementField('priority', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="status">Status</Label>
+            <Select value={newAnnouncement.status} onValueChange={(value: 'active' | 'expired' | 'draft') => updateAnnouncementField('status', value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="startDate">Start Date</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={newAnnouncement.startDate}
+              onChange={(e) => updateAnnouncementField('startDate', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="endDate">End Date</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={newAnnouncement.endDate}
+              onChange={(e) => updateAnnouncementField('endDate', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="contactPerson">Contact Person</Label>
+            <Input
+              id="contactPerson"
+              value={newAnnouncement.contactPerson}
+              onChange={(e) => updateAnnouncementField('contactPerson', e.target.value)}
+              placeholder="Name of contact person"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="contactPhone">Contact Phone</Label>
+            <Input
+              id="contactPhone"
+              value={newAnnouncement.contactPhone}
+              onChange={(e) => updateAnnouncementField('contactPhone', e.target.value)}
+              placeholder="Phone number"
+            />
+          </div>
+        </div>
+
         <div className="grid gap-2">
-          <Label htmlFor="startDate">Start Date</Label>
+          <Label htmlFor="location">Location</Label>
           <Input
-            id="startDate"
-            type="date"
-            value={newAnnouncement.startDate}
-            onChange={(e) => updateAnnouncementField('startDate', e.target.value)}
+            id="location"
+            value={newAnnouncement.location}
+            onChange={(e) => updateAnnouncementField('location', e.target.value)}
+            placeholder="Specific location or venue"
           />
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="endDate">End Date</Label>
-          <Input
-            id="endDate"
-            type="date"
-            value={newAnnouncement.endDate}
-            onChange={(e) => updateAnnouncementField('endDate', e.target.value)}
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={newAnnouncement.isPinned}
+            onCheckedChange={(checked) => updateAnnouncementField('isPinned', checked.toString())}
           />
+          <Label htmlFor="pin">Pin this announcement to top</Label>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="contactPerson">Contact Person</Label>
-          <Input
-            id="contactPerson"
-            value={newAnnouncement.contactPerson}
-            onChange={(e) => updateAnnouncementField('contactPerson', e.target.value)}
-            placeholder="Name of contact person"
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="contactPhone">Contact Phone</Label>
-          <Input
-            id="contactPhone"
-            value={newAnnouncement.contactPhone}
-            onChange={(e) => updateAnnouncementField('contactPhone', e.target.value)}
-            placeholder="Phone number"
-          />
-        </div>
+        {/* Validation Summary */}
+        {Object.keys(validationErrors).length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex items-center">
+              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+              <p className="text-red-800 font-medium">Please fix the following errors:</p>
+            </div>
+            <ul className="text-red-700 text-sm mt-2 list-disc list-inside">
+              {Object.values(validationErrors).map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
+    );
+  }, [newAnnouncement, selectedLanguage, validationErrors, getLanguageLabel, updateAnnouncementContent, updateAnnouncementField]);
 
-      <div className="grid gap-2">
-        <Label htmlFor="location">Location</Label>
-        <Input
-          id="location"
-          value={newAnnouncement.location}
-          onChange={(e) => updateAnnouncementField('location', e.target.value)}
-          placeholder="Specific location or venue"
-        />
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Switch
-          checked={newAnnouncement.isPinned}
-          onCheckedChange={(checked) => updateAnnouncementField('isPinned', checked.toString())}
-        />
-        <Label htmlFor="pin">Pin this announcement to top</Label>
-      </div>
-    </div>
-  );
-
-  // Render
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
@@ -667,12 +753,19 @@ export default function PublicAnnouncementsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <StatsCard icon={Bell} title="Total Announcements" value={stats.total} color="blue" />
           <StatsCard icon={Eye} title="Active" value={stats.active} color="green" />
-          <StatsCard icon={Users} title="Total Views" value={stats.views} color="yellow" />
-          <StatsCard icon={FolderPlus} title="Attachments" value={stats.attachments} color="purple" />
         </div>
+
+        {/* Messages */}
+        {message.text && (
+          <AlertMessage 
+            type={message.type as 'error' | 'success'} 
+            title={message.type === 'error' ? 'Validation Error' : 'Success'} 
+            message={message.text} 
+          />
+        )}
 
         {/* Language Switcher */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
@@ -766,49 +859,39 @@ export default function PublicAnnouncementsPage() {
         </div>
 
         {/* Create/Edit Dialog */}
-        {(dialogState.create || dialogState.edit) && (
-          <Dialog open={dialogState.create || dialogState.edit} onOpenChange={() => closeDialog(dialogState.create ? 'create' : 'edit')}>
-            <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>{dialogState.create ? 'Create' : 'Edit'} Announcement</DialogTitle>
-                <DialogDescription>
-                  Fill in all details in all three languages. All language fields are required.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <AnnouncementFormFields />
+        <Dialog open={dialogState.create || dialogState.edit} onOpenChange={() => closeDialog(dialogState.create ? 'create' : 'edit')}>
+          <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{dialogState.create ? 'Create' : 'Edit'} Announcement</DialogTitle>
+              <DialogDescription>
+                Fill in all details in all three languages. All language fields are required.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {AnnouncementFormFields}
 
-              {message.text && (
-                <AlertMessage 
-                  type={message.type as 'error' | 'success'} 
-                  title={message.type === 'error' ? 'Validation Error' : 'Success'} 
-                  message={message.text} 
-                />
-              )}
-
-              <DialogFooter>
-                <Button variant="outline" onClick={() => closeDialog(dialogState.create ? 'create' : 'edit')}>
-                  Cancel
-                </Button>
-                <Button onClick={dialogState.create ? handleCreateAnnouncement : handleUpdateAnnouncement}>
-                  {dialogState.create ? 'Publish' : 'Update'} Announcement
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => closeDialog(dialogState.create ? 'create' : 'edit')}>
+                Cancel
+              </Button>
+              <Button onClick={dialogState.create ? handleCreateAnnouncement : handleUpdateAnnouncement}>
+                {dialogState.create ? 'Publish' : 'Update'} Announcement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* View Dialog */}
-        {dialogState.view && selectedAnnouncement && (
-          <Dialog open={dialogState.view} onOpenChange={() => closeDialog('view')}>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedAnnouncement.isPinned && <Pin className="w-4 h-4 text-blue-500 fill-current" />}
-                  Announcement Details
-                </DialogTitle>
-              </DialogHeader>
-              
+        <Dialog open={dialogState.view} onOpenChange={() => closeDialog('view')}>
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {selectedAnnouncement?.isPinned && <Pin className="w-4 h-4 text-blue-500 fill-current" />}
+                Announcement Details
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedAnnouncement && (
               <div className="space-y-6">
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="outline" className={getPriorityColor(selectedAnnouncement.priority)}>
@@ -830,14 +913,12 @@ export default function PublicAnnouncementsPage() {
                 {/* Language Tabs for Viewing */}
                 <LanguageTabs value={currentLanguage} onValueChange={setCurrentLanguage} type="view" />
                 
-                <Tabs value={currentLanguage} className="w-full">
-                  <TabsContent value={currentLanguage} className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{selectedAnnouncement.title[currentLanguage]}</h3>
-                      <p className="text-gray-600 mt-2 whitespace-pre-wrap">{selectedAnnouncement.description[currentLanguage]}</p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{selectedAnnouncement.title[currentLanguage]}</h3>
+                    <p className="text-gray-600 mt-2 whitespace-pre-wrap">{selectedAnnouncement.description[currentLanguage]}</p>
+                  </div>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm border-t pt-4">
                   <div className="space-y-2">
@@ -848,10 +929,6 @@ export default function PublicAnnouncementsPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-500">Ward:</span>
                       <span className="font-medium">{selectedAnnouncement.ward}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Views:</span>
-                      <span className="font-medium">{selectedAnnouncement.views}</span>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -883,31 +960,29 @@ export default function PublicAnnouncementsPage() {
                   </div>
                 </div>
               </div>
+            )}
 
-              <DialogFooter className="mt-4">
-                <Button variant="outline" onClick={() => closeDialog('view')}>Close</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => closeDialog('view')}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Delete Dialog */}
-        {dialogState.delete && selectedAnnouncement && (
-          <Dialog open={dialogState.delete} onOpenChange={() => closeDialog('delete')}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Confirm Deletion</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to delete "{selectedAnnouncement.title.en}"? This action cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => closeDialog('delete')}>Cancel</Button>
-                <Button variant="destructive" onClick={handleDeleteAnnouncement}>Delete</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+        <Dialog open={dialogState.delete} onOpenChange={() => closeDialog('delete')}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{selectedAnnouncement?.title.en}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => closeDialog('delete')}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDeleteAnnouncement}>Delete</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

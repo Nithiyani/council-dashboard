@@ -844,7 +844,7 @@ export default function ChairmanPage() {
                 {(["en", "ta", "si"] as const).map((lang) => (
                   <TabsContent key={lang} value={lang} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Name ({lang.toUpperCase()}) *</Label>
+                      <Label>Name  *</Label>
                       <Input
                         value={editForm.watch(`name.${lang}`) || ""}
                         onChange={(e) => {
@@ -862,7 +862,7 @@ export default function ChairmanPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Position ({lang.toUpperCase()}) *</Label>
+                      <Label>Position *</Label>
                       <Input
                         value={editForm.watch(`position.${lang}`) || ""}
                         onChange={(e) => {
@@ -880,7 +880,7 @@ export default function ChairmanPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Address ({lang.toUpperCase()}) *</Label>
+                      <Label>Address *</Label>
                       <Input
                         value={editForm.watch(`contact.address.${lang}`) || ""}
                         onChange={(e) => {
@@ -898,7 +898,7 @@ export default function ChairmanPage() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      <Label>Current Term ({lang.toUpperCase()}) *</Label>
+                      <Label>Current Term  *</Label>
                       <Input
                         value={editForm.watch(`tenure.currentTerm.${lang}`) || ""}
                         onChange={(e) => {
@@ -1019,7 +1019,7 @@ export default function ChairmanPage() {
                 {(["en", "ta", "si"] as const).map((lang) => (
                   <TabsContent key={lang} value={lang} className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Message ({lang.toUpperCase()}) *</Label>
+                      <Label>Message *</Label>
                       <Textarea
                         value={messageForm.watch(`message.${lang}`) || ""}
                         onChange={(e) => {

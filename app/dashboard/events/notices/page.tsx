@@ -29,8 +29,8 @@ interface Notice {
   category: string;
   status: 'active' | 'expired' | 'draft';
   priority: 'high' | 'medium' | 'low';
-  views: number;
-  attachments: number;
+  // views: number;
+  // attachments: number;
   startDate: string;
   endDate: string;
 }
@@ -52,8 +52,8 @@ const sampleNotices: Notice[] = [
     category: 'Utility',
     status: 'active',
     priority: 'high',
-    views: 1245,
-    attachments: 3,
+    // views: 1245,
+    // attachments: 3,
     startDate: '2024-01-17',
     endDate: '2024-01-17'
   },
@@ -73,8 +73,8 @@ const sampleNotices: Notice[] = [
     category: 'Infrastructure',
     status: 'active',
     priority: 'medium',
-    views: 892,
-    attachments: 2,
+    // views: 892,
+    // attachments: 2,
     startDate: '2024-01-18',
     endDate: '2024-01-20'
   }
@@ -186,8 +186,8 @@ export default function NoticesPage() {
       category: newNotice.category,
       status: newNotice.status,
       priority: newNotice.priority,
-      views: 0,
-      attachments: 0,
+      // views: 0,
+      // attachments: 0,
       startDate: newNotice.startDate,
       endDate: newNotice.endDate
     };
@@ -543,7 +543,7 @@ export default function NoticesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="bg-white/80 backdrop-blur-sm border-blue-200">
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -570,7 +570,7 @@ export default function NoticesPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-white/80 backdrop-blur-sm border-yellow-200">
+          {/* <Card className="bg-white/80 backdrop-blur-sm border-yellow-200">
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-full bg-yellow-100">
@@ -595,7 +595,7 @@ export default function NoticesPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Results Count and Language Switcher */}
@@ -703,16 +703,16 @@ export default function NoticesPage() {
                         <Calendar className="w-4 h-4" />
                         {notice.date}
                       </div>
-                      <div className="flex items-center gap-1">
+                      {/* <div className="flex items-center gap-1">
                         <Eye className="w-4 h-4" />
                         {notice.views} views
-                      </div>
-                      {notice.attachments > 0 && (
+                      </div> */}
+                      {/* {notice.attachments > 0 && (
                         <div className="flex items-center gap-1">
                           <FolderPlus className="w-4 h-4" />
                           {notice.attachments} files
                         </div>
-                      )}
+                      )} */}
                     </div>
 
                     {/* Language Indicators */}
@@ -825,10 +825,10 @@ export default function NoticesPage() {
                       <span className="text-gray-500">Published Date:</span>
                       <span className="font-medium">{selectedNotice.date}</span>
                     </div>
-                    <div className="flex justify-between">
+                    {/* <div className="flex justify-between">
                       <span className="text-gray-500">Views:</span>
                       <span className="font-medium">{selectedNotice.views}</span>
-                    </div>
+                    </div> */}
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between">
@@ -839,10 +839,10 @@ export default function NoticesPage() {
                       <span className="text-gray-500">End Date:</span>
                       <span className="font-medium">{formatDate(selectedNotice.endDate)}</span>
                     </div>
-                    <div className="flex justify-between">
+                    {/* <div className="flex justify-between">
                       <span className="text-gray-500">Attachments:</span>
                       <span className="font-medium">{selectedNotice.attachments}</span>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>

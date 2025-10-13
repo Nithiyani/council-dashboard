@@ -546,7 +546,7 @@ const AlbumCard: React.FC<{
         <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 mb-2">
           {album.itemCount} items
         </Badge>
-        <CardTitle className="text-lg font-semibold line-clamp-1">
+        <CardTitle className="text-lg font-semibold line-clamp-1" style={{ color: 'hsl(var(--primary))' }}>
           {album.name[currentLanguage]}
         </CardTitle>
         <CardDescription className="text-white/80 line-clamp-2 text-sm">
@@ -624,7 +624,9 @@ const MediaCard: React.FC<{
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
             <div className="text-white">
-              <p className="font-semibold text-sm line-clamp-1">{media.title[currentLanguage]}</p>
+              <p className="font-semibold text-sm line-clamp-1" style={{ color: 'hsl(var(--primary))' }}>
+                {media.title[currentLanguage]}
+              </p>
               <div className="flex items-center gap-2 text-xs text-white/80 mt-1">
                 <span>{media.uploadDate}</span>
                 <span>•</span>
@@ -655,7 +657,9 @@ const MediaCard: React.FC<{
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className="font-semibold text-gray-900 truncate">{media.title[currentLanguage]}</p>
+              <p className="font-semibold truncate" style={{ color: 'hsl(var(--primary))' }}>
+                {media.title[currentLanguage]}
+              </p>
               <Badge variant="outline" className="text-xs">
                 {media.type}
               </Badge>
@@ -1166,7 +1170,9 @@ export default function GalleryPage() {
           <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
             <FolderPlus className="w-10 h-10 text-gray-400" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">No albums found</h3>
+          <h3 className="text-xl font-semibold mb-2" style={{ color: 'hsl(var(--primary))' }}>
+            No albums found
+          </h3>
           <p className="text-gray-500 mb-6">Create your first album to get started</p>
           <Button 
             onClick={() => openDialog('createAlbum')}
@@ -1195,7 +1201,7 @@ export default function GalleryPage() {
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 truncate">
+                  <h2 className="text-2xl font-bold truncate" style={{ color: 'hsl(var(--primary))' }}>
                     {currentAlbum?.name[currentLanguage]}
                   </h2>
                   <p className="text-gray-600 mt-1">{currentAlbum?.description[currentLanguage]}</p>
@@ -1231,7 +1237,7 @@ export default function GalleryPage() {
 
       {/* View Mode Toggle */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-900">
+        <h3 className="text-lg font-semibold" style={{ color: 'hsl(var(--primary))' }}>
           Media ({currentAlbumMedia.length})
         </h3>
         <div className="flex gap-2">
@@ -1293,7 +1299,9 @@ export default function GalleryPage() {
             <div className="w-20 h-20 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
               <Upload className="w-10 h-10 text-blue-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No media yet</h3>
+            <h3 className="text-xl font-semibold mb-2" style={{ color: 'hsl(var(--primary))' }}>
+              No media yet
+            </h3>
             <p className="text-gray-500 mb-6 max-w-sm mx-auto">
               Start by uploading photos and videos to your album
             </p>
@@ -1317,7 +1325,10 @@ export default function GalleryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 
+                className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+                style={{ color: 'hsl(var(--primary))' }}
+              >
                 {currentState.view === 'albums' ? 'Gallery' : currentAlbum?.name[currentLanguage]}
               </h1>
             </div>
@@ -1415,7 +1426,7 @@ export default function GalleryPage() {
         }}>
           <DialogContent className="sm:max-w-2xl rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl">
+              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
                 {dialogState.createAlbum ? 'Create New Album' : 'Edit Album'}
               </DialogTitle>
               <DialogDescription>
@@ -1431,7 +1442,7 @@ export default function GalleryPage() {
 
               {/* Album Name */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
+                <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
                   Album Name ({getLanguageLabel(selectedLanguage)}) *
                 </Label>
                 <Input
@@ -1444,7 +1455,7 @@ export default function GalleryPage() {
 
               {/* Album Description */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
+                <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
                   Description ({getLanguageLabel(selectedLanguage)}) *
                 </Label>
                 <Textarea
@@ -1488,7 +1499,9 @@ export default function GalleryPage() {
         <Dialog open={dialogState.editMedia} onOpenChange={(open) => !open && closeDialog('editMedia')}>
           <DialogContent className="sm:max-w-2xl rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl">Edit Media</DialogTitle>
+              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
+                Edit Media
+              </DialogTitle>
               <DialogDescription>
                 Update the media details in all languages
               </DialogDescription>
@@ -1500,7 +1513,7 @@ export default function GalleryPage() {
 
               {/* Media Title */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
+                <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
                   Title ({getLanguageLabel(selectedLanguage)}) *
                 </Label>
                 <Input
@@ -1514,7 +1527,9 @@ export default function GalleryPage() {
               {/* Media Preview */}
               {selectedItems.media && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Preview</Label>
+                  <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
+                    Preview
+                  </Label>
                   <div className="w-32 h-32 rounded-lg overflow-hidden border">
                     <img
                       src={selectedItems.media.url}
@@ -1557,7 +1572,9 @@ export default function GalleryPage() {
         <Dialog open={dialogState.uploadMedia} onOpenChange={(open) => !open && closeDialog('uploadMedia')}>
           <DialogContent className="sm:max-w-lg rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl">Add Media to Album</DialogTitle>
+              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
+                Add Media to Album
+              </DialogTitle>
               <DialogDescription>
                 Upload photos and videos to "{currentAlbum?.name[currentLanguage]}"
               </DialogDescription>
@@ -1568,7 +1585,9 @@ export default function GalleryPage() {
                 onClick={triggerFileInput}
               >
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-700 mb-2">Drop files here or click to upload</p>
+                <p className="text-lg font-medium mb-2" style={{ color: 'hsl(var(--primary))' }}>
+                  Drop files here or click to upload
+                </p>
                 <p className="text-sm text-gray-500">Supports images and videos (Max: 10 files, 50MB each)</p>
                 <input
                   ref={fileInputRef}
@@ -1583,11 +1602,15 @@ export default function GalleryPage() {
               {/* Upload Progress */}
               {Object.keys(uploadProgress).length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Upload Progress</Label>
+                  <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
+                    Upload Progress
+                  </Label>
                   {Object.entries(uploadProgress).map(([fileName, progress]) => (
                     <div key={fileName} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-700 truncate">{fileName}</span>
+                        <span className="truncate" style={{ color: 'hsl(var(--primary))' }}>
+                          {fileName}
+                        </span>
                         <span className="text-gray-500">{Math.round(progress)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
@@ -1617,7 +1640,9 @@ export default function GalleryPage() {
         <Dialog open={dialogState.deleteAlbum} onOpenChange={(open) => !open && closeDialog('deleteAlbum')}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl">Delete Album</DialogTitle>
+              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
+                Delete Album
+              </DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete "{selectedItems.album?.name[currentLanguage]}"? 
                 This will also remove all {selectedItems.album?.itemCount} items in this album.
@@ -1646,7 +1671,7 @@ export default function GalleryPage() {
         <Dialog open={dialogState.deleteMedia} onOpenChange={(open) => !open && closeDialog('deleteMedia')}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl">
+              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
                 Delete Media
               </DialogTitle>
               <DialogDescription>

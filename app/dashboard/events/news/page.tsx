@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,31 +10,115 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Search, Eye, Edit, Calendar, Clock, User, Download, Pin, BarChart3, FileText, Archive, TrendingUp, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Plus, Trash2, Search, Eye, Edit, Calendar, Clock, User, Download, Pin, BarChart3, FileText, Archive, TrendingUp, AlertCircle, CheckCircle, Droplets, Building, Users, Heart, Image, Tag, Mail } from 'lucide-react';
 
 // Types
 type Language = 'en' | 'ta' | 'si';
+type ArticleStatus = 'published' | 'draft' | 'archived';
+type Priority = 'low' | 'medium' | 'high';
 
-interface NewsContent {
+interface LocalizedContent {
   en: string;
   ta: string;
   si: string;
 }
 
+interface LocalizedObject {
+  en: any;
+  ta: any;
+  si: any;
+}
+
+interface ArticleStats {
+  residents_served: number;
+  satisfaction_rate: number;
+  service_available: string;
+  disease_reduction: number;
+}
+
+interface ProblemStatement {
+  description: LocalizedContent;
+  points: LocalizedContent[];
+}
+
+interface InnovativeSolution {
+  description: LocalizedContent;
+  points: LocalizedContent[];
+}
+
+interface TransformationStats {
+  quality_compliance_before: number;
+  quality_compliance_after: number;
+  coverage_before: number;
+  coverage_after: number;
+  complaint_response_before_hours: number;
+  complaint_response_after_hours: number;
+}
+
+interface TransformationJourney {
+  description: LocalizedContent;
+  stats: TransformationStats;
+}
+
+interface CommunityImpact {
+  description: LocalizedContent;
+  points: LocalizedContent[];
+}
+
+interface ArticleContent {
+  introduction: LocalizedContent;
+  stats: ArticleStats;
+  problem_statement: ProblemStatement;
+  innovative_solution: InnovativeSolution;
+  transformation_journey: TransformationJourney;
+  community_impact: CommunityImpact;
+}
+
+interface ArticleActions {
+  share_count: number;
+  saved: boolean;
+  printable: boolean;
+}
+
 interface NewsArticle {
   id: string;
-  title: NewsContent;
-  content: NewsContent;
-  excerpt: NewsContent;
+  title: LocalizedContent;
+  slug: string;
+  content: ArticleContent;
+  excerpt: LocalizedContent;
   author: string;
+  date: string;
+  time: string;
   publishDate: string;
-  status: 'published' | 'draft' | 'archived';
+  status: ArticleStatus;
   category: string;
   readTime: number;
   views: number;
   isPinned?: boolean;
-  priority?: 'low' | 'medium' | 'high';
-  attachments?: string[];
+  priority?: Priority;
+  coverImage?: string;
+  tags?: string[];
+  contactDepartment?: string;
+  lastUpdated?: string;
+  actions?: ArticleActions;
+}
+
+interface ArticleFormData {
+  title: LocalizedContent;
+  slug: string;
+  content: ArticleContent;
+  excerpt: LocalizedContent;
+  author: string;
+  date: string;
+  time: string;
+  category: string;
+  status: ArticleStatus;
+  priority: Priority;
+  isPinned: boolean;
+  coverImage: string;
+  tags: string[];
+  contactDepartment: string;
 }
 
 interface Statistics {
@@ -48,14 +132,200 @@ interface Statistics {
 }
 
 // Constants
-const CATEGORIES = ['Announcements', 'Events', 'Maintenance', 'Updates', 'Community', 'Technology', 'Health', 'Education'] as const;
+const CATEGORIES = ['Infrastructure', 'Announcements', 'Events', 'Maintenance', 'Updates', 'Community', 'Technology', 'Health', 'Education'] as const;
 const LANGUAGES: { value: Language; label: string }[] = [
   { value: 'en', label: 'English' },
   { value: 'ta', label: 'Tamil' },
   { value: 'si', label: 'Sinhala' }
 ];
 
+const PRIORITIES: Priority[] = ['low', 'medium', 'high'];
+const STATUSES: ArticleStatus[] = ['published', 'draft', 'archived'];
+
+const DEFAULT_CONTENT: ArticleContent = {
+  introduction: { en: '', ta: '', si: '' },
+  stats: {
+    residents_served: 0,
+    satisfaction_rate: 0,
+    service_available: '',
+    disease_reduction: 0
+  },
+  problem_statement: {
+    description: { en: '', ta: '', si: '' },
+    points: [{ en: '', ta: '', si: '' }]
+  },
+  innovative_solution: {
+    description: { en: '', ta: '', si: '' },
+    points: [{ en: '', ta: '', si: '' }]
+  },
+  transformation_journey: {
+    description: { en: '', ta: '', si: '' },
+    stats: {
+      quality_compliance_before: 0,
+      quality_compliance_after: 0,
+      coverage_before: 0,
+      coverage_after: 0,
+      complaint_response_before_hours: 0,
+      complaint_response_after_hours: 0
+    }
+  },
+  community_impact: {
+    description: { en: '', ta: '', si: '' },
+    points: [{ en: '', ta: '', si: '' }]
+  }
+};
+
+const WATER_TREATMENT_ARTICLE: NewsArticle = {
+  id: 'water-treatment-plant',
+  title: {
+    en: 'New Water Treatment Plant Inaugurated',
+    ta: 'புதிய நீர் சுத்திகரிப்பு ஆலை தொடங்கப்பட்டது',
+    si: 'නව ජල පිරිස්සුම් කර්මාන්ත ශාලාව විවෘත කරන ලදී'
+  },
+  slug: 'new-water-treatment-plant-inaugurated',
+  content: {
+    introduction: {
+      en: 'In a significant milestone for public health infrastructure, the Mannar Urban Council inaugurated its new water treatment plant yesterday. The facility, built with a budget of Rs. 45 million, incorporates advanced filtration and purification technologies...',
+      ta: 'பொது சுகாதார உள்கட்டமைப்புக்கான முக்கிய மைல்கல்லாக, நேற்று மன்னார் நகராட்சி அவையின் புதிய நீர் சுத்திகரிப்பு ஆலை தொடங்கப்பட்டது. ரூ. 45 மில்லியன் பட்ஜெட்டில் கட்டப்பட்ட இந்த வசதி, மேம்பட்ட வடிப்பு மற்றும் சுத்திகரிப்பு தொழில்நுட்பங்களை உள்ளடக்கியது...',
+      si: 'පොදු සෞඛ්ය යටිතල පහසුකම් සඳහා වැදගත් මිල්ලක් ලෙස, මන්නාරම් නගර සභාව ඊයේ නව ජල පිරිස්සුම් කර්මාන්ත ශාලාව විවෘත කළේය. මිලියන 45 ක අයවැයක් සහිතව ඉදිකරන ලද මෙම පහසුකම, උසස් පෙරීමේ හා පිරිසිදු කිරීමේ තාක්ෂණයන් ඇතුළත් කරයි...'
+    },
+    stats: {
+      residents_served: 15000,
+      satisfaction_rate: 95,
+      service_available: '24/7',
+      disease_reduction: 60
+    },
+    problem_statement: {
+      description: {
+        en: 'Before this initiative, residents faced long queues, limited access to clean water, and delays in municipal services, causing public dissatisfaction.',
+        ta: 'இந்த முன்முயற்சிக்கு முன்பு, குடிமக்கள் நீண்ட வரிசைகள், சுத்தமான நீருக்கு வரம்பான அணுகல் மற்றும் நகராட்சி சேவைகளில் தாமதங்களை எதிர்கொண்டனர், இது பொது அதிருப்திக்கு காரணமாக இருந்தது.',
+        si: 'මෙම මුලපිරීමට පෙර, පුරවැසියන් දිගු පෝලිම්, පිරිසිදු ජලයට සීමිත ප්‍රවේශය සහ නගර සභා සේවාවන්හි ප්‍රමාදයන්ට මුහුණ දුන් අතර, එය පොදු අතෘප්තියට හේතු විය.'
+      },
+      points: [
+        {
+          en: 'Average wait time of 3+ hours for water collection',
+          ta: 'நீர் சேகரிப்புக்கு 3+ மணிநேரம் சராசரி காத்திருக்கும் நேரம்',
+          si: 'ජලය එකතු කිරීම සඳහා පැය 3+ ක සාමාන්‍ය රැඳී සිටීමේ කාලය'
+        },
+        {
+          en: 'Frequent water-borne disease outbreaks',
+          ta: 'அடிக்கடி நீர் பரவும் நோய்த்தொற்றுகள்',
+          si: 'නිතර ජලය මගින් පැතිරෙන රෝග'
+        },
+        {
+          en: 'Limited service coverage in remote areas',
+          ta: 'தொலைதூர பகுதிகளில் வரம்பான சேவை பரவல்',
+          si: 'දුරස්ථ ප්‍රදේශවල සීමිත සේවා ව්‍යාප්තිය'
+        },
+        {
+          en: 'Aging infrastructure requiring constant repairs',
+          ta: 'நிலையான பழுதுபார்ப்புகள் தேவைப்படும் பழைய உள்கட்டமைப்பு',
+          si: 'නිරන්තර අලුත්වැඩියා අවශ්‍ය පැරණි යටිතල පහසුකම්'
+        }
+      ]
+    },
+    innovative_solution: {
+      description: {
+        en: 'The council introduced a modern water treatment facility, leveraging advanced purification technologies and efficient service systems.',
+        ta: 'மன்றம் ஒரு நவீன நீர் சுத்திகரிப்பு வசதியை அறிமுகப்படுத்தியது, இது மேம்பட்ட சுத்திகரிப்பு தொழில்நுட்பங்கள் மற்றும் திறமையான சேவை அமைப்புகளை பயன்படுத்துகிறது.',
+        si: 'සභාව නවීන ජල පිරිස්සුම් පහසුකමක් හඳුන්වා දුන් අතර, එය උසස් පිරිසිදු කිරීමේ තාක්ෂණයන් සහ කාර්යක්ෂම සේවා පද්ධති භාවිතා කරයි.'
+      },
+      points: [
+        {
+          en: 'State-of-the-art reverse osmosis technology',
+          ta: 'நவீன தலைமுறை தலைகீழ் சவ்வூடுபரவல் தொழில்நுட்பம்',
+          si: 'අති නවීන ප්‍රතිලෝම ද්‍රවාංක තාක්ෂණය'
+        },
+        {
+          en: 'Automated monitoring and quality control',
+          ta: 'தானியங்கி கண்காணிப்பு மற்றும் தரக் கட்டுப்பாடு',
+          si: 'ස්වයංක්‍රීය නිරීක්ෂණය සහ ගුණාත්මකභාවය පාලනය'
+        },
+        {
+          en: 'Expanded distribution network coverage',
+          ta: 'விரிவுபடுத்தப்பட்ட விநியோக பிணைய பரவல்',
+          si: 'විස්තීර්ණ බෙදාහැරීමේ ජාල ව්‍යාප්තිය'
+        },
+        {
+          en: 'Trained technical staff for maintenance',
+          ta: 'பராமரிப்புக்கு பயிற்சி பெற்ற தொழில்நுட்ப ஊழியர்கள்',
+          si: 'නඩත්තුව සඳහා පුහුණුව ලබා ඇති තාක්ෂණික කාර්ය මණ්ඩලය'
+        }
+      ]
+    },
+    transformation_journey: {
+      description: {
+        en: 'Previously, water quality was inconsistent. Now, residents enjoy safe, reliable water supply, improving public health drastically.',
+        ta: 'முன்பு, நீரின் தரம் சீரற்றதாக இருந்தது. இப்போது, குடிமக்கள் பாதுகாப்பான, நம்பகமான நீர் விநியோகத்தை அனுபவிக்கிறார்கள், இது பொது சுகாதாரத்தை கணிசமாக மேம்படுத்துகிறது.',
+        si: 'පෙර, ජලයේ ගුණාත්මකභාවය අස්ථාවර විය. දැන්, පුරවැසියන් ආරක්ෂිත, විශ්වසනීය ජල සැපයුම් භුක්ති විඳින අතර, එය පොදු සෞඛ්යය නාටකාකාර ලෙස වැඩිදියුණු කරයි.'
+      },
+      stats: {
+        quality_compliance_before: 65,
+        quality_compliance_after: 98,
+        coverage_before: 45,
+        coverage_after: 92,
+        complaint_response_before_hours: 48,
+        complaint_response_after_hours: 6
+      }
+    },
+    community_impact: {
+      description: {
+        en: 'Over 15,000 residents benefit daily from clean water. Community satisfaction has increased, and municipal operations are more efficient.',
+        ta: '15,000 க்கும் மேற்பட்ட குடிமக்கள் தினமும் சுத்தமான நீரில் இருந்து பயனடைகின்றனர். சமூக திருப்தி அதிகரித்துள்ளது, மற்றும் நகராட்சி செயல்பாடுகள் மிகவும் திறமையானவை.',
+        si: 'පුරවැසියන් 15,000 කට වැඩි ගණනක් දිනපතා පිරිසිදු ජලයෙන් ප්‍රයෝජන ලබයි. ප්‍රජා තෘප්තිය වැඩි වී ඇති අතර, නගර සභා ක්‍රියාකාරකම් වඩාත් කාර්යක්ෂම වේ.'
+      },
+      points: [
+        {
+          en: '15,000+ residents served daily',
+          ta: 'தினசரி 15,000+ குடிமக்கள் பயனடைகின்றனர்',
+          si: 'දිනපතා පුරවැසියන් 15,000+ කට සේවය'
+        },
+        {
+          en: '40% reduction in water-related complaints',
+          ta: 'நீர் தொடர்பான புகார்களில் 40% குறைப்பு',
+          si: 'ජලය සම්බන්ධ පැමිණිලි 40% කින් අඩුවීම'
+        },
+        {
+          en: '95% resident satisfaction rate',
+          ta: '95% குடிப்பதிருப்தி விகிதம்',
+          si: 'පුරවැසි තෘප්ති අනුපාතය 95%'
+        },
+        {
+          en: '50% improvement in operational efficiency',
+          ta: 'செயல்பாட்டு திறனில் 50% மேம்பாடு',
+          si: 'මෙහෙයුම් කාර්යක්ෂමතාවයේ 50% වැඩිදියුණුව'
+        }
+      ]
+    }
+  },
+  excerpt: {
+    en: 'The Mannar Urban Council officially opened a state-of-the-art water treatment facility to serve 15,000 residents with clean, safe drinking water.',
+    ta: 'மன்னார் நகராட்சி அவை 15,000 குடிமக்களுக்கு சுத்தமான, பாதுகாப்பான குடிநீரை வழங்கும் நவீன நீர் சுத்திகரிப்பு வசதியை அதிகாரப்பூர்வமாகத் திறந்தது.',
+    si: 'මන්නාරම් නගර සභාව පුරවැසියන් 15,000 කට පිරිසිදු, ආරක්ෂිත පානීය ජලය සපයනු පිණිස අති නවීන ජල පිරිස්සුම් පහසුකමක් විවෘත කළේය.'
+  },
+  author: 'Municipal Communications',
+  date: '2024-01-15',
+  time: '20:00',
+  publishDate: '2024-01-15',
+  status: 'published',
+  category: 'Infrastructure',
+  readTime: 8,
+  views: 2150,
+  isPinned: true,
+  priority: 'high',
+  coverImage: 'https://example.com/images/water-plant.jpg',
+  tags: ['water', 'infrastructure', 'public health', 'mannar'],
+  contactDepartment: 'Mannar Urban Council',
+  lastUpdated: '2025-10-13T00:00:00Z',
+  actions: {
+    share_count: 156,
+    saved: true,
+    printable: true
+  }
+};
+
 const SAMPLE_NEWS: NewsArticle[] = [
+  WATER_TREATMENT_ARTICLE,
   {
     id: '1',
     title: {
@@ -63,321 +333,238 @@ const SAMPLE_NEWS: NewsArticle[] = [
       ta: 'புதிய நிகழ்வு மேலாண்மை அமைப்பு தொடக்கம்',
       si: 'නව ඉසව් කළමනාකරණ පද්ධතියක් අරඹන ලදී'
     },
-    content: {
-      en: `We are excited to announce the launch of our new event management system! This comprehensive platform brings numerous improvements and features designed to enhance your experience.
-
-## Key Features:
-- **Intuitive Interface**: Streamlined design for easy navigation
-- **Advanced Analytics**: Track event performance with detailed insights
-- **Customizable Templates**: Pre-built templates for various event types
-- **Real-time Updates**: Instant notifications and updates
-
-The new system represents a significant upgrade from our previous platform, incorporating feedback from our valued users. We've focused on making the event management process more efficient and user-friendly.`,
-      ta: `எங்கள் புதிய நிகழ்வு மேலாண்மை அமைப்பைத் தொடங்குவதில் நாங்கள் மகிழ்ச்சியடைகிறோம்! இந்த விரிவான தளம் உங்கள் அனுபவத்தை மேம்படுத்த வடிவமைக்கப்பட்ட பல மேம்பாடுகள் மற்றும் அம்சங்களைக் கொண்டு வருகிறது.
-
-## முக்கிய அம்சங்கள்:
-- **அறிவார்ந்த இடைமுகம்**: எளிய வழிசெலுத்தலுக்கான திட்டமிடப்பட்ட வடிவமைப்பு
-- **மேம்பட்ட பகுப்பாய்வுகள்**: விரிவான நுண்ணறிவுகளுடன் நிகழ்வு செயல்திறனைக் கண்காணிக்கவும்
-- **தனிப்பயனாக்கக்கூடிய வார்ப்புருக்கள்**: பல்வேறு நிகழ்வு வகைகளுக்கான முன்-கட்டப்பட்ட வார்ப்புருக்கள்
-- **நிகழ்நேர புதுப்பிப்புகள்**: உடனடி அறிவிப்புகள் மற்றும் புதுப்பிப்புகள்
-
-புதிய அமைப்பு எங்கள் முந்தைய தளத்திலிருந்து குறிப்பிடத்தக்க மேம்பாட்டைக் குறிக்கிறது, எங்கள் மதிப்புமிக்க பயனர்களின் கருத்துகளை இணைத்துக்கொள்கிறது. நிகழ்வு மேலாண்மை செயல்முறையை மிகவும் திறமையானதாகவும் பயனர்-நட்பாகவும் மாற்றுவதில் நாங்கள் கவனம் செலுத்தியுள்ளோம்.`,
-      si: `අපගේ නව ඉසව් කළමනාකරණ පද්ධතිය ආරම්භ කිරීමේදී අපි උද්යෝගිමත් වෙමු! මෙම විස්තීර්ණ වේදිකාව ඔබගේ අත්දැකීම් වැඩිදියුණු කිරීම සඳහා නිර්මාණය කරන ලද බොහෝ වැඩිදියුණු කිරීම් සහ විශේෂාංග ගෙන එයි.
-
-## ප්‍රධාන අංග:
-- **දෘශ්‍ය අතුරුමුහුණත**: පහසු සංචලනය සඳහා සරල කරන ලද නිර්මාණය
-- **උසස් විශ්ලේෂණ**: විස්තරාත්මක තීක්ෂ්ණ බුද්ධිය සමඟ ඉසව් කාර්ය සාධනය නිරීක්ෂණය කරන්න
-- **අභිරුචි කළ හැකි අච්චු**: විවිධ ඉසව් වර්ග සඳහා පෙර සාදන ලද අච්චු
-- **තාත්වික යාවත්කාලීන කිරීම්**: ක්ෂණික දැනුම්දීම් සහ යාවත්කාලීන කිරීම්
-
-නව පද්ධතිය අපගේ පෙර වේදිකාවෙන් සැලකිය යුතු උසස් කිරීමක් නියෝජනය කරයි, අපගේ ඇගයීමට ලක් වූ පරිශීලකයින්ගේ ප්‍රතිපෝෂණය ඒකාබද්ධ කරයි. ඉසව් කළමනාකරණ ක්‍රියාවලිය වඩාත් කාර්යක්ෂම හා පරිශීලක-හිතකාමී කිරීම上 අපි අවධානය යොමු කර ඇත්තෙමු.`
-    },
+    slug: 'new-event-management-system-launched',
+    content: DEFAULT_CONTENT,
     excerpt: {
       en: 'Learn about our new event management system features and improvements.',
       ta: 'எங்கள் புதிய நிகழ்வு மேலாண்மை அமைப்பு அம்சங்கள் மற்றும் மேம்பாடுகளைப் பற்றி அறிக.',
       si: 'අපගේ නව ඉසව් කළමනාකරණ පද්ධතියේ විශේෂාංග සහ වැඩිදියුණු කිරීම් පිළිබඳව ඉගෙන ගන්න.'
     },
     author: 'John Doe',
+    date: '2024-01-15',
+    time: '10:00',
     publishDate: '2024-01-15',
     status: 'published',
     category: 'Technology',
     readTime: 5,
     views: 1245,
-    isPinned: true,
-    priority: 'high',
-    attachments: ['system-guide.pdf', 'release-notes.docx']
-  },
-  {
-    id: '2',
-    title: {
-      en: 'Upcoming Community Meetup',
-      ta: 'வரவிருக்கும் சமூக சந்திப்பு',
-      si: 'ඉදිරියේදී පැවැත්වෙන සමාජ හමුව'
-    },
-    content: {
-      en: `Join us for our monthly community meetup next Saturday at the Community Center. This event is a great opportunity to network with other professionals in your field and learn about the latest industry trends.
-
-## Event Details:
-- **Date**: Saturday, January 27, 2024
-- **Time**: 2:00 PM - 5:00 PM
-- **Location**: Community Center, 123 Main Street
-- **Special Guest**: Industry expert Sarah Johnson
-
-We'll have light refreshments, networking sessions, and a special presentation on emerging technologies. All community members are welcome!`,
-      ta: `அடுத்த சனிக்கிழமை சமூக மையத்தில் நமது மாதாந்திர சமூக சந்திப்பில் எங்களுடன் சேரவும். இந்த நிகழ்வு உங்கள் துறையில் உள்ள மற்ற வல்லுநர்களுடன் நெட்வொர்க்கிங் செய்வதற்கும், சமீபத்திய தொழில் போக்குகளைப் பற்றி அறிந்துகொள்வதற்கும் சிறந்த வாய்ப்பாகும்.
-
-## நிகழ்வு விவரங்கள்:
-- **தேதி**: சனிக்கிழமை, ஜனவரி 27, 2024
-- **நேரம்**: மாலை 2:00 மணி - 5:00 மணி
-- **இடம்**: சமூக மையம், 123 மெயின் தெரு
-- **சிறப்பு விருந்தினர்**: தொழில் நிபுணர் சாரா ஜான்சன்
-
-இலகுவான புத்துணர்ச்சி, நெட்வொர்க்கிங் அமர்வுகள் மற்றும் எழும் தொழில்நுட்பங்கள் குறித்த சிறப்பு விளக்கக்காட்சி ஆகியவை இருக்கும். அனைத்து சமூக உறுப்பினர்களும் வரவேற்கப்படுகிறார்கள்!`,
-      si: `ඊළඟ සෙනසුරාදා ප්‍රජා මධ්‍යස්ථානයේදී අපගේ මාසික සමාජ හමුවට සහභාගී වන්න. මෙම ඉසව්ව ඔබගේ ක්ෂේත්‍රයේ අනෙක් වෘත්තිකයන් සමඟ ජාලකරණය කිරීමට සහ නවතම කර්මාන්ත ප්‍රවණතා ගැන ඉගෙන ගැනීමට විශිෂ්ට අවස්ථාවකි.
-
-## ඉසව්වේ විස්තර:
-- **දිනය**: සෙනසුරාදා, ජනවාරි 27, 2024
-- **වේලාව**: ප.ව. 2:00 - 5:00
-- **ස්ථානය**: ප්‍රජා මධ්‍යස්ථානය, 123 ප්‍රධාන වීදිය
-- **විශේෂ අමුත්තා**: කර්මාන්ත විශේෂඥ සාරා ජොන්සන්
-
-සැහැල්ලු නැවුම් කිරීම්, ජාලකරණ සැසි සහ නැගී එන තාක්ෂණය පිළිබඳ විශේෂ ඉදිරිපත් කිරීමක් අප සතුව ඇත. සියලුම ප්‍රජා සාමාජිකයන් සාදරයෙන් පිළිගනිමු!`
-    },
-    excerpt: {
-      en: 'Monthly community gathering with special guests and networking opportunities.',
-      ta: 'சிறப்பு விருந்தினர்கள் மற்றும் நெட்வொர்க்கிங் வாய்ப்புகளுடன் மாதாந்திர சமூக கூட்டம்.',
-      si: 'විශේෂ අමුත්තන් සහ ජාලකරණ අවස්ථා සහිත මාසික සමාජ රැස්වීම.'
-    },
-    author: 'Jane Smith',
-    publishDate: '2024-01-10',
-    status: 'published',
-    category: 'Community',
-    readTime: 3,
-    views: 867,
-    isPinned: true,
-    priority: 'medium',
-    attachments: ['agenda.pdf']
-  },
-  {
-    id: '3',
-    title: {
-      en: 'System Maintenance Schedule',
-      ta: 'கணினி பராமரிப்பு அட்டவணை',
-      si: 'පද්ධති නඩත්තු කාලසටහන'
-    },
-    content: {
-      en: `Please be advised that we will be performing scheduled system maintenance this weekend to improve performance and security.
-
-## Maintenance Window:
-- **Start**: Saturday, January 20, 2024, 10:00 PM
-- **End**: Sunday, January 21, 2024, 2:00 AM
-
-During this time, the system may be unavailable. We apologize for any inconvenience this may cause and appreciate your understanding as we work to improve our services.`,
-      ta: `செயல்திறன் மற்றும் பாதுகாப்பை மேம்படுத்த இந்த வார இறுதியில் திட்டமிடப்பட்ட கணினி பராமரிப்பை நாங்கள் செயல்படுத்தப் போவதாக தெரிவித்துக்கொள்கிறோம்.
-
-## பராமரிப்பு நேரம்:
-- **தொடக்கம்**: சனிக்கிழமை, ஜனவரி 20, 2024, இரவு 10:00 மணி
-- **முடிவு**: ஞாயிற்றுக்கிழமை, ஜனவரி 21, 2024, காலை 2:00 மணி
-
-இந்த நேரத்தில், கணினி கிடைக்காமல் போகலாம். இது ஏற்படுத்தக்கூடிய எந்தவொரு சிரமத்திற்கும் நாங்கள் மன்னிப்பு கோருகிறோம், மேலும் எங்கள் சேவைகளை மேம்படுத்துவதற்காக நாங்கள் பணியாற்றும்போது உங்கள் புரிதலைப் பாராட்டுகிறோம்.`,
-      si: `කාර්ය සාධනය සහ ආරක්ෂාව වැඩිදියුණු කිරීම සඳහා මෙම සති අන්තයේදී නිශ්චිත පද්ධති නඩත්තු කටයුතු සිදු කරන බව කරුණාවෙන් දන්වන්නෙමු.
-
-## නඩත්තු කාල පරතරය:
-- **ආරම්භය**: සෙනසුරාදා, ජනවාරි 20, 2024, ප.ව. 10:00
-- **අවසානය**: ඉරිදා, ජනවාරි 21, 2024, පෙ.ව. 2:00
-
-මෙම කාලය තුළ පද්ධතිය භාවිතයට නොහැකි විය හැකිය. මෙය ඇති කළ හැකි ඕනෑම අසහනයක් සඳහා අපි සමාව අයදිමු, අපගේ සේවාවන් වැඩිදියුණු කිරීම සඳහා අප විසින් වැඩ කරන විට ඔබගේ අවබෝධය අපි අගය කරමු.`
-    },
-    excerpt: {
-      en: 'Important information about upcoming system maintenance.',
-      ta: 'வரவிருக்கும் கணினி பராமரிப்பு பற்றிய முக்கியமான தகவல்.',
-      si: 'ඉදිරියේදී පැවැත්වෙන පද්ධති නඩත්තුව පිළිබඳව වැදගත් තොරතුරු.'
-    },
-    author: 'Admin Team',
-    publishDate: '2024-01-08',
-    status: 'published',
-    category: 'Maintenance',
-    readTime: 2,
-    views: 432,
     isPinned: false,
-    priority: 'medium',
-    attachments: []
-  },
-  {
-    id: '4',
-    title: {
-      en: 'New Health Clinic Opening',
-      ta: 'புதிய சுகாதார மருத்துவமனை திறப்பு',
-      si: 'නව සෞඛ්‍ය වෛද්‍යාලයක් විවෘත කිරීම'
-    },
-    content: {
-      en: `We are pleased to announce the opening of a new health clinic in Ward 5. The clinic will provide comprehensive healthcare services to the community.
-
-## Services Offered:
-- General medical consultations
-- Vaccination programs
-- Health screening
-- Emergency care
-- Maternal and child health services
-
-The clinic will be open from Monday to Saturday, 8:00 AM to 6:00 PM.`,
-      ta: `வார்டு 5-ல் ஒரு புதிய சுகாதார மருத்துவமனை திறப்பதை அறிவித்து மகிழ்ச்சியடைகிறோம். இந்த மருத்துவமனை சமூகத்திற்கு விரிவான சுகாதாரப் பராமரிப்பு சேவைகளை வழங்கும்.
-
-## வழங்கப்படும் சேவைகள்:
-- பொது மருத்துவ ஆலோசனைகள்
-- தடுப்பூசி திட்டங்கள்
-- சுகாதார பரிசோதனை
-- அவசர பராமரிப்பு
-- தாய் மற்றும் குழந்தை சுகாதார சேவைகள்
-
-இந்த மருத்துவமனை திங்கள் முதல் சனி வரை காலை 8:00 மணி முதல் மாலை 6:00 மணி வரை திறந்திருக்கும்.`,
-      si: `වාර්ඩ් 5 හි නව සෞඛ්‍ය වෛද්‍යාලයක් විවෘත කිරීම ප්‍රකාශයට පත් කිරීමට අපි සතුටු වෙමු. වෛද්‍යාලය ප්‍රජාවට සවිස්තරාත්මක සෞඛ්‍ය සේවා සපයනු ඇත.
-
-## ලබා දෙන සේවා:
-- සාමාන්‍ය වෛද්‍ය පරීක්ෂා
-- වැක්සිනීකරණ වැඩසටහන්
-- සෞඛ්‍ය පරීක්ෂණ
-- හදිසි සත්කාර
-- මාතෘ හා ළමා සෞඛ්‍ය සේවා
-
-වෛද්‍යාලය සඳුදා සිට සෙනසුරාදා දක්වා පෙ.ව. 8:00 සිට ප.ව. 6:00 දක්වා විවෘත වේ.`
-    },
-    excerpt: {
-      en: 'New health clinic opening in Ward 5 with comprehensive services.',
-      ta: 'வார்டு 5-ல் விரிவான சேவைகளுடன் புதிய சுகாதார மருத்துவமனை திறப்பு.',
-      si: 'වාර්ඩ් 5 හි සවිස්තරාත්මක සේවා සහිත නව සෞඛ්‍ය වෛද්‍යාලයක් විවෘත වේ.'
-    },
-    author: 'Dr. Rajesh Kumar',
-    publishDate: '2024-01-05',
-    status: 'published',
-    category: 'Health',
-    readTime: 4,
-    views: 678,
-    isPinned: false,
-    priority: 'high',
-    attachments: ['clinic-schedule.pdf', 'services-list.docx']
-  },
-  {
-    id: '5',
-    title: {
-      en: 'Educational Workshop Announcement',
-      ta: 'கல்வி பட்டறை அறிவிப்பு',
-      si: 'අධ්‍යාපන වැඩමුළු නිවේදනය'
-    },
-    content: {
-      en: `We are organizing a free educational workshop on digital literacy for senior citizens. This workshop aims to help older adults become more comfortable with modern technology.
-
-## Workshop Details:
-- **Topic**: Digital Literacy for Seniors
-- **Date**: February 3, 2024
-- **Time**: 10:00 AM - 1:00 PM
-- **Venue**: Community Library
-- **Topics Covered**: Smartphone basics, Internet safety, Online banking, Social media
-
-Registration is free but required due to limited seating.`,
-      ta: `முதியவர்களுக்கான டிஜிட்டல் எழுத்தறிவு குறித்த இலவச கல்வி பட்டறையை நாங்கள் ஏற்பாடு செய்கிறோம். இந்த பட்டறை முதியவர்கள் நவீன தொழில்நுட்பத்தில் மேலும் வசதியாக இருக்க உதவும்.
-
-## பட்டறை விவரங்கள்:
-- **தலைப்பு**: முதியவர்களுக்கான டிஜிட்டல் எழுத்தறிவு
-- **தேதி**: பிப்ரவரி 3, 2024
-- **நேரம்**: காலை 10:00 மணி - 1:00 மணி
-- **இடம்**: சமூக நூலகம்
-- **உள்ளடக்கப்பட்ட தலைப்புகள்**: ஸ்மார்ட்போன் அடிப்படைகள், இணைய பாதுகாப்பு, ஆன்லைன் வங்கி, சமூக ஊடகங்கள்
-
-பதிவு இலவசம் ஆனால் வரம்புக்குட்பட்ட இருக்கை இருப்பு காரணமாக தேவைப்படுகிறது.`,
-      si: `වයස්ගත පුරවැසියන් සඳහා ඩිජිටල් සාක්ෂරතාවය පිළිබඳ නොමිලේ අධ්‍යාපන වැඩමුළුවක් සංවිධානය කරන්නෙමු. මෙම වැඩමුළුව වයස්ගත වැඩිහිටියන් නවීන තාක්ෂණය සමඟ වඩාත් සුවපහසු වීමට උපකාරී වේ.
-
-## වැඩමුළු විස්තර:
-- **විෂය**: වයස්ගතයන් සඳහා ඩිජිටල් සාක්ෂරතාවය
-- **දිනය**: පෙබරවාරි 3, 2024
-- **වේලාව**: පෙ.ව. 10:00 - 1:00
-- **ස්ථානය**: ප්‍රජා පුස්තකාලය
-- **ආවරණය වන විෂයන්**: ස්මාර්ට්ෆෝන මූලික කරුණු, අන්තර්ජාල ආරක්ෂාව, අන්ලයින් බැංකුකරණය, සමාජ මාධ්‍ය
-
-ලියාපදිංචි වීම නොමිලේ නමුත් සීමිත ආසන ප්‍රමාණය හේතුවෙන් අවශ්‍ය වේ.`
-    },
-    excerpt: {
-      en: 'Free digital literacy workshop for senior citizens.',
-      ta: 'முதியவர்களுக்கான இலவச டிஜிட்டல் எழுத்தறிவு பட்டறை.',
-      si: 'වයස්ගත පුරවැසියන් සඳහා නොමිලේ ඩිජිටල් සාක්ෂරතා වැඩමුළුව.'
-    },
-    author: 'Education Department',
-    publishDate: '2024-01-03',
-    status: 'draft',
-    category: 'Education',
-    readTime: 3,
-    views: 234,
-    isPinned: false,
-    priority: 'low',
-    attachments: ['workshop-brochure.pdf']
-  },
-  {
-    id: '6',
-    title: {
-      en: 'Road Construction Update',
-      ta: 'சாலை கட்டுமான புதுப்பிப்பு',
-      si: 'මාර්ග ඉදිකිරීම් යාවත්කාලීන කිරීම'
-    },
-    content: {
-      en: `Important update regarding the ongoing road construction project on Main Street. The project is progressing well and we expect completion by the end of February.
-
-## Current Status:
-- Phase 1: Completed (Drainage system)
-- Phase 2: In progress (Road foundation)
-- Phase 3: Scheduled (Paving and markings)
-
-Please follow the temporary traffic arrangements and drive carefully in the construction zone.`,
-      ta: `மெயின் தெருவில் நடைபெறும் சாலை கட்டுமான திட்டம் தொடர்பான முக்கியமான புதுப்பிப்பு. திட்டம் நன்றாக முன்னேறுகிறது மற்றும் பிப்ரவரி இறுதிக்குள் நிறைவடையும் என்று எதிர்பார்க்கிறோம்.
-
-## தற்போதைய நிலை:
-- கட்டம் 1: முடிந்தது (வடிகால் அமைப்பு)
-- கட்டம் 2: நடந்து கொண்டிருக்கிறது (சாலை அடித்தளம்)
-- கட்டம் 3: திட்டமிடப்பட்டது (பாவுதல் மற்றும் குறியீடுகள்)
-
-தற்காலிக போக்குவரத்து ஏற்பாடுகளைப் பின்பற்றவும் மற்றும் கட்டுமான மண்டலத்தில் கவனமாக வாகனம் ஓட்டவும்.`,
-      si: `ප්‍රධාන වීදියේ සිදුවෙමින් පවතින මාර්ග ඉදිකිරීම් ව්‍යාපෘතිය සම්බන්ධයෙන් වැදගත් යාවත්කාලීන කිරීමකි. ව්‍යාපෘතිය හොඳින් ප්‍රගති වෙමින් පවතින අතර පෙබරවාරි අවසන් වන විට නිම කිරීම අප අපේක්ෂා කරමු.
-
-## වර්තමාන තත්ත්වය:
-- 1 වන අදියර: නිමි (ජලාපවහන පද්ධතිය)
-- 2 වන අදියර: සිදු වෙමින් පවතී (මාර්ග පදනම)
-- 3 වන අදියර: සැලසුම් කර ඇත (පaving යාම සහ සලකුණු කිරීම)
-
-කරුණාකර තාවකාලික ගමනාගමන අනුවිතයන් පිළිපදින්න සහ ඉදිකිරීම් කලාපය තුළ ප්‍රවේශමෙන් පැදි ගැනීමට යන්න.`
-    },
-    excerpt: {
-      en: 'Update on Main Street road construction progress.',
-      ta: 'மெயின் தெரு சாலை கட்டுமான முன்னேற்றம் குறித்த புதுப்பிப்பு.',
-      si: 'ප්‍රධාන වීදියේ මාර්ග ඉදිකිරීම් ප්‍රගතිය පිළිබඳ යාවත්කාලීන කිරීම.'
-    },
-    author: 'Public Works Department',
-    publishDate: '2024-01-01',
-    status: 'published',
-    category: 'Infrastructure',
-    readTime: 2,
-    views: 543,
-    isPinned: false,
-    priority: 'medium',
-    attachments: ['construction-map.pdf', 'traffic-plan.docx']
+    priority: 'medium'
   }
 ];
 
+// Hooks
+const useNews = () => {
+  const [news, setNews] = useState<NewsArticle[]>([]);
+
+  useEffect(() => {
+    const savedNews = localStorage.getItem('newsArticles');
+    if (savedNews) {
+      setNews(JSON.parse(savedNews));
+    } else {
+      setNews(SAMPLE_NEWS);
+      localStorage.setItem('newsArticles', JSON.stringify(SAMPLE_NEWS));
+    }
+  }, []);
+
+  const addArticle = useCallback((article: Omit<NewsArticle, 'id' | 'views'>) => {
+    const newArticle: NewsArticle = {
+      ...article,
+      id: Date.now().toString(),
+      views: 0,
+    };
+    const updatedNews = [newArticle, ...news];
+    setNews(updatedNews);
+    localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+    return newArticle;
+  }, [news]);
+
+  const updateArticle = useCallback((id: string, updates: Partial<NewsArticle>) => {
+    const updatedNews = news.map(article => 
+      article.id === id ? { ...article, ...updates } : article
+    );
+    setNews(updatedNews);
+    localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+  }, [news]);
+
+  const deleteArticle = useCallback((id: string) => {
+    const updatedNews = news.filter(article => article.id !== id);
+    setNews(updatedNews);
+    localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
+  }, [news]);
+
+  const incrementViews = useCallback((id: string) => {
+    updateArticle(id, { views: (news.find(a => a.id === id)?.views || 0) + 1 });
+  }, [news, updateArticle]);
+
+  return { news, addArticle, updateArticle, deleteArticle, incrementViews };
+};
+
+const useArticleForm = (initialData?: ArticleFormData) => {
+  const [formData, setFormData] = useState<ArticleFormData>(initialData || {
+    title: { en: '', ta: '', si: '' },
+    slug: '',
+    content: DEFAULT_CONTENT,
+    excerpt: { en: '', ta: '', si: '' },
+    author: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '12:00',
+    category: '',
+    status: 'draft',
+    priority: 'medium',
+    isPinned: false,
+    coverImage: '',
+    tags: [],
+    contactDepartment: ''
+  });
+
+  const updateField = useCallback(<K extends keyof ArticleFormData>(field: K, value: ArticleFormData[K]) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const updateLocalizedField = useCallback((field: 'title' | 'excerpt', language: Language, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: { ...prev[field], [language]: value }
+    }));
+  }, []);
+
+  const updateContentField = useCallback((field: keyof ArticleContent, subField: string, language: Language, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [field]: {
+          ...prev.content[field],
+          [subField]: language === 'all' ? value : {
+            ...(prev.content[field] as any)[subField],
+            [language]: value
+          }
+        }
+      }
+    }));
+  }, []);
+
+  const updateStatsField = useCallback((field: keyof ArticleStats, value: number | string) => {
+    setFormData(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        stats: {
+          ...prev.content.stats,
+          [field]: value
+        }
+      }
+    }));
+  }, []);
+
+  const updateTransformationStats = useCallback((field: keyof TransformationStats, value: number) => {
+    setFormData(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        transformation_journey: {
+          ...prev.content.transformation_journey,
+          stats: {
+            ...prev.content.transformation_journey.stats,
+            [field]: value
+          }
+        }
+      }
+    }));
+  }, []);
+
+  const addPoint = useCallback((section: 'problem_statement' | 'innovative_solution' | 'community_impact') => {
+    setFormData(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [section]: {
+          ...prev.content[section],
+          points: [...prev.content[section].points, { en: '', ta: '', si: '' }]
+        }
+      }
+    }));
+  }, []);
+
+  const removePoint = useCallback((section: 'problem_statement' | 'innovative_solution' | 'community_impact', index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [section]: {
+          ...prev.content[section],
+          points: prev.content[section].points.filter((_, i) => i !== index)
+        }
+      }
+    }));
+  }, []);
+
+  const updatePoint = useCallback((section: 'problem_statement' | 'innovative_solution' | 'community_impact', index: number, language: Language, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [section]: {
+          ...prev.content[section],
+          points: prev.content[section].points.map((point, i) => 
+            i === index ? { ...point, [language]: value } : point
+          )
+        }
+      }
+    }));
+  }, []);
+
+  const reset = useCallback(() => {
+    setFormData({
+      title: { en: '', ta: '', si: '' },
+      slug: '',
+      content: DEFAULT_CONTENT,
+      excerpt: { en: '', ta: '', si: '' },
+      author: '',
+      date: new Date().toISOString().split('T')[0],
+      time: '12:00',
+      category: '',
+      status: 'draft',
+      priority: 'medium',
+      isPinned: false,
+      coverImage: '',
+      tags: [],
+      contactDepartment: ''
+    });
+  }, []);
+
+  return { 
+    formData, 
+    updateField, 
+    updateLocalizedField, 
+    updateContentField,
+    updateStatsField,
+    updateTransformationStats,
+    addPoint,
+    removePoint,
+    updatePoint,
+    reset 
+  };
+};
+
 // Utility Functions
-const getPriorityColor = (priority: string) => {
+const getPriorityColor = (priority: Priority) => {
   const colors = {
     high: 'bg-red-100 text-red-800 border-red-200',
     medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     low: 'bg-green-100 text-green-800 border-green-200'
   };
-  return colors[priority as keyof typeof colors] || colors.medium;
+  return colors[priority];
 };
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: ArticleStatus) => {
   const colors = {
     published: 'bg-green-100 text-green-800 border-green-200',
     draft: 'bg-blue-100 text-blue-800 border-blue-200',
     archived: 'bg-gray-100 text-gray-800 border-gray-200'
   };
-  return colors[status as keyof typeof colors] || colors.draft;
+  return colors[status];
 };
 
 const formatDate = (dateString: string) => {
@@ -388,14 +575,42 @@ const formatDate = (dateString: string) => {
   });
 };
 
-// Helper function to safely get text with fallback
-const getLocalizedText = (content: NewsContent, language: Language, fallback: string = 'No translation') => {
+const calculateReadTime = (content: ArticleContent) => {
+  const totalContent = Object.values(content.introduction).join(' ') +
+    Object.values(content.problem_statement.description).join(' ') +
+    Object.values(content.innovative_solution.description).join(' ') +
+    Object.values(content.transformation_journey.description).join(' ') +
+    Object.values(content.community_impact.description).join(' ');
+  
+  return Math.ceil(totalContent.split(' ').length / 200);
+};
+
+const getLocalizedText = (content: LocalizedContent, language: Language, fallback: string = '') => {
   return content?.[language]?.trim() || fallback;
 };
 
-const getPreviewText = (content: NewsContent, language: Language, maxLength: number = 15) => {
-  const text = getLocalizedText(content, language, '');
-  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+const validateArticle = (formData: ArticleFormData): string | null => {
+  const missingFields: string[] = [];
+  
+  if (!formData.category) missingFields.push('Category');
+  if (!formData.author.trim()) missingFields.push('Author');
+  if (!formData.slug.trim()) missingFields.push('Slug');
+  
+  LANGUAGES.forEach(({ value, label }) => {
+    if (!formData.title[value]?.trim()) missingFields.push(`${label} Title`);
+    if (!formData.excerpt[value]?.trim()) missingFields.push(`${label} Excerpt`);
+  });
+
+  return missingFields.length > 0 ? `Please fill in: ${missingFields.join(', ')}` : null;
+};
+
+const generateSlug = (title: string) => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim();
 };
 
 // Components
@@ -406,7 +621,7 @@ const LanguageTabs = ({
   value: Language; 
   onValueChange: (value: Language) => void;
 }) => (
-  <Tabs value={value} onValueChange={(val) => onValueChange(val as Language)}>
+  <Tabs value={value} onValueChange={onValueChange}>
     <TabsList className="grid w-full grid-cols-3">
       {LANGUAGES.map((lang) => (
         <TabsTrigger key={lang.value} value={lang.value}>
@@ -417,7 +632,13 @@ const LanguageTabs = ({
   </Tabs>
 );
 
-const StatCard = ({ title, value, icon: Icon, description, trend }: { 
+const StatCard = ({ 
+  title, 
+  value, 
+  icon: Icon, 
+  description, 
+  trend 
+}: { 
   title: string; 
   value: number | string; 
   icon: React.ElementType;
@@ -448,7 +669,16 @@ const StatCard = ({ title, value, icon: Icon, description, trend }: {
   </Card>
 );
 
-const AlertMessage = ({ type, title, message }: { type: 'error' | 'success'; title: string; message: string }) => {
+const AlertMessage = ({ 
+  type, 
+  title, 
+  message 
+}: { 
+  type: 'error' | 'success'; 
+  title: string; 
+  message: string;
+}) => {
+  const Icon = type === 'error' ? AlertCircle : CheckCircle;
   const styles = {
     error: 'bg-red-50 border-red-200 text-red-800',
     success: 'bg-green-50 border-green-200 text-green-800'
@@ -457,7 +687,7 @@ const AlertMessage = ({ type, title, message }: { type: 'error' | 'success'; tit
   return (
     <div className={`border rounded-md p-4 ${styles[type]}`}>
       <div className="flex items-center">
-        {type === 'error' ? <AlertCircle className="w-5 h-5 mr-2" /> : <CheckCircle className="w-5 h-5 mr-2" />}
+        <Icon className="w-5 h-5 mr-2" />
         <div>
           <p className="font-medium">{title}</p>
           <p className="text-sm">{message}</p>
@@ -469,16 +699,16 @@ const AlertMessage = ({ type, title, message }: { type: 'error' | 'success'; tit
 
 const NewsCard = ({ 
   article, 
-  onView, 
-  onEdit, 
-  onDelete,
-  currentLanguage 
+  currentLanguage,
+  onView,
+  onEdit,
+  onDelete
 }: { 
   article: NewsArticle;
+  currentLanguage: Language;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  currentLanguage: Language;
 }) => (
   <Card className="flex flex-col hover:shadow-lg transition-shadow bg-white/90 backdrop-blur-sm">
     <CardHeader>
@@ -494,10 +724,10 @@ const NewsCard = ({
         </div>
       </div>
       <CardTitle className="text-xl line-clamp-2">
-        {getLocalizedText(article.title, currentLanguage, article.title.en)}
+        {getLocalizedText(article.title, currentLanguage)}
       </CardTitle>
       <CardDescription className="line-clamp-3">
-        {getLocalizedText(article.excerpt, currentLanguage, article.excerpt.en)}
+        {getLocalizedText(article.excerpt, currentLanguage)}
       </CardDescription>
     </CardHeader>
     <CardContent className="flex-grow">
@@ -518,16 +748,6 @@ const NewsCard = ({
           <Eye className="h-4 w-4 mr-2" />
           {article.views} views
         </div>
-      </div>
-
-      {/* Language Indicators */}
-      <div className="flex gap-2 mt-3">
-        <Badge variant="outline" className="text-xs bg-gray-50">
-          TA: {getPreviewText(article.title, 'ta')}
-        </Badge>
-        <Badge variant="outline" className="text-xs bg-gray-50">
-          SI: {getPreviewText(article.title, 'si')}
-        </Badge>
       </div>
     </CardContent>
     <CardContent className="pt-0">
@@ -563,50 +783,549 @@ const NewsCard = ({
   </Card>
 );
 
+const ArticleFormFields = ({
+  formData,
+  selectedLanguage,
+  onFieldChange,
+  onLocalizedFieldChange,
+  onContentFieldChange,
+  onStatsFieldChange,
+  onTransformationStatsChange,
+  onAddPoint,
+  onRemovePoint,
+  onUpdatePoint,
+  onLanguageChange,
+  errorMessage
+}: {
+  formData: ArticleFormData;
+  selectedLanguage: Language;
+  onFieldChange: <K extends keyof ArticleFormData>(field: K, value: ArticleFormData[K]) => void;
+  onLocalizedFieldChange: (field: 'title' | 'excerpt', language: Language, value: string) => void;
+  onContentFieldChange: (field: keyof ArticleContent, subField: string, language: Language, value: any) => void;
+  onStatsFieldChange: (field: keyof ArticleStats, value: number | string) => void;
+  onTransformationStatsChange: (field: keyof TransformationStats, value: number) => void;
+  onAddPoint: (section: 'problem_statement' | 'innovative_solution' | 'community_impact') => void;
+  onRemovePoint: (section: 'problem_statement' | 'innovative_solution' | 'community_impact', index: number) => void;
+  onUpdatePoint: (section: 'problem_statement' | 'innovative_solution' | 'community_impact', index: number, language: Language, value: string) => void;
+  onLanguageChange: (language: Language) => void;
+  errorMessage: string;
+}) => {
+  const getLanguageLabel = (lang: Language) => LANGUAGES.find(l => l.value === lang)?.label || lang;
+
+  const handleTitleChange = (language: Language, value: string) => {
+    onLocalizedFieldChange('title', language, value);
+    if (language === 'en') {
+      onFieldChange('slug', generateSlug(value));
+    }
+  };
+
+  return (
+    <div className="grid gap-6 py-4">
+      <LanguageTabs value={selectedLanguage} onValueChange={onLanguageChange} />
+
+      {/* Basic Information */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
+        
+        <div className="grid gap-2">
+          <label htmlFor="title" className="text-sm font-medium">
+            Title ({getLanguageLabel(selectedLanguage)}) *
+          </label>
+          <Input
+            id="title"
+            value={formData.title[selectedLanguage] || ''}
+            onChange={(e) => handleTitleChange(selectedLanguage, e.target.value)}
+            placeholder={`Enter title in ${getLanguageLabel(selectedLanguage)}`}
+            className={!formData.title[selectedLanguage]?.trim() && errorMessage ? "border-red-500" : ""}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <label htmlFor="slug" className="text-sm font-medium">Slug *</label>
+          <Input
+            id="slug"
+            value={formData.slug}
+            onChange={(e) => onFieldChange('slug', e.target.value)}
+            placeholder="article-url-slug"
+            className={!formData.slug && errorMessage ? "border-red-500" : ""}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <label htmlFor="excerpt" className="text-sm font-medium">
+            Excerpt ({getLanguageLabel(selectedLanguage)}) *
+          </label>
+          <Textarea
+            id="excerpt"
+            value={formData.excerpt[selectedLanguage] || ''}
+            onChange={(e) => onLocalizedFieldChange('excerpt', selectedLanguage, e.target.value)}
+            placeholder={`Brief description in ${getLanguageLabel(selectedLanguage)}`}
+            rows={3}
+            className={!formData.excerpt[selectedLanguage]?.trim() && errorMessage ? "border-red-500" : ""}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <label htmlFor="author" className="text-sm font-medium">Author *</label>
+            <Input
+              id="author"
+              value={formData.author}
+              onChange={(e) => onFieldChange('author', e.target.value)}
+              placeholder="Author name"
+              className={!formData.author && errorMessage ? "border-red-500" : ""}
+            />
+          </div>
+          <div className="grid gap-2">
+            <label htmlFor="category" className="text-sm font-medium">Category *</label>
+            <Select value={formData.category} onValueChange={(value) => onFieldChange('category', value)}>
+              <SelectTrigger className={!formData.category && errorMessage ? "border-red-500" : ""}>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <label htmlFor="date" className="text-sm font-medium">Date</label>
+            <Input
+              id="date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => onFieldChange('date', e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <label htmlFor="time" className="text-sm font-medium">Time</label>
+            <Input
+              id="time"
+              type="time"
+              value={formData.time}
+              onChange={(e) => onFieldChange('time', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          <label htmlFor="coverImage" className="text-sm font-medium">Cover Image URL</label>
+          <Input
+            id="coverImage"
+            value={formData.coverImage}
+            onChange={(e) => onFieldChange('coverImage', e.target.value)}
+            placeholder="https://example.com/images/cover.jpg"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <label htmlFor="tags" className="text-sm font-medium">Tags</label>
+          <Input
+            id="tags"
+            value={formData.tags.join(', ')}
+            onChange={(e) => onFieldChange('tags', e.target.value.split(',').map(tag => tag.trim()))}
+            placeholder="water, infrastructure, public health"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <label htmlFor="contactDepartment" className="text-sm font-medium">Contact Department</label>
+          <Input
+            id="contactDepartment"
+            value={formData.contactDepartment}
+            onChange={(e) => onFieldChange('contactDepartment', e.target.value)}
+            placeholder="Mannar Urban Council"
+          />
+        </div>
+      </div>
+
+      {/* Introduction */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Introduction</h3>
+        <div className="grid gap-2">
+          <label htmlFor="introduction" className="text-sm font-medium">
+            Introduction ({getLanguageLabel(selectedLanguage)})
+          </label>
+          <Textarea
+            id="introduction"
+            value={formData.content.introduction[selectedLanguage] || ''}
+            onChange={(e) => onContentFieldChange('introduction', 'description', selectedLanguage, e.target.value)}
+            placeholder={`Write introduction in ${getLanguageLabel(selectedLanguage)}...`}
+            rows={4}
+          />
+        </div>
+      </div>
+
+      {/* Statistics */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Key Statistics</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <label htmlFor="residents_served" className="text-sm font-medium">Residents Served</label>
+            <Input
+              id="residents_served"
+              type="number"
+              value={formData.content.stats.residents_served}
+              onChange={(e) => onStatsFieldChange('residents_served', parseInt(e.target.value) || 0)}
+              placeholder="15000"
+            />
+          </div>
+          <div className="grid gap-2">
+            <label htmlFor="satisfaction_rate" className="text-sm font-medium">Satisfaction Rate (%)</label>
+            <Input
+              id="satisfaction_rate"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.content.stats.satisfaction_rate}
+              onChange={(e) => onStatsFieldChange('satisfaction_rate', parseInt(e.target.value) || 0)}
+              placeholder="95"
+            />
+          </div>
+          <div className="grid gap-2">
+            <label htmlFor="service_available" className="text-sm font-medium">Service Availability</label>
+            <Input
+              id="service_available"
+              value={formData.content.stats.service_available}
+              onChange={(e) => onStatsFieldChange('service_available', e.target.value)}
+              placeholder="24/7"
+            />
+          </div>
+          <div className="grid gap-2">
+            <label htmlFor="disease_reduction" className="text-sm font-medium">Disease Reduction (%)</label>
+            <Input
+              id="disease_reduction"
+              type="number"
+              min="0"
+              max="100"
+              value={formData.content.stats.disease_reduction}
+              onChange={(e) => onStatsFieldChange('disease_reduction', parseInt(e.target.value) || 0)}
+              placeholder="60"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Problem Statement */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Problem Statement</h3>
+        <div className="grid gap-2">
+          <label htmlFor="problem_description" className="text-sm font-medium">
+            Description ({getLanguageLabel(selectedLanguage)})
+          </label>
+          <Textarea
+            id="problem_description"
+            value={formData.content.problem_statement.description[selectedLanguage] || ''}
+            onChange={(e) => onContentFieldChange('problem_statement', 'description', selectedLanguage, e.target.value)}
+            placeholder={`Describe the problem in ${getLanguageLabel(selectedLanguage)}...`}
+            rows={3}
+          />
+        </div>
+        
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Key Issues</label>
+            <Button type="button" variant="outline" size="sm" onClick={() => onAddPoint('problem_statement')}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Issue
+            </Button>
+          </div>
+          {formData.content.problem_statement.points.map((point, index) => (
+            <div key={index} className="flex gap-2 items-start">
+              <Textarea
+                value={point[selectedLanguage] || ''}
+                onChange={(e) => onUpdatePoint('problem_statement', index, selectedLanguage, e.target.value)}
+                placeholder={`Issue point in ${getLanguageLabel(selectedLanguage)}...`}
+                rows={2}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onRemovePoint('problem_statement', index)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 mt-1"
+                disabled={formData.content.problem_statement.points.length === 1}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Innovative Solution */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Innovative Solution</h3>
+        <div className="grid gap-2">
+          <label htmlFor="solution_description" className="text-sm font-medium">
+            Description ({getLanguageLabel(selectedLanguage)})
+          </label>
+          <Textarea
+            id="solution_description"
+            value={formData.content.innovative_solution.description[selectedLanguage] || ''}
+            onChange={(e) => onContentFieldChange('innovative_solution', 'description', selectedLanguage, e.target.value)}
+            placeholder={`Describe the solution in ${getLanguageLabel(selectedLanguage)}...`}
+            rows={3}
+          />
+        </div>
+        
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Key Features</label>
+            <Button type="button" variant="outline" size="sm" onClick={() => onAddPoint('innovative_solution')}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Feature
+            </Button>
+          </div>
+          {formData.content.innovative_solution.points.map((point, index) => (
+            <div key={index} className="flex gap-2 items-start">
+              <Textarea
+                value={point[selectedLanguage] || ''}
+                onChange={(e) => onUpdatePoint('innovative_solution', index, selectedLanguage, e.target.value)}
+                placeholder={`Feature point in ${getLanguageLabel(selectedLanguage)}...`}
+                rows={2}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onRemovePoint('innovative_solution', index)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 mt-1"
+                disabled={formData.content.innovative_solution.points.length === 1}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Transformation Journey */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Transformation Journey</h3>
+        <div className="grid gap-2">
+          <label htmlFor="transformation_description" className="text-sm font-medium">
+            Description ({getLanguageLabel(selectedLanguage)})
+          </label>
+          <Textarea
+            id="transformation_description"
+            value={formData.content.transformation_journey.description[selectedLanguage] || ''}
+            onChange={(e) => onContentFieldChange('transformation_journey', 'description', selectedLanguage, e.target.value)}
+            placeholder={`Describe the transformation in ${getLanguageLabel(selectedLanguage)}...`}
+            rows={3}
+          />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-700">Before</h4>
+            <div className="grid gap-2">
+              <label htmlFor="quality_before" className="text-xs font-medium">Quality Compliance (%)</label>
+              <Input
+                id="quality_before"
+                type="number"
+                min="0"
+                max="100"
+                value={formData.content.transformation_journey.stats.quality_compliance_before}
+                onChange={(e) => onTransformationStatsChange('quality_compliance_before', parseInt(e.target.value) || 0)}
+                placeholder="65"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="coverage_before" className="text-xs font-medium">Coverage (%)</label>
+              <Input
+                id="coverage_before"
+                type="number"
+                min="0"
+                max="100"
+                value={formData.content.transformation_journey.stats.coverage_before}
+                onChange={(e) => onTransformationStatsChange('coverage_before', parseInt(e.target.value) || 0)}
+                placeholder="45"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="response_before" className="text-xs font-medium">Complaint Response (hours)</label>
+              <Input
+                id="response_before"
+                type="number"
+                value={formData.content.transformation_journey.stats.complaint_response_before_hours}
+                onChange={(e) => onTransformationStatsChange('complaint_response_before_hours', parseInt(e.target.value) || 0)}
+                placeholder="48"
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-700">After</h4>
+            <div className="grid gap-2">
+              <label htmlFor="quality_after" className="text-xs font-medium">Quality Compliance (%)</label>
+              <Input
+                id="quality_after"
+                type="number"
+                min="0"
+                max="100"
+                value={formData.content.transformation_journey.stats.quality_compliance_after}
+                onChange={(e) => onTransformationStatsChange('quality_compliance_after', parseInt(e.target.value) || 0)}
+                placeholder="98"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="coverage_after" className="text-xs font-medium">Coverage (%)</label>
+              <Input
+                id="coverage_after"
+                type="number"
+                min="0"
+                max="100"
+                value={formData.content.transformation_journey.stats.coverage_after}
+                onChange={(e) => onTransformationStatsChange('coverage_after', parseInt(e.target.value) || 0)}
+                placeholder="92"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="response_after" className="text-xs font-medium">Complaint Response (hours)</label>
+              <Input
+                id="response_after"
+                type="number"
+                value={formData.content.transformation_journey.stats.complaint_response_after_hours}
+                onChange={(e) => onTransformationStatsChange('complaint_response_after_hours', parseInt(e.target.value) || 0)}
+                placeholder="6"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Community Impact */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Community Impact</h3>
+        <div className="grid gap-2">
+          <label htmlFor="impact_description" className="text-sm font-medium">
+            Description ({getLanguageLabel(selectedLanguage)})
+          </label>
+          <Textarea
+            id="impact_description"
+            value={formData.content.community_impact.description[selectedLanguage] || ''}
+            onChange={(e) => onContentFieldChange('community_impact', 'description', selectedLanguage, e.target.value)}
+            placeholder={`Describe the community impact in ${getLanguageLabel(selectedLanguage)}...`}
+            rows={3}
+          />
+        </div>
+        
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium">Key Benefits</label>
+            <Button type="button" variant="outline" size="sm" onClick={() => onAddPoint('community_impact')}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add Benefit
+            </Button>
+          </div>
+          {formData.content.community_impact.points.map((point, index) => (
+            <div key={index} className="flex gap-2 items-start">
+              <Textarea
+                value={point[selectedLanguage] || ''}
+                onChange={(e) => onUpdatePoint('community_impact', index, selectedLanguage, e.target.value)}
+                placeholder={`Benefit point in ${getLanguageLabel(selectedLanguage)}...`}
+                rows={2}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onRemovePoint('community_impact', index)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 mt-1"
+                disabled={formData.content.community_impact.points.length === 1}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Settings */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Settings</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <label htmlFor="status" className="text-sm font-medium">Status</label>
+            <Select value={formData.status} onValueChange={(value: ArticleStatus) => onFieldChange('status', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUSES.map(status => (
+                  <SelectItem key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <label htmlFor="priority" className="text-sm font-medium">Priority</label>
+            <Select value={formData.priority} onValueChange={(value: Priority) => onFieldChange('priority', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRIORITIES.map(priority => (
+                  <SelectItem key={priority} value={priority}>
+                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={formData.isPinned}
+            onCheckedChange={(checked) => onFieldChange('isPinned', checked)}
+          />
+          <label htmlFor="isPinned" className="text-sm font-medium">Pin this article</label>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main Component
 export default function NewsListPage() {
-  // State
-  const [news, setNews] = useState<NewsArticle[]>([]);
-  const [filteredNews, setFilteredNews] = useState<NewsArticle[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const { news, addArticle, updateArticle, deleteArticle, incrementViews } = useNews();
+  const articleForm = useArticleForm();
+  
   const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
   const [selectedLanguage, setSelectedLanguage] = useState<Language>('en');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-  const [articleToDelete, setArticleToDelete] = useState<NewsArticle | null>(null);
-  const [dialogState, setDialogState] = useState({ create: false, view: false, edit: false, delete: false });
   const [message, setMessage] = useState({ type: '', text: '' });
-
-  const [newArticle, setNewArticle] = useState({
-    title: { en: '', ta: '', si: '' },
-    content: { en: '', ta: '', si: '' },
-    excerpt: { en: '', ta: '', si: '' },
-    author: '',
-    category: '',
-    status: 'draft' as 'published' | 'draft' | 'archived',
-    priority: 'medium' as 'low' | 'medium' | 'high',
-    isPinned: false
+  
+  const [dialogState, setDialogState] = useState({
+    create: false,
+    view: false,
+    edit: false,
+    delete: false
   });
 
-  const [statistics, setStatistics] = useState<Statistics>({
-    totalArticles: 0,
-    publishedArticles: 0,
-    draftArticles: 0,
-    archivedArticles: 0,
-    totalViews: 0,
-    averageReadTime: 0,
-    pinnedArticles: 0
-  });
-
-  // Calculate statistics
-  const calculateStatistics = (newsData: NewsArticle[]) => {
-    const totalArticles = newsData.length;
-    const publishedArticles = newsData.filter(article => article.status === 'published').length;
-    const draftArticles = newsData.filter(article => article.status === 'draft').length;
-    const archivedArticles = newsData.filter(article => article.status === 'archived').length;
-    const totalViews = newsData.reduce((sum, article) => sum + article.views, 0);
+  // Statistics
+  const statistics = useMemo((): Statistics => {
+    const totalArticles = news.length;
+    const publishedArticles = news.filter(article => article.status === 'published').length;
+    const draftArticles = news.filter(article => article.status === 'draft').length;
+    const archivedArticles = news.filter(article => article.status === 'archived').length;
+    const totalViews = news.reduce((sum, article) => sum + article.views, 0);
     const averageReadTime = totalArticles > 0 
-      ? Math.round(newsData.reduce((sum, article) => sum + article.readTime, 0) / totalArticles * 10) / 10 
+      ? Math.round(news.reduce((sum, article) => sum + article.readTime, 0) / totalArticles * 10) / 10 
       : 0;
-    const pinnedArticles = newsData.filter(article => article.isPinned).length;
+    const pinnedArticles = news.filter(article => article.isPinned).length;
 
     return {
       totalArticles,
@@ -617,23 +1336,11 @@ export default function NewsListPage() {
       averageReadTime,
       pinnedArticles
     };
-  };
+  }, [news]);
 
-  useEffect(() => {
-    const savedNews = localStorage.getItem('newsArticles');
-    if (savedNews) {
-      const newsData = JSON.parse(savedNews);
-      setNews(newsData);
-      setStatistics(calculateStatistics(newsData));
-    } else {
-      setNews(SAMPLE_NEWS);
-      setStatistics(calculateStatistics(SAMPLE_NEWS));
-      localStorage.setItem('newsArticles', JSON.stringify(SAMPLE_NEWS));
-    }
-  }, []);
-
-  useEffect(() => {
-    const filtered = news.filter(article =>
+  // Filtered news
+  const filteredNews = useMemo(() => {
+    return news.filter(article =>
       Object.values(article.title).some(title => 
         title?.toLowerCase().includes(searchTerm.toLowerCase())
       ) ||
@@ -643,279 +1350,99 @@ export default function NewsListPage() {
       article.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       article.author.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    setFilteredNews(filtered);
-    setStatistics(calculateStatistics(news));
-  }, [searchTerm, news]);
+  }, [news, searchTerm]);
 
-  // Handlers
-  const validateArticle = (): string | null => {
-    const missingFields = [];
-    
-    if (!newArticle.category) missingFields.push('Category');
-    if (!newArticle.author.trim()) missingFields.push('Author');
-    
-    LANGUAGES.forEach(lang => {
-      if (!newArticle.title[lang.value]?.trim()) missingFields.push(`${lang.label} Title`);
-      if (!newArticle.content[lang.value]?.trim()) missingFields.push(`${lang.label} Content`);
-      if (!newArticle.excerpt[lang.value]?.trim()) missingFields.push(`${lang.label} Excerpt`);
-    });
-
-    return missingFields.length > 0 ? `Please fill in: ${missingFields.join(', ')}` : null;
-  };
-
-  const handleCreateArticle = () => {
-    const error = validateArticle();
-    if (error) {
-      setMessage({ type: 'error', text: error });
-      return;
-    }
-
-    const article: NewsArticle = {
-      id: Date.now().toString(),
-      ...newArticle,
-      publishDate: new Date().toISOString().split('T')[0],
-      readTime: Math.ceil(newArticle.content.en.split(' ').length / 200),
-      views: 0,
-      attachments: []
-    };
-    
-    const updatedNews = [article, ...news];
-    setNews(updatedNews);
-    localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
-    setStatistics(calculateStatistics(updatedNews));
-    
-    resetForm();
-    setMessage({ type: 'success', text: 'Article created successfully!' });
-    setTimeout(() => setMessage({ type: '', text: '' }), 2000);
-  };
-
-  const handleUpdateArticle = () => {
-    const error = validateArticle();
-    if (error) {
-      setMessage({ type: 'error', text: error });
-      return;
-    }
-
-    if (!selectedArticle) return;
-
-    const updatedNews = news.map(article =>
-      article.id === selectedArticle.id 
-        ? { 
-            ...article, 
-            ...newArticle,
-            readTime: Math.ceil(newArticle.content.en.split(' ').length / 200)
-          }
-        : article
-    );
-
-    setNews(updatedNews);
-    localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
-    setStatistics(calculateStatistics(updatedNews));
-    
-    resetForm();
-    setMessage({ type: 'success', text: 'Article updated successfully!' });
-    setTimeout(() => setMessage({ type: '', text: '' }), 2000);
-  };
-
-  const handleDeleteArticle = () => {
-    if (!articleToDelete) return;
-    const updatedNews = news.filter(article => article.id !== articleToDelete.id);
-    setNews(updatedNews);
-    localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
-    setStatistics(calculateStatistics(updatedNews));
-    setDialogState(prev => ({ ...prev, delete: false }));
-  };
-
-  const resetForm = () => {
-    setNewArticle({
-      title: { en: '', ta: '', si: '' },
-      content: { en: '', ta: '', si: '' },
-      excerpt: { en: '', ta: '', si: '' },
-      author: '',
-      category: '',
-      status: 'draft',
-      priority: 'medium',
-      isPinned: false
-    });
-  };
-
+  // Dialog handlers
   const openDialog = (type: keyof typeof dialogState, article?: NewsArticle) => {
     if (article) setSelectedArticle(article);
+    
     if (type === 'edit' && article) {
-      setNewArticle({
-        title: article.title,
-        content: article.content,
-        excerpt: article.excerpt,
-        author: article.author,
-        category: article.category,
-        status: article.status,
-        priority: (article.priority ?? 'medium') as 'low' | 'medium' | 'high',
-        isPinned: article.isPinned || false
-      });
+      articleForm.updateField('title', article.title);
+      articleForm.updateField('slug', article.slug);
+      articleForm.updateField('content', article.content);
+      articleForm.updateField('excerpt', article.excerpt);
+      articleForm.updateField('author', article.author);
+      articleForm.updateField('date', article.date);
+      articleForm.updateField('time', article.time);
+      articleForm.updateField('category', article.category);
+      articleForm.updateField('status', article.status);
+      articleForm.updateField('priority', article.priority || 'medium');
+      articleForm.updateField('isPinned', article.isPinned || false);
+      articleForm.updateField('coverImage', article.coverImage || '');
+      articleForm.updateField('tags', article.tags || []);
+      articleForm.updateField('contactDepartment', article.contactDepartment || '');
     }
+    
     if (type === 'view' && article) {
-      const updatedNews = news.map(item =>
-        item.id === article.id ? { ...item, views: item.views + 1 } : item
-      );
-      setNews(updatedNews);
-      localStorage.setItem('newsArticles', JSON.stringify(updatedNews));
-      setStatistics(calculateStatistics(updatedNews));
+      incrementViews(article.id);
     }
-    if (type === 'delete' && article) {
-      setArticleToDelete(article);
-    }
+    
     setDialogState(prev => ({ ...prev, [type]: true }));
+    setMessage({ type: '', text: '' });
   };
 
   const closeDialog = (type: keyof typeof dialogState) => {
     setDialogState(prev => ({ ...prev, [type]: false }));
+    setSelectedArticle(null);
+    articleForm.reset();
     setMessage({ type: '', text: '' });
-    if (type === 'create' || type === 'edit') resetForm();
   };
 
-  const updateArticleField = (field: string, value: string) => {
-    setNewArticle(prev => ({ ...prev, [field]: value }));
+  const handleCreateArticle = () => {
+    const error = validateArticle(articleForm.formData);
+    if (error) {
+      setMessage({ type: 'error', text: error });
+      return;
+    }
+
+    const articleData = {
+      ...articleForm.formData,
+      publishDate: articleForm.formData.date,
+      readTime: calculateReadTime(articleForm.formData.content),
+      lastUpdated: new Date().toISOString(),
+      actions: {
+        share_count: 0,
+        saved: false,
+        printable: true
+      }
+    };
+
+    addArticle(articleData);
+    setMessage({ type: 'success', text: 'Article created successfully!' });
+    
+    setTimeout(() => {
+      closeDialog('create');
+    }, 2000);
   };
 
-  const updateArticleContent = (field: 'title' | 'content' | 'excerpt', value: string) => {
-    setNewArticle(prev => ({
-      ...prev,
-      [field]: { ...prev[field], [selectedLanguage]: value }
-    }));
+  const handleUpdateArticle = () => {
+    if (!selectedArticle) return;
+
+    const error = validateArticle(articleForm.formData);
+    if (error) {
+      setMessage({ type: 'error', text: error });
+      return;
+    }
+
+    updateArticle(selectedArticle.id, {
+      ...articleForm.formData,
+      readTime: calculateReadTime(articleForm.formData.content),
+      lastUpdated: new Date().toISOString()
+    });
+
+    setMessage({ type: 'success', text: 'Article updated successfully!' });
+    
+    setTimeout(() => {
+      closeDialog('edit');
+    }, 2000);
   };
 
-  const getLanguageLabel = (lang: Language) => {
-    return LANGUAGES.find(l => l.value === lang)?.label || lang;
+  const handleDeleteArticle = () => {
+    if (selectedArticle) {
+      deleteArticle(selectedArticle.id);
+      closeDialog('delete');
+    }
   };
-
-  // Form Fields Component
-  const ArticleFormFields = () => (
-    <div className="grid gap-4 py-4">
-      {/* Language Tabs */}
-      <LanguageTabs value={selectedLanguage} onValueChange={setSelectedLanguage} />
-
-      {/* Title Input */}
-      <div className="grid gap-2">
-        <label htmlFor="title" className="text-sm font-medium">
-          Title ({getLanguageLabel(selectedLanguage)}) *
-        </label>
-        <Input
-          id="title"
-          value={newArticle.title[selectedLanguage] || ''}
-          onChange={(e) => updateArticleContent('title', e.target.value)}
-          placeholder={`Enter title in ${getLanguageLabel(selectedLanguage)}`}
-          className={!newArticle.title[selectedLanguage]?.trim() && message.type === 'error' ? "border-red-500" : ""}
-        />
-        {!newArticle.title[selectedLanguage]?.trim() && message.type === 'error' && (
-          <p className="text-red-500 text-sm">Title is required in {getLanguageLabel(selectedLanguage)}</p>
-        )}
-      </div>
-
-      {/* Excerpt Input */}
-      <div className="grid gap-2">
-        <label htmlFor="excerpt" className="text-sm font-medium">
-          Excerpt ({getLanguageLabel(selectedLanguage)}) *
-        </label>
-        <Input
-          id="excerpt"
-          value={newArticle.excerpt[selectedLanguage] || ''}
-          onChange={(e) => updateArticleContent('excerpt', e.target.value)}
-          placeholder={`Brief description in ${getLanguageLabel(selectedLanguage)}`}
-          className={!newArticle.excerpt[selectedLanguage]?.trim() && message.type === 'error' ? "border-red-500" : ""}
-        />
-        {!newArticle.excerpt[selectedLanguage]?.trim() && message.type === 'error' && (
-          <p className="text-red-500 text-sm">Excerpt is required in {getLanguageLabel(selectedLanguage)}</p>
-        )}
-      </div>
-
-      {/* Content Input */}
-      <div className="grid gap-2">
-        <label htmlFor="content" className="text-sm font-medium">
-          Content ({getLanguageLabel(selectedLanguage)}) *
-        </label>
-        <Textarea
-          id="content"
-          value={newArticle.content[selectedLanguage] || ''}
-          onChange={(e) => updateArticleContent('content', e.target.value)}
-          placeholder={`Write content in ${getLanguageLabel(selectedLanguage)}...`}
-          rows={8}
-          className={!newArticle.content[selectedLanguage]?.trim() && message.type === 'error' ? "border-red-500" : ""}
-        />
-        {!newArticle.content[selectedLanguage]?.trim() && message.type === 'error' && (
-          <p className="text-red-500 text-sm">Content is required in {getLanguageLabel(selectedLanguage)}</p>
-        )}
-      </div>
-
-      {/* Common Fields */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <label htmlFor="author" className="text-sm font-medium">Author *</label>
-          <Input
-            id="author"
-            value={newArticle.author}
-            onChange={(e) => updateArticleField('author', e.target.value)}
-            placeholder="Author name"
-            className={!newArticle.author && message.type === 'error' ? "border-red-500" : ""}
-          />
-          {!newArticle.author && message.type === 'error' && (
-            <p className="text-red-500 text-sm">Author is required</p>
-          )}
-        </div>
-        <div className="grid gap-2">
-          <label htmlFor="category" className="text-sm font-medium">Category *</label>
-          <Select value={newArticle.category} onValueChange={(value) => updateArticleField('category', value)}>
-            <SelectTrigger className={!newArticle.category && message.type === 'error' ? "border-red-500" : ""}>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!newArticle.category && message.type === 'error' && (
-            <p className="text-red-500 text-sm">Category is required</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <label htmlFor="status" className="text-sm font-medium">Status</label>
-          <Select value={newArticle.status} onValueChange={(value: 'published' | 'draft') => updateArticleField('status', value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <label htmlFor="priority" className="text-sm font-medium">Priority</label>
-          <Select value={newArticle.priority} onValueChange={(value: 'low' | 'medium' | 'high') => updateArticleField('priority', value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Switch
-          checked={newArticle.isPinned}
-          onCheckedChange={(checked) => updateArticleField('isPinned', checked.toString())}
-        />
-        <label htmlFor="isPinned" className="text-sm font-medium">Pin this article</label>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
@@ -1024,10 +1551,10 @@ export default function NewsListPage() {
             <NewsCard
               key={article.id}
               article={article}
+              currentLanguage={currentLanguage}
               onView={() => openDialog('view', article)}
               onEdit={() => openDialog('edit', article)}
               onDelete={() => openDialog('delete', article)}
-              currentLanguage={currentLanguage}
             />
           ))}
         </div>
@@ -1044,7 +1571,7 @@ export default function NewsListPage() {
         {/* Create/Edit Dialog */}
         {(dialogState.create || dialogState.edit) && (
           <Dialog open={dialogState.create || dialogState.edit} onOpenChange={() => closeDialog(dialogState.create ? 'create' : 'edit')}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader className="flex-shrink-0">
                 <DialogTitle>
                   {dialogState.create ? 'Create New Article' : 'Edit Article'}
@@ -1054,9 +1581,20 @@ export default function NewsListPage() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="flex-1 overflow-y-auto">
-                <ArticleFormFields />
-              </div>
+              <ArticleFormFields
+                formData={articleForm.formData}
+                selectedLanguage={selectedLanguage}
+                onFieldChange={articleForm.updateField}
+                onLocalizedFieldChange={articleForm.updateLocalizedField}
+                onContentFieldChange={articleForm.updateContentField}
+                onStatsFieldChange={articleForm.updateStatsField}
+                onTransformationStatsChange={articleForm.updateTransformationStats}
+                onAddPoint={articleForm.addPoint}
+                onRemovePoint={articleForm.removePoint}
+                onUpdatePoint={articleForm.updatePoint}
+                onLanguageChange={setSelectedLanguage}
+                errorMessage={message.text}
+              />
 
               {message.text && (
                 <AlertMessage 
@@ -1128,40 +1666,23 @@ export default function NewsListPage() {
                   )}
                 </div>
 
-                {/* Language Tabs for Viewing */}
                 <LanguageTabs value={currentLanguage} onValueChange={setCurrentLanguage} />
                 
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      {getLocalizedText(selectedArticle.title, currentLanguage, selectedArticle.title.en)}
+                      {getLocalizedText(selectedArticle.title, currentLanguage)}
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      {getLocalizedText(selectedArticle.excerpt, currentLanguage, selectedArticle.excerpt.en)}
+                      {getLocalizedText(selectedArticle.excerpt, currentLanguage)}
                     </p>
                     <div className="prose max-w-none">
                       <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                        {getLocalizedText(selectedArticle.content, currentLanguage, selectedArticle.content.en)}
+                        {getLocalizedText(selectedArticle.content.introduction, currentLanguage)}
                       </p>
                     </div>
                   </div>
                 </div>
-                
-                {selectedArticle.attachments && selectedArticle.attachments.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Download className="w-4 h-4" />
-                      Attachments ({selectedArticle.attachments.length})
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedArticle.attachments.map((attachment, index) => (
-                        <Badge key={index} variant="outline" className="cursor-pointer hover:bg-gray-100 px-3 py-1">
-                          {attachment}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
               
               <DialogFooter className="flex-shrink-0 pt-4 border-t">
@@ -1174,13 +1695,13 @@ export default function NewsListPage() {
         )}
 
         {/* Delete Dialog */}
-        {dialogState.delete && articleToDelete && (
+        {dialogState.delete && selectedArticle && (
           <Dialog open={dialogState.delete} onOpenChange={() => closeDialog('delete')}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Confirm Deletion</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete "{articleToDelete.title.en}"? This action cannot be undone.
+                  Are you sure you want to delete "{selectedArticle.title.en}"? This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>

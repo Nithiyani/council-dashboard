@@ -26,12 +26,9 @@ import {
   Search,
   Calendar,
   User,
-  Phone,
   Eye,
   Download,
-  MapPin,
   Star,
-  Clock,
   AlertCircle,
   CheckCircle
 } from "lucide-react";
@@ -68,6 +65,12 @@ interface TourismItem {
 }
 
 type Language = "en" | "ta" | "si";
+
+const LANGUAGES: { value: Language; label: string }[] = [
+  { value: "en", label: "English" },
+  { value: "ta", label: "Tamil" },
+  { value: "si", label: "Sinhala" }
+];
 
 const initialTourismItems: TourismItem[] = [
   {
@@ -114,40 +117,56 @@ const initialTourismItems: TourismItem[] = [
   }
 ];
 
-// Alert Component
-interface AlertProps {
-  type: "success" | "error";
+// Alert Message Component
+const AlertMessage: React.FC<{
+  type: 'error' | 'success';
+  title: string;
   message: string;
-  onClose: () => void;
-}
-
-const Alert = ({ type, message, onClose }: AlertProps) => {
-  const bgColor = type === "success" ? "bg-green-500" : "bg-red-500";
-  const Icon = type === "success" ? CheckCircle : AlertCircle;
-
+}> = ({ type, title, message }) => {
+  const styles = {
+    error: 'bg-red-50 border-red-200 text-red-800',
+    success: 'bg-green-50 border-green-200 text-green-800'
+  };
+  
   return (
-    <div className="mt-4 animate-in slide-in-from-top duration-300">
-      <div className={`${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2`}>
-        <Icon className="w-5 h-5" />
-        <span className="font-medium flex-1">{message}</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-white hover:bg-white/20"
-          onClick={onClose}
-        >
-          <X className="w-3 h-3" />
-        </Button>
+    <div className={`border rounded-md p-4 ${styles[type]}`}>
+      <div className="flex items-center">
+        {type === 'error' ? 
+          <AlertCircle className="w-5 h-5 mr-2" /> : 
+          <CheckCircle className="w-5 h-5 mr-2" />
+        }
+        <div>
+          <p className="font-medium">{title}</p>
+          <p className="text-sm">{message}</p>
+        </div>
       </div>
     </div>
   );
 };
 
-const X = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-);
+// Validation function
+const validateForm = (formData: Omit<TourismItem, "id">): string | null => {
+  const missingFields: string[] = [];
+
+  LANGUAGES.forEach(({ value, label }) => {
+    if (!formData.title?.[value]?.trim()) {
+      missingFields.push(`${label} title`);
+    }
+    if (!formData.description?.[value]?.trim()) {
+      missingFields.push(`${label} description`);
+    }
+  });
+
+  if (!formData.imageUrl.trim()) {
+    missingFields.push('image');
+  }
+
+  if (missingFields.length > 0) {
+    return `Please fill in: ${missingFields.join(', ')}`;
+  }
+
+  return null;
+};
 
 export default function TourismAdminPage() {
   const [tourismItems, setTourismItems] = useState<TourismItem[]>(initialTourismItems);
@@ -157,8 +176,7 @@ export default function TourismAdminPage() {
   const [viewingItem, setViewingItem] = useState<TourismItem | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentLanguage, setCurrentLanguage] = useState<Language>("en");
-  const [validationErrors, setValidationErrors] = useState<{ [key: string]: boolean }>({});
-  const [alert, setAlert] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [alertMessage, setAlertMessage] = useState<{ type: 'error' | 'success'; title: string; message: string } | null>(null);
 
   const [newItem, setNewItem] = useState<Omit<TourismItem, "id">>({
     title: { en: "", ta: "", si: "" },
@@ -173,37 +191,6 @@ export default function TourismAdminPage() {
     features: []
   });
 
-  // Validation function
-  const validateForm = (formData: Omit<TourismItem, "id">): boolean => {
-    const errors: { [key: string]: boolean } = {};
-    let isValid = true;
-
-    // Check all three languages
-    (["en", "ta", "si"] as Language[]).forEach((lang) => {
-      if (!formData.title[lang]?.trim()) {
-        errors[`title-${lang}`] = true;
-        isValid = false;
-      }
-      if (!formData.description[lang]?.trim()) {
-        errors[`description-${lang}`] = true;
-        isValid = false;
-      }
-    });
-
-    // Check required fields
-    if (!formData.imageUrl.trim()) {
-      errors.imageUrl = true;
-      isValid = false;
-    }
-
-    setValidationErrors(errors);
-    return isValid;
-  };
-
-  const clearValidationErrors = () => {
-    setValidationErrors({});
-  };
-
   // Handle file upload
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -215,20 +202,20 @@ export default function TourismAdminPage() {
         } else {
           setNewItem({ ...newItem, imageUrl: reader.result as string });
         }
-        // Clear image validation error
-        setValidationErrors(prev => ({ ...prev, imageUrl: false }));
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleAddItem = () => {
-    if (!validateForm(newItem)) {
-      setAlert({
+    const validationError = validateForm(newItem);
+    if (validationError) {
+      setAlertMessage({
         type: "error",
-        message: "Please fill all required fields in all languages before saving!"
+        title: "Validation Error",
+        message: validationError
       });
-      setTimeout(() => setAlert(null), 5000);
+      setTimeout(() => setAlertMessage(null), 5000);
       return;
     }
 
@@ -252,24 +239,26 @@ export default function TourismAdminPage() {
     });
     setIsDialogOpen(false);
     setCurrentLanguage("en");
-    clearValidationErrors();
     
-    setAlert({
+    setAlertMessage({
       type: "success",
+      title: "Success",
       message: "Tourism item created successfully!"
     });
-    setTimeout(() => setAlert(null), 3000);
+    setTimeout(() => setAlertMessage(null), 3000);
   };
 
   const handleEditItem = () => {
     if (!editingItem) return;
 
-    if (!validateForm(editingItem)) {
-      setAlert({
+    const validationError = validateForm(editingItem);
+    if (validationError) {
+      setAlertMessage({
         type: "error",
-        message: "Please fill all required fields in all languages before saving!"
+        title: "Validation Error",
+        message: validationError
       });
-      setTimeout(() => setAlert(null), 5000);
+      setTimeout(() => setAlertMessage(null), 5000);
       return;
     }
 
@@ -279,23 +268,24 @@ export default function TourismAdminPage() {
     setEditingItem(null);
     setIsDialogOpen(false);
     setCurrentLanguage("en");
-    clearValidationErrors();
     
-    setAlert({
+    setAlertMessage({
       type: "success",
+      title: "Success",
       message: "Tourism item updated successfully!"
     });
-    setTimeout(() => setAlert(null), 3000);
+    setTimeout(() => setAlertMessage(null), 3000);
   };
 
   const handleDeleteItem = (id: number) => {
     setTourismItems(tourismItems.filter((item) => item.id !== id));
     
-    setAlert({
+    setAlertMessage({
       type: "success",
+      title: "Success",
       message: "Tourism item deleted successfully!"
     });
-    setTimeout(() => setAlert(null), 3000);
+    setTimeout(() => setAlertMessage(null), 3000);
   };
 
   const handleViewItem = (item: TourismItem) => {
@@ -372,14 +362,14 @@ export default function TourismAdminPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Alert Display */}
-      {alert && (
-        <Alert
-          type={alert.type}
-          message={alert.message}
-          onClose={() => setAlert(null)}
+      {/* Alert Message Display */}
+      {/* {alertMessage && (
+        <AlertMessage
+          type={alertMessage.type}
+          title={alertMessage.title}
+          message={alertMessage.message}
         />
-      )}
+      )} */}
 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -594,7 +584,6 @@ export default function TourismAdminPage() {
         if (!open) {
           setEditingItem(null);
           setCurrentLanguage("en");
-          clearValidationErrors();
         }
       }}>
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -603,6 +592,13 @@ export default function TourismAdminPage() {
               {editingItem ? "Edit Tourism Item" : "Add New Tourism Item"}
             </DialogTitle>
           </DialogHeader>
+          {alertMessage && (
+        <AlertMessage
+          type={alertMessage.type}
+          title={alertMessage.title}
+          message={alertMessage.message}
+        />
+      )}
 
           <div className="space-y-6 py-4">
             {/* Language Tabs */}
@@ -611,69 +607,56 @@ export default function TourismAdminPage() {
                 <TabsTrigger value="en">English</TabsTrigger>
                 <TabsTrigger value="ta">Tamil</TabsTrigger>
                 <TabsTrigger value="si">Sinhala</TabsTrigger>
+              
               </TabsList>
 
-              {(["en", "ta", "si"] as Language[]).map((lang) => (
-                <TabsContent key={lang} value={lang} className="space-y-4">
+              {LANGUAGES.map((lang) => (
+                <TabsContent key={lang.value} value={lang.value} className="space-y-4">
                   {/* Title */}
                   <div className="space-y-3">
-                    <Label htmlFor={`title-${lang}`} className={validationErrors[`title-${lang}`] ? "text-red-600" : ""}>
-                      Title in {lang.toUpperCase()} *
+                    <Label htmlFor={`title-${lang.value}`}>
+                      Title in {lang.label} *
                     </Label>
                     <Input
-                      id={`title-${lang}`}
-                      value={editingItem?.title[lang] || newItem.title[lang]}
+                      id={`title-${lang.value}`}
+                      value={editingItem?.title[lang.value] || newItem.title[lang.value]}
                       onChange={(e) =>
                         editingItem
                           ? setEditingItem({ 
                               ...editingItem, 
-                              title: { ...editingItem.title, [lang]: e.target.value } 
+                              title: { ...editingItem.title, [lang.value]: e.target.value } 
                             })
                           : setNewItem({ 
                               ...newItem, 
-                              title: { ...newItem.title, [lang]: e.target.value } 
+                              title: { ...newItem.title, [lang.value]: e.target.value } 
                             })
                       }
-                      placeholder={`Enter title in ${lang === 'en' ? 'English' : lang === 'ta' ? 'Tamil' : 'Sinhala'}`}
-                      className={validationErrors[`title-${lang}`] ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                      placeholder={`Enter title in ${lang.label}`}
                     />
-                    {validationErrors[`title-${lang}`] && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Title in {lang.toUpperCase()} is required
-                      </p>
-                    )}
                   </div>
 
                   {/* Description */}
                   <div className="space-y-3">
-                    <Label htmlFor={`description-${lang}`} className={validationErrors[`description-${lang}`] ? "text-red-600" : ""}>
-                      Description in {lang.toUpperCase()} *
+                    <Label htmlFor={`description-${lang.value}`}>
+                      Description in {lang.label} *
                     </Label>
                     <Textarea
-                      id={`description-${lang}`}
-                      value={editingItem?.description[lang] || newItem.description[lang]}
+                      id={`description-${lang.value}`}
+                      value={editingItem?.description[lang.value] || newItem.description[lang.value]}
                       onChange={(e) =>
                         editingItem
                           ? setEditingItem({ 
                               ...editingItem, 
-                              description: { ...editingItem.description, [lang]: e.target.value } 
+                              description: { ...editingItem.description, [lang.value]: e.target.value } 
                             })
                           : setNewItem({ 
                               ...newItem, 
-                              description: { ...newItem.description, [lang]: e.target.value } 
+                              description: { ...newItem.description, [lang.value]: e.target.value } 
                             })
                       }
-                      placeholder={`Enter description in ${lang === 'en' ? 'English' : lang === 'ta' ? 'Tamil' : 'Sinhala'}`}
+                      placeholder={`Enter description in ${lang.label}`}
                       rows={4}
-                      className={validationErrors[`description-${lang}`] ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
                     />
-                    {validationErrors[`description-${lang}`] && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Description in {lang.toUpperCase()} is required
-                      </p>
-                    )}
                   </div>
                 </TabsContent>
               ))}
@@ -681,7 +664,7 @@ export default function TourismAdminPage() {
 
             {/* Image Upload */}
             <div className="space-y-3">
-              <Label htmlFor="imageUrl" className={validationErrors.imageUrl ? "text-red-600" : ""}>
+              <Label htmlFor="imageUrl">
                 Tourism Item Image *
               </Label>
               <Input
@@ -689,14 +672,7 @@ export default function TourismAdminPage() {
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
-                className={validationErrors.imageUrl ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
               />
-              {validationErrors.imageUrl && (
-                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  Image is required
-                </p>
-              )}
               {(editingItem?.imageUrl || newItem.imageUrl) && (
                 <div className="mt-2">
                   <img
@@ -733,7 +709,7 @@ export default function TourismAdminPage() {
                 </Select>
               </div>
 
-              {/* <div className="space-y-3">
+              <div className="space-y-3">
                 <Label>Status *</Label>
                 <Select
                   value={editingItem?.status || newItem.status}
@@ -752,20 +728,11 @@ export default function TourismAdminPage() {
                     <SelectItem value="draft">Draft</SelectItem>
                   </SelectContent>
                 </Select>
-              </div> */}
+              </div>
             </div>
 
-            {/* Alert positioned after Category section */}
-            {alert && (
-              <Alert
-                type={alert.type}
-                message={alert.message}
-                onClose={() => setAlert(null)}
-              />
-            )}
-
             {/* Price Range and Rating */}
-            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <Label>Price Range</Label>
                 <Select
@@ -810,10 +777,10 @@ export default function TourismAdminPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div> */}
+            </div>
 
             {/* Features */}
-            {/* <div className="space-y-3">
+            <div className="space-y-3">
               <Label htmlFor="features">
                 Features (comma separated)
               </Label>
@@ -828,7 +795,7 @@ export default function TourismAdminPage() {
                 }}
                 placeholder="e.g., Swimming Pool, WiFi, Parking, Guided Tours"
               />
-            </div> */}
+            </div>
           </div>
 
           <DialogFooter>
@@ -836,7 +803,6 @@ export default function TourismAdminPage() {
               setIsDialogOpen(false);
               setEditingItem(null);
               setCurrentLanguage("en");
-              clearValidationErrors();
             }}>
               Cancel
             </Button>
@@ -844,6 +810,13 @@ export default function TourismAdminPage() {
               {editingItem ? "Save Changes" : "Add Tourism Item"}
             </Button>
           </DialogFooter>
+            {alertMessage && (
+        <AlertMessage
+          type={alertMessage.type}
+          title={alertMessage.title}
+          message={alertMessage.message}
+        />
+      )}
         </DialogContent>
       </Dialog>
 
@@ -890,8 +863,22 @@ export default function TourismAdminPage() {
                       <span className="text-gray-600">Category:</span>
                       <Badge variant="secondary">{viewingItem?.category}</Badge>
                     </div>
-                   
-                    
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status:</span>
+                      <Badge className={viewingItem ? getStatusColor(viewingItem.status) : ""}>
+                        {viewingItem?.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Price Range:</span>
+                      <Badge className={viewingItem ? getPriceRangeColor(viewingItem.priceRange) : ""}>
+                        {viewingItem?.priceRange}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Rating:</span>
+                      {viewingItem && renderStars(viewingItem.rating)}
+                    </div>
                   </div>
                 </div>
                 
@@ -901,6 +888,10 @@ export default function TourismAdminPage() {
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-gray-500" />
                       <span>{viewingItem && formatDate(viewingItem.date)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-gray-500" />
+                      <span>{viewingItem?.views} views</span>
                     </div>
                   </div>
                 </div>
@@ -919,10 +910,14 @@ export default function TourismAdminPage() {
                   </div>
                 </div>
               )}
+              
             </div>
+             
           </div>
+         
 
           <DialogFooter>
+          
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close
             </Button>
@@ -930,8 +925,12 @@ export default function TourismAdminPage() {
               <Download className="w-4 h-4 mr-2" />
               Download Details
             </Button>
+          
           </DialogFooter>
+        
         </DialogContent>
+       
+     
       </Dialog>
     </div>
   );
