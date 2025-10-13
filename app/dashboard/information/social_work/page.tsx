@@ -383,9 +383,7 @@ export default function SocialWorkDashboard() {
       )}
 
       <div className="mb-3 text-gray-600 font-medium">
-        Total: {entries.length} entries • Showing: {filtered.length} entries • 
-        Active: {entries.filter(e => e.active).length} • 
-        Inactive: {entries.filter(e => !e.active).length}
+        Total: {entries.length} entries • Showing: {filtered.length} entries
       </div>
 
       {/* Entries Grid */}
