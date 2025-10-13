@@ -120,15 +120,16 @@ const AdvertisementCard = ({
   currentLanguage,
 }: AdvertisementCardProps) => (
   <Card className="hover:shadow-lg transition-shadow duration-300 relative overflow-hidden bg-white">
-    <div className="absolute top-2 right-2">
+    <div className="absolute top-2 right-2 z-10">
       <Button
         variant="ghost"
         size="icon"
         onClick={onTogglePin}
-        aria-label="Pin/Unpin"
+        aria-label={advertisement.isPinned ? "Unpin" : "Pin"}
+        className="h-8 w-8"
       >
         <Pin
-          className={`h-5 w-5 ${
+          className={`h-4 w-4 ${
             advertisement.isPinned
               ? "text-blue-500 fill-blue-500"
               : "text-gray-400"
@@ -136,40 +137,45 @@ const AdvertisementCard = ({
         />
       </Button>
     </div>
-    <CardContent className="flex flex-col md:flex-row p-6 items-start md:items-center">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-2">
-          <CardTitle
-            className="text-lg font-semibold truncate hover:text-blue-600 cursor-pointer"
-            onClick={onView}
-          >
-            {advertisement.title[currentLanguage]}
-          </CardTitle>
-          {!advertisement.isViewed && (
-            <Badge
-              variant="outline"
-              className="bg-blue-100 text-blue-700 border-blue-200"
-            >
-              New
-            </Badge>
-          )}
+    <CardContent className="p-4 sm:p-6">
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0 mr-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <CardTitle
+                className="text-base sm:text-lg font-semibold truncate hover:text-blue-600 cursor-pointer"
+                onClick={onView}
+              >
+                {advertisement.title[currentLanguage]}
+              </CardTitle>
+              {!advertisement.isViewed && (
+                <Badge
+                  variant="outline"
+                  className="bg-blue-100 text-blue-700 border-blue-200 text-xs"
+                >
+                  New
+                </Badge>
+              )}
+            </div>
+            <CardDescription className="text-sm text-gray-600 mb-3 line-clamp-2">
+              {advertisement.description[currentLanguage]}
+            </CardDescription>
+          </div>
         </div>
-        <CardDescription className="text-sm text-gray-600 mb-3 line-clamp-2">
-          {advertisement.description[currentLanguage]}
-        </CardDescription>
 
         {/* Image preview */}
         {advertisement.images && advertisement.images.length > 0 && (
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
             {advertisement.images.slice(0, 3).map((image, index) => (
               <div
                 key={index}
-                className="relative w-16 h-16 rounded-md overflow-hidden border"
+                className="relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border"
               >
                 <img
                   src={image}
                   alt={`Advertisement ${index + 1}`}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
                 {index === 2 && advertisement.images.length > 3 && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -183,14 +189,14 @@ const AdvertisementCard = ({
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 text-xs font-medium text-gray-500">
           <div className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             <span>Published: {formatDate(advertisement.date)}</span>
           </div>
           <div className="flex items-center gap-1">
             <User className="w-3 h-3" />
-            <span>{advertisement.contactPerson || "No Contact"}</span>
+            <span className="truncate">{advertisement.contactPerson || "No Contact"}</span>
           </div>
           {advertisement.images && advertisement.images.length > 0 && (
             <div className="flex items-center gap-1">
@@ -199,34 +205,26 @@ const AdvertisementCard = ({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-4">
-          <Badge className={getStatusColor(advertisement.status)}>
-            {advertisement.status.toUpperCase()}
-          </Badge>
-          <Badge variant="secondary">{advertisement.category}</Badge>
-          <div className="flex gap-1">
-            <Badge variant="outline" className="text-xs">
-              EN
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              TA
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              SI
-            </Badge>
+        
+        {/* Removed the badges section completely */}
+
+        {/* Action buttons - mobile optimized */}
+        <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 border-t">
+          <div className="text-xs text-gray-500 sm:hidden">
+            {advertisement.views} views
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={onView} className="h-8 w-8">
+              <Eye className="w-3 h-3" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={onEdit} className="h-8 w-8">
+              <Edit className="w-3 h-3" />
+            </Button>
+            <Button variant="destructive" size="icon" onClick={onDelete} className="h-8 w-8">
+              <Trash2 className="w-3 h-3" />
+            </Button>
           </div>
         </div>
-      </div>
-      <div className="flex-shrink-0 flex items-center gap-3 mt-4 md:mt-0 md:ml-6">
-        <Button variant="outline" size="icon" onClick={onView}>
-          <Eye className="w-4 h-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={onEdit}>
-          <Edit className="w-4 h-4" />
-        </Button>
-        <Button variant="destructive" size="icon" onClick={onDelete}>
-          <Trash2 className="w-4 h-4" />
-        </Button>
       </div>
     </CardContent>
   </Card>
@@ -269,7 +267,7 @@ const ImageUpload = ({ images, onImagesChange }: ImageUploadProps) => {
   return (
     <div className="space-y-4">
       <Label htmlFor="images">Upload Images</Label>
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center">
         <Input
           id="images"
           type="file"
@@ -282,7 +280,7 @@ const ImageUpload = ({ images, onImagesChange }: ImageUploadProps) => {
           htmlFor="images"
           className="cursor-pointer flex flex-col items-center gap-2"
         >
-          <ImageIcon className="w-8 h-8 text-gray-400" />
+          <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
           <span className="text-sm text-gray-600">
             Click to upload images or drag and drop
           </span>
@@ -293,22 +291,23 @@ const ImageUpload = ({ images, onImagesChange }: ImageUploadProps) => {
       </div>
 
       {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {images.map((image, index) => (
             <div key={index} className="relative group">
               <img
                 src={image}
                 alt={`Upload ${index + 1}`}
-                className="w-full h-24 object-cover rounded-md border"
+                className="w-full h-20 sm:h-24 object-cover rounded-md border"
+                loading="lazy"
               />
               <Button
                 type="button"
                 variant="destructive"
                 size="icon"
-                className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={() => removeImage(index)}
               >
-                <X className="w-3 h-3" />
+                <X className="w-2 h-2 sm:w-3 sm:h-3" />
               </Button>
             </div>
           ))}
@@ -354,12 +353,12 @@ const LanguageFormSection = ({
         }`}
       >
         {hasError ? (
-          <AlertCircle className="w-4 h-4 text-red-600" />
+          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
         ) : (
-          <CheckCircle className="w-4 h-4 text-blue-600" />
+          <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0" />
         )}
         <span
-          className={`font-medium ${
+          className={`font-medium text-sm ${
             hasError ? "text-red-800" : "text-blue-800"
           }`}
         >
@@ -395,7 +394,7 @@ const LanguageFormSection = ({
         />
         {validationErrors[`title-${language}`] && (
           <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+            <AlertCircle className="w-3 h-3 flex-shrink-0" />
             Title in {languageNames[language]} is required
           </p>
         )}
@@ -432,7 +431,7 @@ const LanguageFormSection = ({
         />
         {validationErrors[`description-${language}`] && (
           <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+            <AlertCircle className="w-3 h-3 flex-shrink-0" />
             Description in {languageNames[language]} is required
           </p>
         )}
@@ -457,12 +456,12 @@ const Alert = ({ type, message, onClose }: AlertProps) => {
       <div
         className={`${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2`}
       >
-        <Icon className="w-5 h-5" />
-        <span className="font-medium flex-1">{message}</span>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+        <span className="font-medium flex-1 text-sm sm:text-base">{message}</span>
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-white hover:bg-white/20"
+          className="h-5 w-5 sm:h-6 sm:w-6 text-white hover:bg-white/20 flex-shrink-0"
           onClick={onClose}
         >
           <X className="w-3 h-3" />
@@ -735,18 +734,18 @@ export default function PublicAdvertisementsPage() {
 
   // Get unique categories for filter dropdown
   const categories = Array.from(
-    new Set(advertisements?.map((a) => a.category).filter(Boolean) || [])
+    new Set(advertisements.map((a) => a.category).filter(Boolean))
   );
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header & Create */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Public Advertisements
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">
             Manage and view all public announcements
           </p>
         </div>
@@ -763,8 +762,9 @@ export default function PublicAdvertisementsPage() {
           }}
         >
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" /> Create Advertisement
+            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+              <Plus className="w-4 h-4 mr-2" /> 
+              <span className="sm:inline">Create Advertisement</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -785,11 +785,11 @@ export default function PublicAdvertisementsPage() {
                     type="button"
                     variant={currentLanguage === lang ? "default" : "outline"}
                     onClick={() => setCurrentLanguage(lang)}
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                   >
-                    {lang === "en" && "English"}
-                    {lang === "ta" && "Tamil"}
-                    {lang === "si" && "Sinhala"}
+                    {lang === "en" && "EN"}
+                    {lang === "ta" && "TA"}
+                    {lang === "si" && "SI"}
                   </Button>
                 ))}
               </div>
@@ -846,7 +846,7 @@ export default function PublicAdvertisementsPage() {
                   />
                   {validationErrors.category && (
                     <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
+                      <AlertCircle className="w-3 h-3 flex-shrink-0" />
                       Category is required
                     </p>
                   )}
@@ -856,10 +856,10 @@ export default function PublicAdvertisementsPage() {
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={newAdvertisement.status}
-                    onValueChange={(val) =>
+                    onValueChange={(val: "active" | "expired" | "draft") =>
                       setNewAdvertisement({
                         ...newAdvertisement,
-                        status: val as any,
+                        status: val,
                       })
                     }
                   >
@@ -953,7 +953,7 @@ export default function PublicAdvertisementsPage() {
                     setNewAdvertisement({ ...newAdvertisement, isPinned: val })
                   }
                 />
-                <Label htmlFor="pin-advertisement" className="cursor-pointer">
+                <Label htmlFor="pin-advertisement" className="cursor-pointer text-sm">
                   Pin Advertisement
                 </Label>
               </div>
@@ -968,7 +968,7 @@ export default function PublicAdvertisementsPage() {
               )}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -978,10 +978,11 @@ export default function PublicAdvertisementsPage() {
                   clearValidationErrors();
                   setCreateAlert(null);
                 }}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button onClick={handleCreateAdvertisement}>
+              <Button onClick={handleCreateAdvertisement} className="w-full sm:w-auto">
                 Create Advertisement
               </Button>
             </DialogFooter>
@@ -992,40 +993,42 @@ export default function PublicAdvertisementsPage() {
       {/* Search & Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <Input
-                placeholder="Search advertisements by title, description, or contact person..."
+                placeholder="Search advertisements..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="Filter by Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-full md:w-40">
-                <SelectValue placeholder="Filter by Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Filter by Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               variant="outline"
               onClick={() => {
@@ -1033,7 +1036,7 @@ export default function PublicAdvertisementsPage() {
                 setFilterStatus("all");
                 setFilterCategory("all");
               }}
-              className="w-full md:w-auto"
+              className="w-full sm:w-auto"
             >
               Clear Filters
             </Button>
@@ -1042,7 +1045,7 @@ export default function PublicAdvertisementsPage() {
       </Card>
 
       {/* Results Count */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <p className="text-sm text-gray-600">
           Showing {filteredAds.length} of {advertisements.length} advertisements
         </p>
@@ -1134,10 +1137,10 @@ export default function PublicAdvertisementsPage() {
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 flex-wrap">
               {selectedAdvertisement?.title[currentLanguage]}
               {selectedAdvertisement?.isPinned && (
-                <Pin className="w-4 h-4 text-blue-500 fill-blue-500" />
+                <Pin className="w-4 h-4 text-blue-500 fill-blue-500 flex-shrink-0" />
               )}
             </DialogTitle>
             <DialogDescription>
@@ -1147,7 +1150,7 @@ export default function PublicAdvertisementsPage() {
           </DialogHeader>
           <div className="space-y-4">
             {/* Language Tabs for View */}
-            <div className="flex gap-2 border-b pb-2">
+            <div className="flex gap-2 border-b pb-2 overflow-x-auto">
               {(["en", "ta", "si"] as Language[]).map((lang) => (
                 <Button
                   key={lang}
@@ -1155,10 +1158,11 @@ export default function PublicAdvertisementsPage() {
                   variant={currentLanguage === lang ? "default" : "outline"}
                   onClick={() => setCurrentLanguage(lang)}
                   size="sm"
+                  className="flex-shrink-0"
                 >
-                  {lang === "en" && "English"}
-                  {lang === "ta" && "Tamil"}
-                  {lang === "si" && "Sinhala"}
+                  {lang === "en" && "EN"}
+                  {lang === "ta" && "TA"}
+                  {lang === "si" && "SI"}
                 </Button>
               ))}
             </div>
@@ -1168,7 +1172,7 @@ export default function PublicAdvertisementsPage() {
               selectedAdvertisement.images.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-2">Images</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {selectedAdvertisement.images.map((image, index) => (
                       <div
                         key={index}
@@ -1177,7 +1181,8 @@ export default function PublicAdvertisementsPage() {
                         <img
                           src={image}
                           alt={`Advertisement image ${index + 1}`}
-                          className="w-full h-32 object-cover"
+                          className="w-full h-24 sm:h-32 object-cover"
+                          loading="lazy"
                         />
                       </div>
                     ))}
@@ -1187,12 +1192,12 @@ export default function PublicAdvertisementsPage() {
 
             <div>
               <h4 className="font-semibold mb-2">Description</h4>
-              <p className="text-gray-700">
+              <p className="text-gray-700 text-sm sm:text-base">
                 {selectedAdvertisement?.description[currentLanguage]}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <h4 className="font-semibold mb-2">Details</h4>
                 <div className="space-y-2 text-sm">
@@ -1203,9 +1208,9 @@ export default function PublicAdvertisementsPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Status:</span>
                     <Badge
-                      className={getStatusColor(
+                      className={`text-xs ${getStatusColor(
                         selectedAdvertisement?.status || "active"
-                      )}
+                      )}`}
                     >
                       {selectedAdvertisement?.status.toUpperCase()}
                     </Badge>
@@ -1238,26 +1243,26 @@ export default function PublicAdvertisementsPage() {
               <h4 className="font-semibold mb-2">Contact Information</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span>
+                  <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <span className="break-all">
                     {selectedAdvertisement?.contactPerson || "Not specified"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                  <span>
+                  <Phone className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <span className="break-all">
                     {selectedAdvertisement?.contactPhone || "Not specified"}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t">
               <div className="text-sm text-gray-500">
                 {selectedAdvertisement?.views} views •{" "}
                 {selectedAdvertisement?.attachments} attachments
               </div>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
                 Download Details
               </Button>
@@ -1294,11 +1299,11 @@ export default function PublicAdvertisementsPage() {
                   type="button"
                   variant={currentLanguage === lang ? "default" : "outline"}
                   onClick={() => setCurrentLanguage(lang)}
-                  className="flex-1"
+                  className="flex-1 text-xs sm:text-sm"
                 >
-                  {lang === "en" && "English"}
-                  {lang === "ta" && "Tamil"}
-                  {lang === "si" && "Sinhala"}
+                  {lang === "en" && "EN"}
+                  {lang === "ta" && "TA"}
+                  {lang === "si" && "SI"}
                 </Button>
               ))}
             </div>
@@ -1358,7 +1363,7 @@ export default function PublicAdvertisementsPage() {
                     />
                     {validationErrors.category && (
                       <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
+                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
                         Category is required
                       </p>
                     )}
@@ -1368,10 +1373,10 @@ export default function PublicAdvertisementsPage() {
                     <Label htmlFor="edit-status">Status</Label>
                     <Select
                       value={editAdvertisement.status}
-                      onValueChange={(val) =>
+                      onValueChange={(val: "active" | "expired" | "draft") =>
                         setEditAdvertisement({
                           ...editAdvertisement,
-                          status: val as any,
+                          status: val,
                         })
                       }
                     >
@@ -1468,7 +1473,7 @@ export default function PublicAdvertisementsPage() {
                   />
                   <Label
                     htmlFor="edit-pin-advertisement"
-                    className="cursor-pointer"
+                    className="cursor-pointer text-sm"
                   >
                     Pin Advertisement
                   </Label>
@@ -1485,14 +1490,17 @@ export default function PublicAdvertisementsPage() {
               </>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleEditAdvertisement}>Save Changes</Button>
+            <Button onClick={handleEditAdvertisement} className="w-full sm:w-auto">
+              Save Changes
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1507,14 +1515,19 @@ export default function PublicAdvertisementsPage() {
               "? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDeleteAdvertisement}>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAdvertisement}
+              className="w-full sm:w-auto"
+            >
               Delete Advertisement
             </Button>
           </DialogFooter>

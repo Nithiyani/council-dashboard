@@ -6,48 +6,81 @@ import { useState, ChangeEvent, useEffect } from "react";
 interface SocialWork {
   id: number;
   image: string;
-  description: string;
+  description: {
+    en: string;
+    ta: string;
+    si: string;
+  };
   date: string; // YYYY-MM-DD
   active: boolean;
 }
+
+type Language = "en" | "ta" | "si";
 
 // Dummy Data
 const dummyData: SocialWork[] = [
   {
     id: 1,
     image: "https://via.placeholder.com/300x200.png?text=Social+Work+1",
-    description: "Cleaning the beach initiative",
+    description: {
+      en: "Cleaning the beach initiative",
+      ta: "கடற்கரை சுத்தம் செய்தல் முயற்சி",
+      si: "වෙරළ පිරිසිදු කිරීමේ මුලපිරීම"
+    },
     date: "2025-10-01",
     active: true,
   },
   {
     id: 2,
     image: "https://via.placeholder.com/300x200.png?text=Social+Work+2",
-    description: "Tree plantation drive",
+    description: {
+      en: "Tree plantation drive",
+      ta: "மரம் நடும் பயணம்",
+      si: "ගස් වැවීමේ ව්‍යාපාරය"
+    },
     date: "2025-09-15",
     active: true,
   },
   {
     id: 3,
     image: "https://via.placeholder.com/300x200.png?text=Social+Work+3",
-    description: "Helping elderly people",
+    description: {
+      en: "Helping elderly people",
+      ta: "முதியவர்களுக்கு உதவுதல்",
+      si: "වයස්ගත පුද්ගලයන්ට උදව් කිරීම"
+    },
     date: "2025-08-20",
     active: false,
   },
 ];
 
+const LANGUAGE_NAMES = {
+  en: "English",
+  ta: "Tamil", 
+  si: "Sinhala"
+};
+
 export default function SocialWorkDashboard() {
   const [entries, setEntries] = useState<SocialWork[]>([]);
   const [search, setSearch] = useState("");
+  const [currentLanguage, setCurrentLanguage] = useState<Language>("en");
   const [formData, setFormData] = useState({
     id: 0,
     image: "",
-    description: "",
+    description: {
+      en: "",
+      ta: "",
+      si: ""
+    },
     date: "",
   });
   const [formErrors, setFormErrors] = useState<{
     image?: string;
-    description?: string;
+    description?: {
+      en?: string;
+      ta?: string;
+      si?: string;
+    };
     date?: string;
   }>({});
   const [showForm, setShowForm] = useState(false);
@@ -67,15 +100,16 @@ export default function SocialWorkDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      alert("Please upload an image file");
+      setFormErrors(prev => ({ ...prev, image: "Please upload an image file" }));
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert("Image size should be less than 10MB");
+      setFormErrors(prev => ({ ...prev, image: "Image size should be less than 10MB" }));
       return;
     }
     const url = URL.createObjectURL(file);
     setFormData(prev => ({ ...prev, image: url }));
+    setFormErrors(prev => ({ ...prev, image: undefined }));
     e.target.value = "";
   };
 
@@ -84,13 +118,51 @@ export default function SocialWorkDashboard() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
+  const validateForm = () => {
+    const errors: {
+      image?: string;
+      description?: {
+        en?: string;
+        ta?: string;
+        si?: string;
+      };
+      date?: string;
+    } = {};
+
+    // Validate image
+    if (!formData.image) {
+      errors.image = "Image is required";
+    }
+
+    // Validate descriptions in all languages
+    const descriptionErrors: { en?: string; ta?: string; si?: string } = {};
+    if (!formData.description.en?.trim()) {
+      descriptionErrors.en = "English description is required";
+    }
+    if (!formData.description.ta?.trim()) {
+      descriptionErrors.ta = "Tamil description is required";
+    }
+    if (!formData.description.si?.trim()) {
+      descriptionErrors.si = "Sinhala description is required";
+    }
+
+    if (Object.keys(descriptionErrors).length > 0) {
+      errors.description = descriptionErrors;
+    }
+
+    // Validate date
+    if (!formData.date) {
+      errors.date = "Date is required";
+    } else if (new Date(formData.date) > new Date()) {
+      errors.date = "Date cannot be in the future";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSave = () => {
-    if (!formData.image || !formData.description || !formData.date) {
-      setFormErrors({
-        image: formData.image ? undefined : "Image is required",
-        description: formData.description ? undefined : "Description is required",
-        date: formData.date ? undefined : "Date is required",
-      });
+    if (!validateForm()) {
       return;
     }
 
@@ -98,7 +170,12 @@ export default function SocialWorkDashboard() {
       setEntries(prev =>
         prev.map(e =>
           e.id === formData.id
-            ? { ...e, image: formData.image, description: formData.description, date: formData.date }
+            ? { 
+                ...e, 
+                image: formData.image, 
+                description: formData.description, 
+                date: formData.date 
+              }
             : e
         )
       );
@@ -115,9 +192,15 @@ export default function SocialWorkDashboard() {
       showToast("Social Work entry added successfully!");
     }
 
-    setFormData({ id: 0, image: "", description: "", date: "" });
+    setFormData({ 
+      id: 0, 
+      image: "", 
+      description: { en: "", ta: "", si: "" }, 
+      date: "" 
+    });
     setShowForm(false);
     setMenuOpenId(null);
+    setFormErrors({});
   };
 
   const openDeleteDialog = (entry: SocialWork) => {
@@ -160,9 +243,15 @@ export default function SocialWorkDashboard() {
   };
 
   const handleEdit = (entry: SocialWork) => {
-    setFormData({ id: entry.id, image: entry.image, description: entry.description, date: entry.date });
+    setFormData({ 
+      id: entry.id, 
+      image: entry.image, 
+      description: entry.description, 
+      date: entry.date 
+    });
     setShowForm(true);
     setMenuOpenId(null);
+    setFormErrors({});
   };
 
   const handleView = (entry: SocialWork) => {
@@ -184,23 +273,73 @@ export default function SocialWorkDashboard() {
     );
   };
 
+  const handleDescriptionChange = (language: Language, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      description: {
+        ...prev.description,
+        [language]: value
+      }
+    }));
+
+    // Clear error for this language when user starts typing
+    if (formErrors.description?.[language]) {
+      setFormErrors(prev => ({
+        ...prev,
+        description: {
+          ...prev.description,
+          [language]: undefined
+        }
+      }));
+    }
+  };
+
   const filtered = entries.filter(e =>
-    e.description.toLowerCase().includes(search.toLowerCase())
+    Object.values(e.description).some(desc =>
+      desc.toLowerCase().includes(search.toLowerCase())
+    )
   );
+
+  const resetForm = () => {
+    setFormData({ 
+      id: 0, 
+      image: "", 
+      description: { en: "", ta: "", si: "" }, 
+      date: "" 
+    });
+    setFormErrors({});
+    setShowForm(false);
+  };
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Social Work Dashboard</h1>
 
-      {/* Search + Buttons */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
-        <input
-          type="text"
-          placeholder="Search..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="border border-gray-300 p-3 rounded shadow-sm w-full md:w-1/3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+      {/* Search + Language + Buttons */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 flex-1">
+          <input
+            type="text"
+            placeholder="Search social work entries..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="border border-gray-300 p-3 rounded shadow-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 font-medium">Language:</span>
+            <select 
+              value={currentLanguage}
+              onChange={(e) => setCurrentLanguage(e.target.value as Language)}
+              className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="en">English</option>
+              <option value="ta">Tamil</option>
+              <option value="si">Sinhala</option>
+            </select>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-3">
           <button
             onClick={openBulkDeleteDialog}
@@ -228,55 +367,104 @@ export default function SocialWorkDashboard() {
             onClick={() => setShowForm(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-sm transition"
           >
-            + Social Work
+            + Add Social Work
           </button>
         </div>
       </div>
 
       {/* Toast success message */}
       {successMessage && (
-        <div className="fixed top-5 right-5 bg-green-100 text-green-800 p-3 rounded shadow-lg z-50 transition-all">
-          {successMessage}
+        <div className="fixed top-5 right-5 bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded shadow-lg z-50 transition-all">
+          <div className="flex items-center">
+            <span className="text-green-500 mr-2">✓</span>
+            {successMessage}
+          </div>
         </div>
       )}
 
-      <div className="mb-3 text-gray-600 font-medium">Total: {entries.length} entries</div>
+      <div className="mb-3 text-gray-600 font-medium">
+        Total: {entries.length} entries • Showing: {filtered.length} entries
+      </div>
 
       {/* Entries Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {filtered.map(entry => (
           <div
             key={entry.id}
-            className={`relative border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition ${!entry.active ? "opacity-50" : ""}`}
+            className={`relative border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition ${
+              !entry.active ? "opacity-50 bg-gray-100" : ""
+            }`}
           >
             <input
               type="checkbox"
               checked={selectedIds.includes(entry.id)}
               onChange={() => handleSelect(entry.id)}
-              className="absolute top-3 left-3 w-5 h-5"
+              className="absolute top-3 left-3 w-5 h-5 z-10"
             />
 
-            <img src={entry.image} alt="social work" className="w-full h-48 object-cover" />
-            <div className="p-4">
-              <p className="text-gray-800 font-medium">{entry.description}</p>
-              <p className="text-gray-500 text-sm mt-1">Date: {entry.date}</p>
+            <div className="relative">
+              <img 
+                src={entry.image} 
+                alt="social work" 
+                className="w-full h-48 object-cover" 
+              />
+              {!entry.active && (
+                <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
+                  Inactive
+                </div>
+              )}
             </div>
 
+            <div className="p-4">
+              <p className="text-gray-800 font-medium mb-2">
+                {entry.description[currentLanguage]}
+              </p>
+              <p className="text-gray-500 text-sm">Date: {entry.date}</p>
+              
+              {/* Language badges */}
+              <div className="flex gap-1 mt-2">
+                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">EN</span>
+                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">TA</span>
+                <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">SI</span>
+              </div>
+            </div>
+
+            {/* Menu Button */}
             <div className="absolute top-3 right-3">
               <button
                 onClick={() =>
                   setMenuOpenId(menuOpenId === entry.id ? null : entry.id)
                 }
-                className="text-xl font-bold text-gray-600 hover:text-gray-800"
+                className="bg-white bg-opacity-80 hover:bg-opacity-100 w-8 h-8 rounded-full flex items-center justify-center text-xl font-bold text-gray-600 hover:text-gray-800 shadow-sm"
               >
                 ⋮
               </button>
               {menuOpenId === entry.id && (
-                <div className="bg-white border rounded shadow-md absolute right-0 mt-2 w-40 z-10">
-                  <button onClick={() => handleView(entry)} className="block w-full text-left px-3 py-2 hover:bg-gray-100">View</button>
-                  <button onClick={() => handleEdit(entry)} className="block w-full text-left px-3 py-2 hover:bg-gray-100">Edit</button>
-                  <button onClick={() => openDeleteDialog(entry)} className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600">Delete</button>
-                  <button onClick={() => toggleActive(entry.id)} className="block w-full text-left px-3 py-2 hover:bg-gray-100">{entry.active ? "Disable" : "Enable"}</button>
+                <div className="bg-white border rounded shadow-lg absolute right-0 mt-1 w-48 z-20">
+                  <button 
+                    onClick={() => handleView(entry)} 
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-blue-600"
+                  >
+                    👁️ View
+                  </button>
+                  <button 
+                    onClick={() => handleEdit(entry)} 
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-green-600"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button 
+                    onClick={() => openDeleteDialog(entry)} 
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                  >
+                    🗑️ Delete
+                  </button>
+                  <button 
+                    onClick={() => toggleActive(entry.id)} 
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-orange-600"
+                  >
+                    {entry.active ? "⏸️ Disable" : "▶️ Enable"}
+                  </button>
                 </div>
               )}
             </div>
@@ -284,13 +472,19 @@ export default function SocialWorkDashboard() {
         ))}
       </div>
 
+      {filtered.length === 0 && (
+        <div className="text-center py-12 text-gray-500">
+          No social work entries found. {search && "Try adjusting your search."}
+        </div>
+      )}
+
       {/* Single Delete Confirmation Dialog */}
       {isDeleteDialogOpen && selectedSocialWork && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-20">
-          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Confirm Deletion</h2>
             <p className="text-gray-700 mb-4">
-              Are you sure you want to delete "{selectedSocialWork.description}"? This action cannot be undone.
+              Are you sure you want to delete "{selectedSocialWork.description.en}"? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3 mt-6">
               <button 
@@ -303,7 +497,7 @@ export default function SocialWorkDashboard() {
                 onClick={handleDeleteSocialWork} 
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow-sm transition"
               >
-                Delete Social Work
+                Delete
               </button>
             </div>
           </div>
@@ -312,8 +506,8 @@ export default function SocialWorkDashboard() {
 
       {/* Bulk Delete Confirmation Dialog */}
       {isBulkDeleteDialogOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-20">
-          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-gray-800">Confirm Bulk Deletion</h2>
             <p className="text-gray-700 mb-4">
               Are you sure you want to delete {selectedIds.length} selected {selectedIds.length === 1 ? 'entry' : 'entries'}? This action cannot be undone.
@@ -338,14 +532,47 @@ export default function SocialWorkDashboard() {
 
       {/* View Modal */}
       {viewEntry && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-20">
-          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
             <h2 className="text-xl font-bold mb-4 text-gray-800">View Social Work</h2>
             <img src={viewEntry.image} alt="view" className="w-full h-48 object-cover rounded mb-4" />
-            <p className="text-gray-700 mb-2">{viewEntry.description}</p>
-            <p className="text-gray-500 text-sm mb-4">Date: {viewEntry.date}</p>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <div className="space-y-2">
+                <div>
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">EN</span>
+                  {viewEntry.description.en}
+                </div>
+                <div>
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded mr-2">TA</span>
+                  {viewEntry.description.ta}
+                </div>
+                <div>
+                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded mr-2">SI</span>
+                  {viewEntry.description.si}
+                </div>
+              </div>
+            </div>
+            
+            <p className="text-gray-600 text-sm mb-4">
+              <strong>Date:</strong> {viewEntry.date}
+            </p>
+            
+            <p className="text-sm mb-4">
+              <strong>Status:</strong> 
+              <span className={`ml-2 ${viewEntry.active ? 'text-green-600' : 'text-red-600'}`}>
+                {viewEntry.active ? 'Active' : 'Inactive'}
+              </span>
+            </p>
+
             <div className="flex justify-end">
-              <button onClick={() => setViewEntry(null)} className="px-4 py-2 border rounded hover:bg-gray-100">Close</button>
+              <button 
+                onClick={() => setViewEntry(null)} 
+                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -353,33 +580,120 @@ export default function SocialWorkDashboard() {
 
       {/* Add/Edit Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-20">
-          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Add / Edit Social Work</h2>
-            <input type="file" accept="image/*" onChange={handleImageUpload} className="mb-3" />
-            {formErrors.image && <p className="text-red-500 mb-2">{formErrors.image}</p>}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">
+              {formData.id ? 'Edit Social Work' : 'Add New Social Work'}
+            </h2>
 
-            <textarea
-              placeholder="Description"
-              value={formData.description}
-              onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              className="border border-gray-300 p-3 w-full rounded mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            {formErrors.description && <p className="text-red-500 mb-2">{formErrors.description}</p>}
+            {/* Image Upload */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Image *
+              </label>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+                className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              {formErrors.image && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.image}</p>
+              )}
+              {formData.image && (
+                <img src={formData.image} alt="preview" className="w-full h-48 object-cover rounded mt-3 border" />
+              )}
+            </div>
 
-            <input
-              type="date"
-              value={formData.date}
-              onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              className="border border-gray-300 p-3 w-full rounded mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            {formErrors.date && <p className="text-red-500 mb-2">{formErrors.date}</p>}
+            {/* Language Tabs for Description */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description *
+              </label>
+              
+              <div className="flex gap-2 mb-3">
+                {(['en', 'ta', 'si'] as Language[]).map(lang => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setCurrentLanguage(lang)}
+                    className={`px-3 py-1 rounded text-sm ${
+                      currentLanguage === lang 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {LANGUAGE_NAMES[lang]}
+                  </button>
+                ))}
+              </div>
 
-            {formData.image && <img src={formData.image} alt="preview" className="w-full h-48 object-cover rounded mb-3" />}
+              {/* Description Input for Current Language */}
+              <textarea
+                placeholder={`Enter description in ${LANGUAGE_NAMES[currentLanguage]}...`}
+                value={formData.description[currentLanguage]}
+                onChange={e => handleDescriptionChange(currentLanguage, e.target.value)}
+                className="border border-gray-300 p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-400 h-32"
+              />
+              {formErrors.description?.[currentLanguage] && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.description[currentLanguage]}</p>
+              )}
+              
+              {/* Character count */}
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.description[currentLanguage].length} characters
+              </p>
+            </div>
+
+            {/* Date Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date *
+              </label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={e => {
+                  setFormData(prev => ({ ...prev, date: e.target.value }));
+                  if (formErrors.date) {
+                    setFormErrors(prev => ({ ...prev, date: undefined }));
+                  }
+                }}
+                max={new Date().toISOString().split('T')[0]}
+                className="border border-gray-300 p-3 w-full rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              {formErrors.date && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
+              )}
+            </div>
+
+            {/* Validation Summary */}
+            {Object.keys(formErrors).length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded p-4 mb-4">
+                <h3 className="text-red-800 font-medium mb-2">Please fix the following errors:</h3>
+                <ul className="text-red-700 text-sm list-disc list-inside space-y-1">
+                  {formErrors.image && <li>{formErrors.image}</li>}
+                  {formErrors.description?.en && <li>English description is required</li>}
+                  {formErrors.description?.ta && <li>Tamil description is required</li>}
+                  {formErrors.description?.si && <li>Sinhala description is required</li>}
+                  {formErrors.date && <li>{formErrors.date}</li>}
+                </ul>
+              </div>
+            )}
 
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowForm(false)} className="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
-              <button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-sm transition">Save</button>
+              <button 
+                onClick={resetForm} 
+                className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave} 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-sm transition"
+              >
+                {formData.id ? 'Update' : 'Save'}
+              </button>
             </div>
           </div>
         </div>
