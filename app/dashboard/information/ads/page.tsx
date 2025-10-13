@@ -206,25 +206,7 @@ const AdvertisementCard = ({
           )}
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 mt-2">
-          <Badge className={`text-xs ${getStatusColor(advertisement.status)}`}>
-            {advertisement.status.toUpperCase()}
-          </Badge>
-          <Badge variant="secondary" className="text-xs">
-            {advertisement.category}
-          </Badge>
-          <div className="flex gap-1">
-            <Badge variant="outline" className="text-xs">
-              EN
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              TA
-            </Badge>
-            <Badge variant="outline" className="text-xs">
-              SI
-            </Badge>
-          </div>
-        </div>
+        {/* Removed the badges section completely */}
 
         {/* Action buttons - mobile optimized */}
         <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 border-t">
