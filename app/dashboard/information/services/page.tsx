@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Eye, Edit, Trash2, MapPin, Phone, Mail, Calendar, Download, Image as ImageIcon, FileText, X, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, MapPin, Phone, Mail, Calendar, Download, Image as ImageIcon, FileText, X, AlertCircle, CheckCircle, Star } from "lucide-react";
 
 // Types
 interface Service {
@@ -95,6 +95,51 @@ const Alert = ({ type, message, onClose }: { type: "success" | "error"; message:
         >
           <X className="w-3 h-3" />
         </Button>
+      </div>
+    </div>
+  );
+};
+
+// Validation Alert Component for Dialog (Modified to be placed at bottom)
+const ValidationAlert = ({ errors }: { errors: { [key: string]: boolean } }) => {
+  const errorFields = [];
+  
+  if (Object.keys(errors).length === 0) return null;
+
+  // Check language fields
+  LANGUAGES.forEach(lang => {
+    if (errors[`title-${lang}`]) errorFields.push(`Title in ${LANGUAGE_NAMES[lang]}`);
+    if (errors[`description-${lang}`]) errorFields.push(`Description in ${LANGUAGE_NAMES[lang]}`);
+  });
+
+  // Check other fields
+  if (errors.category) errorFields.push("Category");
+  if (errors.location) errorFields.push("Location");
+  if (errors.phone) errorFields.push("Phone");
+  if (errors.email) errorFields.push("Email");
+  if (errors.dateCreated) errorFields.push("Date Created");
+  if (errors.images) errorFields.push("Images");
+
+  if (errorFields.length === 0) return null;
+
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-in fade-in duration-300">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <h4 className="font-semibold text-red-800 mb-2">Required Fields Missing</h4>
+          <p className="text-red-700 text-sm mb-2">
+            Please fill in all required fields marked with * before creating the service.
+          </p>
+          <div className="text-red-600 text-sm">
+            <p className="font-medium mb-1">Missing fields:</p>
+            <ul className="list-disc list-inside space-y-1">
+              {errorFields.map((field, index) => (
+                <li key={index}>{field}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -248,9 +293,10 @@ const DocumentUpload = ({ documents, onDocumentsChange }: {
   );
 };
 
-const ImageUpload = ({ images, onImagesChange }: {
+const ImageUpload = ({ images, onImagesChange, hasError }: {
   images: string[];
   onImagesChange: (images: string[]) => void;
+  hasError?: boolean;
 }) => {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -279,8 +325,12 @@ const ImageUpload = ({ images, onImagesChange }: {
 
   return (
     <div className="space-y-4">
-      <Label>Upload Service Images (JPG, PNG)</Label>
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+      <Label className={hasError ? "text-red-600" : ""}>
+        Upload Service Images (JPG, PNG) *
+      </Label>
+      <div className={`border-2 border-dashed rounded-lg p-6 text-center ${
+        hasError ? "border-red-300 bg-red-50" : "border-gray-300"
+      }`}>
         <Input 
           type="file" 
           multiple 
@@ -320,6 +370,12 @@ const ImageUpload = ({ images, onImagesChange }: {
       {images.length > 0 && (
         <p className="text-xs text-gray-500">
           {images.length}/6 images uploaded
+        </p>
+      )}
+      {hasError && (
+        <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          At least one image is required
         </p>
       )}
     </div>
@@ -423,13 +479,6 @@ const LanguageFormSection = ({
     </div>
   );
 };
-
-// Star Icon Component
-const Star = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-  </svg>
-);
 
 // Validation Helper
 const validateServiceForm = (formData: ServiceFormData): { isValid: boolean; errors: { [key: string]: boolean } } => {
@@ -586,11 +635,6 @@ export default function ServicesManagementPage() {
     
     if (!isValid) {
       setValidationErrors(errors);
-      setAlert({
-        type: "error",
-        message: "Please fill all required fields in all three languages before saving!"
-      });
-      setTimeout(() => setAlert(null), 5000);
       return;
     }
 
@@ -618,11 +662,6 @@ export default function ServicesManagementPage() {
     
     if (!isValid) {
       setValidationErrors(errors);
-      setAlert({
-        type: "error",
-        message: "Please fill all required fields in all three languages before saving!"
-      });
-      setTimeout(() => setAlert(null), 5000);
       return;
     }
 
@@ -662,6 +701,13 @@ export default function ServicesManagementPage() {
     year: "numeric", month: "short", day: "numeric"
   });
 
+  // Reset form and close dialog
+  const handleCancel = () => {
+    setDialog(null);
+    setFormData(initialFormData);
+    clearValidationErrors();
+  };
+
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto">
       {/* Global Alert */}
@@ -682,8 +728,10 @@ export default function ServicesManagementPage() {
           <p className="text-gray-600 mt-1">Manage and organize community services efficiently</p>
         </div>
         <Dialog open={dialog === "create"} onOpenChange={(open) => {
-          setDialog(open ? "create" : null);
           if (!open) {
+            handleCancel();
+          } else {
+            setDialog("create");
             setFormData(initialFormData);
             clearValidationErrors();
           }
@@ -861,43 +909,46 @@ export default function ServicesManagementPage() {
                 <ImageUpload
                   images={formData.images}
                   onImagesChange={(images) => setFormData({ ...formData, images })}
+                  hasError={validationErrors.images}
                 />
-                {validationErrors.images && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    At least one image is required
-                  </p>
-                )}
               </div>
 
-              {/* Featured Switch */}
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="featured"
-                  checked={formData.isFeatured}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
-                />
-                <Label htmlFor="featured">Feature this service</Label>
-              </div>
+              {/* Status Section */}
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="featured"
+                    checked={formData.isFeatured}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
+                  />
+                  <Label htmlFor="featured">Feature this service</Label>
+                </div>
 
-              {/* Status */}
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger id="status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger id="status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialog(null)}>Cancel</Button>
-              <Button onClick={handleCreateService}>Create Service</Button>
+            {/* Validation Alert moved to bottom near buttons */}
+            {Object.keys(validationErrors).length > 0 && (
+              <div className="mt-4">
+                <ValidationAlert errors={validationErrors} />
+              </div>
+            )}
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-4">
+              <Button variant="outline" onClick={handleCancel} className="sm:flex-1">Cancel</Button>
+              <Button onClick={handleCreateService} className="sm:flex-1">Create Service</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1009,6 +1060,7 @@ export default function ServicesManagementPage() {
                 setSelectedService(service);
                 setFormData(service);
                 setDialog("edit");
+                clearValidationErrors();
               }}
               onDelete={() => {
                 setSelectedService(service);
@@ -1139,13 +1191,21 @@ export default function ServicesManagementPage() {
                 </div>
               )}
             </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialog(null)}>Close</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
       {/* Edit Dialog */}
       {dialog === "edit" && selectedService && (
-        <Dialog open onOpenChange={() => setDialog(null)}>
+        <Dialog open onOpenChange={(open) => {
+          if (!open) {
+            handleCancel();
+          }
+        }}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Service</DialogTitle>
@@ -1311,43 +1371,46 @@ export default function ServicesManagementPage() {
                 <ImageUpload
                   images={formData.images}
                   onImagesChange={(images) => setFormData({ ...formData, images })}
+                  hasError={validationErrors.images}
                 />
-                {validationErrors.images && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    At least one image is required
-                  </p>
-                )}
               </div>
 
-              {/* Featured Switch */}
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="edit-featured"
-                  checked={formData.isFeatured}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
-                />
-                <Label htmlFor="edit-featured">Feature this service</Label>
-              </div>
+              {/* Status Section */}
+              <div className="border-t pt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="edit-featured"
+                    checked={formData.isFeatured}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
+                  />
+                  <Label htmlFor="edit-featured">Feature this service</Label>
+                </div>
 
-              {/* Status */}
-              <div>
-                <Label htmlFor="edit-status">Status</Label>
-                <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger id="edit-status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div>
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger id="edit-status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialog(null)}>Cancel</Button>
-              <Button onClick={handleEditService}>Save Changes</Button>
+            {/* Validation Alert moved to bottom near buttons */}
+            {Object.keys(validationErrors).length > 0 && (
+              <div className="mt-4">
+                <ValidationAlert errors={validationErrors} />
+              </div>
+            )}
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-4">
+              <Button variant="outline" onClick={handleCancel} className="sm:flex-1">Cancel</Button>
+              <Button onClick={handleEditService} className="sm:flex-1">Save Changes</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
