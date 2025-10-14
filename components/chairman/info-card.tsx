@@ -411,7 +411,7 @@ export const InfoCard = ({
                         className="space-y-4"
                       >
                         <div className="space-y-2">
-                          <Label>Title ({getLanguageName(lang)}) *</Label>
+                          <Label>Title  *</Label>
                           <Input
                             value={form.watch(`title.${lang}`)}
                             onChange={(e) => {
@@ -445,7 +445,7 @@ export const InfoCard = ({
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label>Details ({getLanguageName(lang)}) *</Label>
+                          <Label>Details *</Label>
                           <Input
                             value={form.watch(`subtext.${lang}`)}
                             onChange={(e) => {
@@ -531,7 +531,7 @@ export const InfoCard = ({
                     {(["en", "ta", "si"] as const).map((lang) => (
                       <TabsContent key={lang} value={lang} className="space-y-4">
                         <div className="space-y-2">
-                          <Label>Title ({getLanguageName(lang)}) *</Label>
+                          <Label>Title  *</Label>
                           <Input
                             value={editForm.watch(`title.${lang}`)}
                             onChange={(e) => {
@@ -555,7 +555,7 @@ export const InfoCard = ({
                           </p>
                         </div>
                         <div className="space-y-2">
-                          <Label>Details ({getLanguageName(lang)}) *</Label>
+                          <Label>Details  *</Label>
                           <Input
                             value={editForm.watch(`subtext.${lang}`)}
                             onChange={(e) => {

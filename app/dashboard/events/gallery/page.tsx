@@ -21,13 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Upload, 
-  FolderPlus, 
-  Search, 
-  Trash2, 
-  Edit, 
-  X, 
+import {
+  Upload,
+  FolderPlus,
+  Search,
+  Trash2,
+  Edit,
+  X,
   Image as ImageIcon,
   Video as VideoIcon,
   MoreVertical,
@@ -241,7 +241,7 @@ const INITIAL_GALLERY_DATA: Gallery = {
 // Custom Hooks
 const useGallery = () => {
   const [gallery, setGallery] = useState<Gallery>(INITIAL_GALLERY_DATA);
-  
+ 
   const addAlbum = useCallback((album: Omit<Album, 'id' | 'coverImage' | 'itemCount' | 'createdAt'>) => {
     const newAlbum: Album = {
       ...album,
@@ -257,7 +257,7 @@ const useGallery = () => {
   const updateAlbum = useCallback((id: number, updates: Partial<Album>) => {
     setGallery(prev => ({
       ...prev,
-      albums: prev.albums.map(album => 
+      albums: prev.albums.map(album =>
         album.id === id ? { ...album, ...updates } : album
       )
     }));
@@ -300,7 +300,7 @@ const useGallery = () => {
   const updateMedia = useCallback((id: number, updates: Partial<MediaItem>) => {
     setGallery(prev => ({
       ...prev,
-      media: prev.media.map(media => 
+      media: prev.media.map(media =>
         media.id === id ? { ...media, ...updates } : media
       )
     }));
@@ -310,7 +310,7 @@ const useGallery = () => {
     setGallery(prev => {
       const mediaToDelete = prev.media.find(media => media.id === id);
       const updatedMedia = prev.media.filter(media => media.id !== id);
-      
+     
       return {
         ...prev,
         media: updatedMedia,
@@ -459,12 +459,12 @@ const AlertMessage: React.FC<{
     error: 'bg-red-50 border-red-200 text-red-800',
     success: 'bg-green-50 border-green-200 text-green-800'
   };
-  
+ 
   return (
     <div className={`border rounded-md p-4 ${styles[type]}`}>
       <div className="flex items-center">
-        {type === 'error' ? 
-          <AlertCircle className="w-5 h-5 mr-2" /> : 
+        {type === 'error' ?
+          <AlertCircle className="w-5 h-5 mr-2" /> :
           <CheckCircle className="w-5 h-5 mr-2" />
         }
         <div>
@@ -504,8 +504,8 @@ const AlbumCard: React.FC<{
   onEdit: (album: Album) => void;
   onDelete: (album: Album) => void;
 }> = ({ album, currentLanguage, onView, onEdit, onDelete }) => (
-  <Card 
-    key={album.id} 
+  <Card
+    key={album.id}
     className="group cursor-pointer bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
     onClick={() => onView(album)}
   >
@@ -516,7 +516,7 @@ const AlbumCard: React.FC<{
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
+     
       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -529,7 +529,7 @@ const AlbumCard: React.FC<{
               <Edit className="w-4 h-4 mr-2" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={(e) => { e.stopPropagation(); onDelete(album); }}
               className="text-red-600"
             >
@@ -566,7 +566,7 @@ const MediaCard: React.FC<{
 }> = ({ media, currentLanguage, viewMode, onView, onEdit, onDelete, onDownload }) => {
   if (viewMode === 'grid') {
     return (
-      <Card 
+      <Card
         className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
         onClick={() => onView(media)}
       >
@@ -576,7 +576,7 @@ const MediaCard: React.FC<{
             alt={media.title[currentLanguage]}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          
+         
           <div className="absolute top-2 left-2">
             <Badge className="bg-blue-500/90 text-white backdrop-blur-sm border-0">
               <ImageIcon className="w-3 h-3 mr-1" />
@@ -639,7 +639,7 @@ const MediaCard: React.FC<{
   }
 
   return (
-    <Card 
+    <Card
       className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
       onClick={() => onView(media)}
     >
@@ -724,7 +724,7 @@ export default function GalleryPage() {
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [message, setMessage] = useState<MessageState | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  
+ 
   // Unified Dialog State
   const [dialogState, setDialogState] = useState({
     createAlbum: false,
@@ -749,7 +749,7 @@ export default function GalleryPage() {
 
   const [showVideoControls, setShowVideoControls] = useState(true);
   const [videoProgress, setVideoProgress] = useState(0);
-  
+ 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -891,7 +891,7 @@ export default function GalleryPage() {
     const newAlbum = addAlbum(albumForm.form);
     albumForm.reset();
     setMessage({ type: 'success', title: 'Success!', message: 'Album created successfully!' });
-    
+   
     setTimeout(() => {
       setMessage(null);
       closeDialog('createAlbum');
@@ -910,7 +910,7 @@ export default function GalleryPage() {
 
     updateAlbum(selectedItems.album.id, albumForm.form);
     setMessage({ type: 'success', title: 'Success!', message: 'Album updated successfully!' });
-    
+   
     setTimeout(() => {
       setMessage(null);
       closeDialog('editAlbum');
@@ -941,7 +941,7 @@ export default function GalleryPage() {
       captureDate: mediaForm.form.captureDate
     });
     setMessage({ type: 'success', title: 'Success!', message: 'Media updated successfully!' });
-    
+   
     setTimeout(() => {
       setMessage(null);
       closeDialog('editMedia');
@@ -952,7 +952,7 @@ export default function GalleryPage() {
     if (!selectedItems.media) return;
     deleteMedia(selectedItems.media.id);
     closeDialog('deleteMedia');
-    
+   
     // Close media viewer if the deleted media is currently open
     if (selectedMedia?.id === selectedItems.media.id) {
       setDialogState(prev => ({ ...prev, mediaViewer: false }));
@@ -981,13 +981,13 @@ export default function GalleryPage() {
 
   const handleFileSelect = useCallback((files: FileList | null) => {
     if (!files) return;
-    
+   
     const fileArray = Array.from(files);
     if (fileArray.length > 10) {
-      setMessage({ 
-        type: 'error', 
-        title: 'Too many files', 
-        message: 'Maximum 10 files allowed per upload' 
+      setMessage({
+        type: 'error',
+        title: 'Too many files',
+        message: 'Maximum 10 files allowed per upload'
       });
       return;
     }
@@ -995,10 +995,10 @@ export default function GalleryPage() {
     // Check file sizes
     const oversizedFiles = fileArray.filter(file => file.size > 50 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
-      setMessage({ 
-        type: 'error', 
-        title: 'File too large', 
-        message: 'Maximum file size is 50MB' 
+      setMessage({
+        type: 'error',
+        title: 'File too large',
+        message: 'Maximum file size is 50MB'
       });
       return;
     }
@@ -1017,11 +1017,11 @@ export default function GalleryPage() {
     }
 
     const newMediaItems: Omit<MediaItem, 'id'>[] = [];
-    
+   
     selectedFiles.forEach((file) => {
       const fileType = getFileType(file);
       const fileName = file.name.replace(/\.[^/.]+$/, "");
-      
+     
       const newItem: Omit<MediaItem, 'id'> = {
         title: mediaForm.form.title,
         description: mediaForm.form.description,
@@ -1034,14 +1034,14 @@ export default function GalleryPage() {
         size: formatFileSize(file.size),
         dimensions: fileType === 'image' ? '1920x1080' : '1280x720'
       };
-      
+     
       newMediaItems.push(newItem);
       simulateUploadProgress(file.name);
     });
 
     addMedia(newMediaItems);
     setMessage({ type: 'success', title: 'Success!', message: 'Media uploaded successfully!' });
-    
+   
     setTimeout(() => {
       closeDialog('uploadMedia');
       if (fileInputRef.current) {
@@ -1066,10 +1066,10 @@ export default function GalleryPage() {
   const handleVolumeChange = useCallback((volume: number) => {
     if (videoRef.current) {
       videoRef.current.volume = volume;
-      setVideoControls(prev => ({ 
-        ...prev, 
+      setVideoControls(prev => ({
+        ...prev,
         volume,
-        isMuted: volume === 0 
+        isMuted: volume === 0
       }));
     }
   }, []);
@@ -1077,9 +1077,9 @@ export default function GalleryPage() {
   const toggleMute = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
-      setVideoControls(prev => ({ 
-        ...prev, 
-        isMuted: !prev.isMuted 
+      setVideoControls(prev => ({
+        ...prev,
+        isMuted: !prev.isMuted
       }));
     }
   }, []);
@@ -1128,10 +1128,10 @@ export default function GalleryPage() {
     if (videoRef.current) {
       const currentTime = videoRef.current.currentTime;
       const duration = videoRef.current.duration;
-      setVideoControls(prev => ({ 
-        ...prev, 
+      setVideoControls(prev => ({
+        ...prev,
         currentTime,
-        duration 
+        duration
       }));
       setVideoProgress((currentTime / duration) * 100);
     }
@@ -1220,7 +1220,7 @@ export default function GalleryPage() {
           </div>
           <h3 className="text-xl font-semibold text-gray-600 mb-2">No albums found</h3>
           <p className="text-gray-500 mb-6">Create your first album to get started</p>
-          <Button 
+          <Button
             onClick={() => openDialog('createAlbum')}
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full"
           >
@@ -1239,8 +1239,8 @@ export default function GalleryPage() {
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-3">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={navigateBack}
                   className="rounded-full w-10 h-10 p-0 hover:bg-gray-100"
                 >
@@ -1259,17 +1259,17 @@ export default function GalleryPage() {
                 <span>Created {currentAlbum?.createdAt}</span>
               </div>
             </div>
-            
+           
             <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => currentAlbum && openDialog('editAlbum', currentAlbum)}
                 className="rounded-full border-gray-300"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-              {/* <Button 
+              {/* <Button
                 onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-full"
               >
@@ -1349,7 +1349,7 @@ export default function GalleryPage() {
             <p className="text-gray-500 mb-6 max-w-sm mx-auto">
               Start by uploading photos and videos to your album
             </p> */}
-            {/* <Button 
+            {/* <Button
               onClick={() => openDialog('uploadMedia')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full shadow-lg"
             >
@@ -1374,12 +1374,12 @@ export default function GalleryPage() {
               </h1>
             </div>
             <p className="text-gray-600 text-lg">
-              {currentState.view === 'albums' 
-                ? 'Organize your memories and media collections' 
+              {currentState.view === 'albums'
+                ? 'Organize your memories and media collections'
                 : currentAlbum?.description[currentLanguage]}
             </p>
           </div>
-          
+         
           <div className="flex flex-wrap gap-3">
             {/* Language Switcher */}
             <Select value={currentLanguage} onValueChange={(val: Language) => setCurrentLanguage(val)}>
@@ -1397,7 +1397,7 @@ export default function GalleryPage() {
             </Select>
 
             {currentState.view === 'album-detail' && (
-              <Button 
+              <Button
                 onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
               >
@@ -1406,7 +1406,7 @@ export default function GalleryPage() {
               </Button>
             )}
             {currentState.view === 'albums' && (
-              <Button 
+              <Button
                 onClick={() => openDialog('createAlbum')}
                 className="bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
               >
@@ -1419,25 +1419,25 @@ export default function GalleryPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatsCard 
+          <StatsCard
             icon={<FolderPlus className="w-6 h-6 text-blue-600" />}
             label="Total Albums"
             value={stats.totalAlbums}
             color="bg-blue-100"
           />
-          <StatsCard 
+          <StatsCard
             icon={<ImageIcon className="w-6 h-6 text-green-600" />}
             label="Total Media"
             value={stats.totalMedia}
             color="bg-green-100"
           />
-          <StatsCard 
+          <StatsCard
             icon={<FileText className="w-6 h-6 text-yellow-600" />}
             label="Images"
             value={stats.totalImages}
             color="bg-yellow-100"
           />
-          <StatsCard 
+          <StatsCard
             icon={<VideoIcon className="w-6 h-6 text-purple-600" />}
             label="Videos"
             value={stats.totalVideos}
@@ -1471,12 +1471,12 @@ export default function GalleryPage() {
                 {dialogState.createAlbum ? 'Create New Album' : 'Edit Album'}
               </DialogTitle>
               <DialogDescription>
-                {dialogState.createAlbum 
-                  ? 'Create a new album to organize your photos and videos in multiple languages' 
+                {dialogState.createAlbum
+                  ? 'Create a new album to organize your photos and videos in multiple languages'
                   : 'Update the album details in all languages'}
               </DialogDescription>
             </DialogHeader>
-            
+           
             <div className="space-y-4 py-4">
               {/* Language Tabs */}
               <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
@@ -1511,22 +1511,22 @@ export default function GalleryPage() {
 
             {/* Alert Messages */}
             {message && (
-              <AlertMessage 
-                type={message.type} 
-                title={message.title} 
-                message={message.message} 
+              <AlertMessage
+                type={message.type}
+                title={message.title}
+                message={message.message}
               />
             )}
 
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog(dialogState.createAlbum ? 'createAlbum' : 'editAlbum')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={dialogState.createAlbum ? handleCreateAlbum : handleEditAlbum}
                 className="rounded-lg bg-blue-600 hover:bg-blue-700"
               >
@@ -1545,7 +1545,7 @@ export default function GalleryPage() {
                 Update the media details in all languages
               </DialogDescription>
             </DialogHeader>
-            
+           
             <div className="space-y-4 py-4">
               {/* Language Tabs */}
               <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
@@ -1618,22 +1618,22 @@ export default function GalleryPage() {
 
             {/* Alert Messages */}
             {message && (
-              <AlertMessage 
-                type={message.type} 
-                title={message.title} 
-                message={message.message} 
+              <AlertMessage
+                type={message.type}
+                title={message.title}
+                message={message.message}
               />
             )}
 
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('editMedia')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleEditMedia}
                 className="rounded-lg bg-blue-600 hover:bg-blue-700"
               >
@@ -1652,10 +1652,10 @@ export default function GalleryPage() {
                 Upload photos and videos to "{currentAlbum?.name[currentLanguage]}"
               </DialogDescription>
             </DialogHeader>
-            
+           
             <div className="flex-1 overflow-y-auto space-y-6 py-4 pr-2">
               {/* File Upload Area */}
-              <div 
+              <div
                 className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-400 transition-colors duration-200 cursor-pointer bg-gray-50/50"
                 onClick={triggerFileInput}
               >
@@ -1699,7 +1699,7 @@ export default function GalleryPage() {
               {/* Media Details Form */}
               <div className="space-y-4 border-t pt-4">
                 <h4 className="font-medium text-gray-900">Media Details</h4>
-                
+               
                 {/* Language Tabs */}
                 <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
 
@@ -1766,7 +1766,7 @@ export default function GalleryPage() {
                         <span className="text-gray-500">{Math.round(progress)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${progress}%` }}
                         />
@@ -1780,23 +1780,23 @@ export default function GalleryPage() {
             {/* Alert Messages */}
             {message && (
               <div className="flex-shrink-0">
-                <AlertMessage 
-                  type={message.type} 
-                  title={message.title} 
-                  message={message.message} 
+                <AlertMessage
+                  type={message.type}
+                  title={message.title}
+                  message={message.message}
                 />
               </div>
             )}
 
             <DialogFooter className="flex-shrink-0 pt-4 border-t">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('uploadMedia')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleUploadFiles}
                 disabled={selectedFiles.length === 0}
                 className="rounded-lg bg-blue-600 hover:bg-blue-700"
@@ -1814,19 +1814,19 @@ export default function GalleryPage() {
             <DialogHeader>
               <DialogTitle className="text-xl">Delete Album</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{selectedItems.album?.name[currentLanguage]}"? 
+                Are you sure you want to delete "{selectedItems.album?.name[currentLanguage]}"?
                 This will also remove all {selectedItems.album?.itemCount} items in this album.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('deleteAlbum')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={handleDeleteAlbum}
                 className="rounded-lg"
@@ -1845,19 +1845,19 @@ export default function GalleryPage() {
                 Delete Media
               </DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{selectedItems.media?.title[currentLanguage]}"? 
+                Are you sure you want to delete "{selectedItems.media?.title[currentLanguage]}"?
                 This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('deleteMedia')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={handleDeleteMedia}
                 className="rounded-lg"
@@ -1871,7 +1871,7 @@ export default function GalleryPage() {
         {/* Media Viewer Dialog */}
         <Dialog open={dialogState.mediaViewer} onOpenChange={(open) => !open && closeDialog('mediaViewer')}>
           <DialogContent className="max-w-7xl rounded-2xl p-0 overflow-hidden bg-black">
-            <div 
+            <div
               ref={mediaViewerRef}
               className="relative w-full h-[80vh] bg-black flex items-center justify-center"
             >
@@ -1882,7 +1882,7 @@ export default function GalleryPage() {
                     alt={selectedMedia.title[currentLanguage]}
                     className="max-w-full max-h-full object-contain"
                   />
-                  
+                 
                   {/* Media Info Overlay */}
                   <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                     <div className="text-white">
@@ -1904,7 +1904,7 @@ export default function GalleryPage() {
                         <span>{selectedMedia.size}</span>
                       </div>
                     </div>
-                    
+                   
                     <div className="flex gap-2">
                       <Button
                         variant="secondary"
