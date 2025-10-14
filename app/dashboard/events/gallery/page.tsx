@@ -21,13 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Upload, 
-  FolderPlus, 
-  Search, 
-  Trash2, 
-  Edit, 
-  X, 
+import {
+  Upload,
+  FolderPlus,
+  Search,
+  Trash2,
+  Edit,
+  X,
   Image as ImageIcon,
   Video as VideoIcon,
   MoreVertical,
@@ -48,7 +48,9 @@ import {
   AlertCircle,
   CheckCircle,
   Languages,
-  Eye
+  Eye,
+  Calendar,
+  MapPin
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -82,10 +84,13 @@ interface Album {
 interface MediaItem {
   id: number;
   title: LocalizedText;
+  description: LocalizedText;
+  location: LocalizedText;
   url: string;
   type: MediaType;
   albumId: number;
   uploadDate: string;
+  captureDate: string;
   size?: string;
   duration?: string;
   dimensions?: string;
@@ -120,6 +125,8 @@ interface AlbumFormData {
 interface MediaFormData {
   title: LocalizedText;
   description: LocalizedText;
+  location: LocalizedText;
+  captureDate: string;
 }
 
 interface MessageState {
@@ -185,10 +192,21 @@ const INITIAL_GALLERY_DATA: Gallery = {
         ta: "கடற்கரை சூரிய அஸ்தமனம்",
         si: "වෙරළ සූර්යාස්තමයන්"
       },
+      description: {
+        en: "Beautiful sunset at the beach",
+        ta: "கடற்கரையில் அழகான சூரிய அஸ்தமனம்",
+        si: "වෙරළේ ලස්සන සූර්යාස්තමයන්"
+      },
+      location: {
+        en: "Bentota Beach",
+        ta: "பெண்டோட்டா கடற்கரை",
+        si: "බෙන්තොට වෙරළ"
+      },
       url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop",
       type: 'image',
       albumId: 1,
       uploadDate: "2024-06-15",
+      captureDate: "2024-06-15",
       size: "4.2 MB",
       dimensions: "1920x1080"
     },
@@ -199,53 +217,22 @@ const INITIAL_GALLERY_DATA: Gallery = {
         ta: "மலை ஹைக்கிங்",
         si: "පර්වත ගමන්"
       },
+      description: {
+        en: "Hiking through beautiful mountains",
+        ta: "அழகான மலைகள் வழியாக நடைப்பயணம்",
+        si: "ලස්සන පර්වත හරහා ගමන් කිරීම"
+      },
+      location: {
+        en: "Ella, Sri Lanka",
+        ta: "எல்லா, இலங்கை",
+        si: "ඇල්ල, ශ්‍රී ලංකාව"
+      },
       url: "https://images.unsplash.com/photo-1464822759844-b28c9536c9b4?w=800&h=600&fit=crop",
       type: 'image',
       albumId: 1,
       uploadDate: "2024-06-16",
+      captureDate: "2024-06-16",
       size: "3.8 MB",
-      dimensions: "1920x1080"
-    },
-    {
-      id: 3,
-      title: {
-        en: "Forest Adventure",
-        ta: "காட்டு சாகசம்",
-        si: "වන සාරය"
-      },
-      url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop",
-      type: 'image',
-      albumId: 1,
-      uploadDate: "2024-06-17",
-      size: "5.1 MB",
-      dimensions: "1920x1080"
-    },
-    {
-      id: 4,
-      title: {
-        en: "Birthday Celebration",
-        ta: "பிறந்தநாள் கொண்டாட்டம்",
-        si: "උපන්දින උත්සවය"
-      },
-      url: "https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=800&h=600&fit=crop",
-      type: 'image',
-      albumId: 2,
-      uploadDate: "2024-05-20",
-      size: "4.5 MB",
-      dimensions: "1920x1080"
-    },
-    {
-      id: 5,
-      title: {
-        en: "Family Gathering",
-        ta: "குடும்ப கூட்டம்",
-        si: "පවුල් රැස්වීම"
-      },
-      url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=600&fit=crop",
-      type: 'image',
-      albumId: 2,
-      uploadDate: "2024-05-21",
-      size: "4.8 MB",
       dimensions: "1920x1080"
     }
   ],
@@ -254,7 +241,7 @@ const INITIAL_GALLERY_DATA: Gallery = {
 // Custom Hooks
 const useGallery = () => {
   const [gallery, setGallery] = useState<Gallery>(INITIAL_GALLERY_DATA);
-  
+ 
   const addAlbum = useCallback((album: Omit<Album, 'id' | 'coverImage' | 'itemCount' | 'createdAt'>) => {
     const newAlbum: Album = {
       ...album,
@@ -270,7 +257,7 @@ const useGallery = () => {
   const updateAlbum = useCallback((id: number, updates: Partial<Album>) => {
     setGallery(prev => ({
       ...prev,
-      albums: prev.albums.map(album => 
+      albums: prev.albums.map(album =>
         album.id === id ? { ...album, ...updates } : album
       )
     }));
@@ -313,7 +300,7 @@ const useGallery = () => {
   const updateMedia = useCallback((id: number, updates: Partial<MediaItem>) => {
     setGallery(prev => ({
       ...prev,
-      media: prev.media.map(media => 
+      media: prev.media.map(media =>
         media.id === id ? { ...media, ...updates } : media
       )
     }));
@@ -323,7 +310,7 @@ const useGallery = () => {
     setGallery(prev => {
       const mediaToDelete = prev.media.find(media => media.id === id);
       const updatedMedia = prev.media.filter(media => media.id !== id);
-      
+     
       return {
         ...prev,
         media: updatedMedia,
@@ -365,7 +352,7 @@ const useMediaForm = (initialState: MediaFormData) => {
   const [form, setForm] = useState<MediaFormData>(initialState);
 
   const updateField = useCallback((
-    field: 'title' | 'description',
+    field: 'title' | 'description' | 'location',
     language: Language,
     value: string
   ) => {
@@ -375,13 +362,17 @@ const useMediaForm = (initialState: MediaFormData) => {
     }));
   }, []);
 
+  const setCaptureDate = useCallback((date: string) => {
+    setForm(prev => ({ ...prev, captureDate: date }));
+  }, []);
+
   const setFormData = useCallback((data: MediaFormData) => {
     setForm(data);
   }, []);
 
   const reset = useCallback(() => setForm(initialState), [initialState]);
 
-  return { form, updateField, setFormData, reset };
+  return { form, updateField, setCaptureDate, setFormData, reset };
 };
 
 // Utility Functions
@@ -417,8 +408,15 @@ const validateForm = (form: AlbumFormData | MediaFormData, type: 'album' | 'medi
       if (!(form as MediaFormData).description?.[value]?.trim()) {
         missingFields.push(`${label} description`);
       }
+      if (!(form as MediaFormData).location?.[value]?.trim()) {
+        missingFields.push(`${label} location`);
+      }
     }
   });
+
+  if (type === 'media' && !(form as MediaFormData).captureDate) {
+    missingFields.push('capture date');
+  }
 
   if (missingFields.length > 0) {
     return `Please fill in: ${missingFields.join(', ')}`;
@@ -461,12 +459,12 @@ const AlertMessage: React.FC<{
     error: 'bg-red-50 border-red-200 text-red-800',
     success: 'bg-green-50 border-green-200 text-green-800'
   };
-  
+ 
   return (
     <div className={`border rounded-md p-4 ${styles[type]}`}>
       <div className="flex items-center">
-        {type === 'error' ? 
-          <AlertCircle className="w-5 h-5 mr-2" /> : 
+        {type === 'error' ?
+          <AlertCircle className="w-5 h-5 mr-2" /> :
           <CheckCircle className="w-5 h-5 mr-2" />
         }
         <div>
@@ -506,8 +504,8 @@ const AlbumCard: React.FC<{
   onEdit: (album: Album) => void;
   onDelete: (album: Album) => void;
 }> = ({ album, currentLanguage, onView, onEdit, onDelete }) => (
-  <Card 
-    key={album.id} 
+  <Card
+    key={album.id}
     className="group cursor-pointer bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
     onClick={() => onView(album)}
   >
@@ -518,7 +516,7 @@ const AlbumCard: React.FC<{
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
+     
       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -531,7 +529,7 @@ const AlbumCard: React.FC<{
               <Edit className="w-4 h-4 mr-2" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={(e) => { e.stopPropagation(); onDelete(album); }}
               className="text-red-600"
             >
@@ -546,7 +544,7 @@ const AlbumCard: React.FC<{
         <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 mb-2">
           {album.itemCount} items
         </Badge>
-        <CardTitle className="text-lg font-semibold line-clamp-1" style={{ color: 'hsl(var(--primary))' }}>
+        <CardTitle className="text-lg font-semibold line-clamp-1">
           {album.name[currentLanguage]}
         </CardTitle>
         <CardDescription className="text-white/80 line-clamp-2 text-sm">
@@ -568,7 +566,7 @@ const MediaCard: React.FC<{
 }> = ({ media, currentLanguage, viewMode, onView, onEdit, onDelete, onDownload }) => {
   if (viewMode === 'grid') {
     return (
-      <Card 
+      <Card
         className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
         onClick={() => onView(media)}
       >
@@ -578,7 +576,7 @@ const MediaCard: React.FC<{
             alt={media.title[currentLanguage]}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-          
+         
           <div className="absolute top-2 left-2">
             <Badge className="bg-blue-500/90 text-white backdrop-blur-sm border-0">
               <ImageIcon className="w-3 h-3 mr-1" />
@@ -624,16 +622,15 @@ const MediaCard: React.FC<{
 
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
             <div className="text-white">
-              <p className="font-semibold text-sm line-clamp-1" style={{ color: 'hsl(var(--primary))' }}>
-                {media.title[currentLanguage]}
-              </p>
+              <p className="font-semibold text-sm line-clamp-1">{media.title[currentLanguage]}</p>
               <div className="flex items-center gap-2 text-xs text-white/80 mt-1">
-                <span>{media.uploadDate}</span>
+                <span>{media.captureDate}</span>
                 <span>•</span>
-                <span>{media.size}</span>
-                <span>•</span>
-                <span>{media.dimensions}</span>
+                <span>{media.location[currentLanguage]}</span>
               </div>
+              <p className="text-xs text-white/70 line-clamp-2 mt-1">
+                {media.description[currentLanguage]}
+              </p>
             </div>
           </div>
         </div>
@@ -642,7 +639,7 @@ const MediaCard: React.FC<{
   }
 
   return (
-    <Card 
+    <Card
       className="group bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 hover:border-blue-200/50 hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden cursor-pointer"
       onClick={() => onView(media)}
     >
@@ -657,19 +654,24 @@ const MediaCard: React.FC<{
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className="font-semibold truncate" style={{ color: 'hsl(var(--primary))' }}>
-                {media.title[currentLanguage]}
-              </p>
+              <p className="font-semibold text-gray-900 truncate">{media.title[currentLanguage]}</p>
               <Badge variant="outline" className="text-xs">
                 {media.type}
               </Badge>
             </div>
+            <p className="text-sm text-gray-600 line-clamp-1 mb-1">
+              {media.description[currentLanguage]}
+            </p>
             <div className="flex items-center gap-3 text-sm text-gray-500">
-              <span>{media.uploadDate}</span>
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {media.captureDate}
+              </span>
               <span>•</span>
-              <span>{media.size}</span>
-              <span>•</span>
-              <span>{media.dimensions}</span>
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {media.location[currentLanguage]}
+              </span>
             </div>
           </div>
           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -721,7 +723,8 @@ export default function GalleryPage() {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [message, setMessage] = useState<MessageState | null>(null);
-  
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+ 
   // Unified Dialog State
   const [dialogState, setDialogState] = useState({
     createAlbum: false,
@@ -746,7 +749,7 @@ export default function GalleryPage() {
 
   const [showVideoControls, setShowVideoControls] = useState(true);
   const [videoProgress, setVideoProgress] = useState(0);
-  
+ 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -768,7 +771,9 @@ export default function GalleryPage() {
 
   const mediaForm = useMediaForm({
     title: { en: '', ta: '', si: '' },
-    description: { en: '', ta: '', si: '' }
+    description: { en: '', ta: '', si: '' },
+    location: { en: '', ta: '', si: '' },
+    captureDate: new Date().toISOString().split('T')[0]
   });
 
   // Selected items state
@@ -847,7 +852,9 @@ export default function GalleryPage() {
         if (dialog === 'editMedia') {
           mediaForm.setFormData({
             title: item.title,
-            description: { en: '', ta: '', si: '' } // Add description field if needed
+            description: item.description,
+            location: item.location,
+            captureDate: item.captureDate
           });
         }
       } else {
@@ -870,6 +877,7 @@ export default function GalleryPage() {
     albumForm.reset();
     mediaForm.reset();
     setSelectedItems({ album: null, media: null });
+    setSelectedFiles([]);
   }, [albumForm, mediaForm]);
 
   // Album operations
@@ -883,7 +891,7 @@ export default function GalleryPage() {
     const newAlbum = addAlbum(albumForm.form);
     albumForm.reset();
     setMessage({ type: 'success', title: 'Success!', message: 'Album created successfully!' });
-    
+   
     setTimeout(() => {
       setMessage(null);
       closeDialog('createAlbum');
@@ -902,7 +910,7 @@ export default function GalleryPage() {
 
     updateAlbum(selectedItems.album.id, albumForm.form);
     setMessage({ type: 'success', title: 'Success!', message: 'Album updated successfully!' });
-    
+   
     setTimeout(() => {
       setMessage(null);
       closeDialog('editAlbum');
@@ -927,10 +935,13 @@ export default function GalleryPage() {
     }
 
     updateMedia(selectedItems.media.id, {
-      title: mediaForm.form.title
+      title: mediaForm.form.title,
+      description: mediaForm.form.description,
+      location: mediaForm.form.location,
+      captureDate: mediaForm.form.captureDate
     });
     setMessage({ type: 'success', title: 'Success!', message: 'Media updated successfully!' });
-    
+   
     setTimeout(() => {
       setMessage(null);
       closeDialog('editMedia');
@@ -941,7 +952,7 @@ export default function GalleryPage() {
     if (!selectedItems.media) return;
     deleteMedia(selectedItems.media.id);
     closeDialog('deleteMedia');
-    
+   
     // Close media viewer if the deleted media is currently open
     if (selectedMedia?.id === selectedItems.media.id) {
       setDialogState(prev => ({ ...prev, mediaViewer: false }));
@@ -968,39 +979,76 @@ export default function GalleryPage() {
     }, 200);
   }, []);
 
-  const handleUploadFiles = useCallback((files: FileList | null) => {
-    if (!currentAlbum || !files) return;
+  const handleFileSelect = useCallback((files: FileList | null) => {
+    if (!files) return;
+   
+    const fileArray = Array.from(files);
+    if (fileArray.length > 10) {
+      setMessage({
+        type: 'error',
+        title: 'Too many files',
+        message: 'Maximum 10 files allowed per upload'
+      });
+      return;
+    }
+
+    // Check file sizes
+    const oversizedFiles = fileArray.filter(file => file.size > 50 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      setMessage({
+        type: 'error',
+        title: 'File too large',
+        message: 'Maximum file size is 50MB'
+      });
+      return;
+    }
+
+    setSelectedFiles(fileArray);
+    setMessage(null);
+  }, []);
+
+  const handleUploadFiles = useCallback(() => {
+    if (!currentAlbum || selectedFiles.length === 0) return;
+
+    const error = validateForm(mediaForm.form, 'media');
+    if (error) {
+      setMessage({ type: 'error', title: 'Validation Error', message: error });
+      return;
+    }
 
     const newMediaItems: Omit<MediaItem, 'id'>[] = [];
-    
-    Array.from(files).forEach((file) => {
+   
+    selectedFiles.forEach((file) => {
       const fileType = getFileType(file);
       const fileName = file.name.replace(/\.[^/.]+$/, "");
-      
+     
       const newItem: Omit<MediaItem, 'id'> = {
-        title: {
-          en: fileName,
-          ta: fileName,
-          si: fileName
-        },
+        title: mediaForm.form.title,
+        description: mediaForm.form.description,
+        location: mediaForm.form.location,
         url: URL.createObjectURL(file),
         type: fileType,
         albumId: currentAlbum.id,
         uploadDate: new Date().toISOString().split('T')[0],
+        captureDate: mediaForm.form.captureDate,
         size: formatFileSize(file.size),
         dimensions: fileType === 'image' ? '1920x1080' : '1280x720'
       };
-      
+     
       newMediaItems.push(newItem);
       simulateUploadProgress(file.name);
     });
 
     addMedia(newMediaItems);
-    closeDialog('uploadMedia');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [currentAlbum, simulateUploadProgress, addMedia, closeDialog]);
+    setMessage({ type: 'success', title: 'Success!', message: 'Media uploaded successfully!' });
+   
+    setTimeout(() => {
+      closeDialog('uploadMedia');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }, 2000);
+  }, [currentAlbum, selectedFiles, mediaForm.form, simulateUploadProgress, addMedia, closeDialog]);
 
   // Video control functions
   const togglePlayPause = useCallback(() => {
@@ -1018,10 +1066,10 @@ export default function GalleryPage() {
   const handleVolumeChange = useCallback((volume: number) => {
     if (videoRef.current) {
       videoRef.current.volume = volume;
-      setVideoControls(prev => ({ 
-        ...prev, 
+      setVideoControls(prev => ({
+        ...prev,
         volume,
-        isMuted: volume === 0 
+        isMuted: volume === 0
       }));
     }
   }, []);
@@ -1029,9 +1077,9 @@ export default function GalleryPage() {
   const toggleMute = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.muted = !videoRef.current.muted;
-      setVideoControls(prev => ({ 
-        ...prev, 
-        isMuted: !prev.isMuted 
+      setVideoControls(prev => ({
+        ...prev,
+        isMuted: !prev.isMuted
       }));
     }
   }, []);
@@ -1080,10 +1128,10 @@ export default function GalleryPage() {
     if (videoRef.current) {
       const currentTime = videoRef.current.currentTime;
       const duration = videoRef.current.duration;
-      setVideoControls(prev => ({ 
-        ...prev, 
+      setVideoControls(prev => ({
+        ...prev,
         currentTime,
-        duration 
+        duration
       }));
       setVideoProgress((currentTime / duration) * 100);
     }
@@ -1170,11 +1218,9 @@ export default function GalleryPage() {
           <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
             <FolderPlus className="w-10 h-10 text-gray-400" />
           </div>
-          <h3 className="text-xl font-semibold mb-2" style={{ color: 'hsl(var(--primary))' }}>
-            No albums found
-          </h3>
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">No albums found</h3>
           <p className="text-gray-500 mb-6">Create your first album to get started</p>
-          <Button 
+          <Button
             onClick={() => openDialog('createAlbum')}
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full"
           >
@@ -1193,15 +1239,15 @@ export default function GalleryPage() {
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-3">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={navigateBack}
                   className="rounded-full w-10 h-10 p-0 hover:bg-gray-100"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
-                  <h2 className="text-2xl font-bold truncate" style={{ color: 'hsl(var(--primary))' }}>
+                  <h2 className="text-2xl font-bold text-gray-900 truncate">
                     {currentAlbum?.name[currentLanguage]}
                   </h2>
                   <p className="text-gray-600 mt-1">{currentAlbum?.description[currentLanguage]}</p>
@@ -1213,17 +1259,17 @@ export default function GalleryPage() {
                 <span>Created {currentAlbum?.createdAt}</span>
               </div>
             </div>
-            
+           
             <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => currentAlbum && openDialog('editAlbum', currentAlbum)}
                 className="rounded-full border-gray-300"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-              {/* <Button 
+              {/* <Button
                 onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-full"
               >
@@ -1237,7 +1283,7 @@ export default function GalleryPage() {
 
       {/* View Mode Toggle */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold" style={{ color: 'hsl(var(--primary))' }}>
+        <h3 className="text-lg font-semibold text-gray-900">
           Media ({currentAlbumMedia.length})
         </h3>
         <div className="flex gap-2">
@@ -1296,22 +1342,20 @@ export default function GalleryPage() {
       ) : (
         <Card className="bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 rounded-3xl text-center py-16">
           <CardContent>
-            <div className="w-20 h-20 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+            {/* <div className="w-20 h-20 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
               <Upload className="w-10 h-10 text-blue-600" />
             </div>
-            <h3 className="text-xl font-semibold mb-2" style={{ color: 'hsl(var(--primary))' }}>
-              No media yet
-            </h3>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No media yet</h3>
             <p className="text-gray-500 mb-6 max-w-sm mx-auto">
               Start by uploading photos and videos to your album
-            </p>
-            <Button 
+            </p> */}
+            {/* <Button
               onClick={() => openDialog('uploadMedia')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full shadow-lg"
             >
               <Upload className="w-4 h-4 mr-2" />
               Upload Media
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       )}
@@ -1325,20 +1369,17 @@ export default function GalleryPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h1 
-                className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-                style={{ color: 'hsl(var(--primary))' }}
-              >
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 {currentState.view === 'albums' ? 'Gallery' : currentAlbum?.name[currentLanguage]}
               </h1>
             </div>
             <p className="text-gray-600 text-lg">
-              {currentState.view === 'albums' 
-                ? 'Organize your memories and media collections' 
+              {currentState.view === 'albums'
+                ? 'Organize your memories and media collections'
                 : currentAlbum?.description[currentLanguage]}
             </p>
           </div>
-          
+         
           <div className="flex flex-wrap gap-3">
             {/* Language Switcher */}
             <Select value={currentLanguage} onValueChange={(val: Language) => setCurrentLanguage(val)}>
@@ -1356,7 +1397,7 @@ export default function GalleryPage() {
             </Select>
 
             {currentState.view === 'album-detail' && (
-              <Button 
+              <Button
                 onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
               >
@@ -1365,7 +1406,7 @@ export default function GalleryPage() {
               </Button>
             )}
             {currentState.view === 'albums' && (
-              <Button 
+              <Button
                 onClick={() => openDialog('createAlbum')}
                 className="bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 px-6 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
               >
@@ -1378,25 +1419,25 @@ export default function GalleryPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatsCard 
+          <StatsCard
             icon={<FolderPlus className="w-6 h-6 text-blue-600" />}
             label="Total Albums"
             value={stats.totalAlbums}
             color="bg-blue-100"
           />
-          <StatsCard 
+          <StatsCard
             icon={<ImageIcon className="w-6 h-6 text-green-600" />}
             label="Total Media"
             value={stats.totalMedia}
             color="bg-green-100"
           />
-          <StatsCard 
+          <StatsCard
             icon={<FileText className="w-6 h-6 text-yellow-600" />}
             label="Images"
             value={stats.totalImages}
             color="bg-yellow-100"
           />
-          <StatsCard 
+          <StatsCard
             icon={<VideoIcon className="w-6 h-6 text-purple-600" />}
             label="Videos"
             value={stats.totalVideos}
@@ -1426,23 +1467,23 @@ export default function GalleryPage() {
         }}>
           <DialogContent className="sm:max-w-2xl rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
+              <DialogTitle className="text-xl">
                 {dialogState.createAlbum ? 'Create New Album' : 'Edit Album'}
               </DialogTitle>
               <DialogDescription>
-                {dialogState.createAlbum 
-                  ? 'Create a new album to organize your photos and videos in multiple languages' 
+                {dialogState.createAlbum
+                  ? 'Create a new album to organize your photos and videos in multiple languages'
                   : 'Update the album details in all languages'}
               </DialogDescription>
             </DialogHeader>
-            
+           
             <div className="space-y-4 py-4">
               {/* Language Tabs */}
               <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
 
               {/* Album Name */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
+                <Label className="text-sm font-medium">
                   Album Name ({getLanguageLabel(selectedLanguage)}) *
                 </Label>
                 <Input
@@ -1455,7 +1496,7 @@ export default function GalleryPage() {
 
               {/* Album Description */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
+                <Label className="text-sm font-medium">
                   Description ({getLanguageLabel(selectedLanguage)}) *
                 </Label>
                 <Textarea
@@ -1470,22 +1511,22 @@ export default function GalleryPage() {
 
             {/* Alert Messages */}
             {message && (
-              <AlertMessage 
-                type={message.type} 
-                title={message.title} 
-                message={message.message} 
+              <AlertMessage
+                type={message.type}
+                title={message.title}
+                message={message.message}
               />
             )}
 
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog(dialogState.createAlbum ? 'createAlbum' : 'editAlbum')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={dialogState.createAlbum ? handleCreateAlbum : handleEditAlbum}
                 className="rounded-lg bg-blue-600 hover:bg-blue-700"
               >
@@ -1499,21 +1540,19 @@ export default function GalleryPage() {
         <Dialog open={dialogState.editMedia} onOpenChange={(open) => !open && closeDialog('editMedia')}>
           <DialogContent className="sm:max-w-2xl rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
-                Edit Media
-              </DialogTitle>
+              <DialogTitle className="text-xl">Edit Media</DialogTitle>
               <DialogDescription>
                 Update the media details in all languages
               </DialogDescription>
             </DialogHeader>
-            
+           
             <div className="space-y-4 py-4">
               {/* Language Tabs */}
               <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
 
               {/* Media Title */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
+                <Label className="text-sm font-medium">
                   Title ({getLanguageLabel(selectedLanguage)}) *
                 </Label>
                 <Input
@@ -1524,12 +1563,48 @@ export default function GalleryPage() {
                 />
               </div>
 
+              {/* Media Description */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Description ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
+                <Textarea
+                  value={mediaForm.form.description[selectedLanguage]}
+                  onChange={(e) => mediaForm.updateField('description', selectedLanguage, e.target.value)}
+                  placeholder={`Enter description in ${getLanguageLabel(selectedLanguage)}`}
+                  rows={3}
+                  className="rounded-lg"
+                />
+              </div>
+
+              {/* Media Location */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Location ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
+                <Input
+                  value={mediaForm.form.location[selectedLanguage]}
+                  onChange={(e) => mediaForm.updateField('location', selectedLanguage, e.target.value)}
+                  placeholder={`Enter location in ${getLanguageLabel(selectedLanguage)}`}
+                  className="rounded-lg"
+                />
+              </div>
+
+              {/* Capture Date */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Capture Date *</Label>
+                <Input
+                  type="date"
+                  value={mediaForm.form.captureDate}
+                  onChange={(e) => mediaForm.setCaptureDate(e.target.value)}
+                  className="rounded-lg"
+                />
+              </div>
+
               {/* Media Preview */}
               {selectedItems.media && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
-                    Preview
-                  </Label>
+                  <Label className="text-sm font-medium">Preview</Label>
                   <div className="w-32 h-32 rounded-lg overflow-hidden border">
                     <img
                       src={selectedItems.media.url}
@@ -1543,22 +1618,22 @@ export default function GalleryPage() {
 
             {/* Alert Messages */}
             {message && (
-              <AlertMessage 
-                type={message.type} 
-                title={message.title} 
-                message={message.message} 
+              <AlertMessage
+                type={message.type}
+                title={message.title}
+                message={message.message}
               />
             )}
 
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('editMedia')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleEditMedia}
                 className="rounded-lg bg-blue-600 hover:bg-blue-700"
               >
@@ -1568,53 +1643,130 @@ export default function GalleryPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Upload Media Dialog */}
+        {/* Upload Media Dialog - UPDATED WITH SCROLL */}
         <Dialog open={dialogState.uploadMedia} onOpenChange={(open) => !open && closeDialog('uploadMedia')}>
-          <DialogContent className="sm:max-w-lg rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
-                Add Media to Album
-              </DialogTitle>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] rounded-2xl flex flex-col">
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle className="text-xl">Add Media to Album</DialogTitle>
               <DialogDescription>
                 Upload photos and videos to "{currentAlbum?.name[currentLanguage]}"
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div 
+           
+            <div className="flex-1 overflow-y-auto space-y-6 py-4 pr-2">
+              {/* File Upload Area */}
+              <div
                 className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-400 transition-colors duration-200 cursor-pointer bg-gray-50/50"
                 onClick={triggerFileInput}
               >
                 <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-lg font-medium mb-2" style={{ color: 'hsl(var(--primary))' }}>
-                  Drop files here or click to upload
-                </p>
+                <p className="text-lg font-medium text-gray-700 mb-2">Drop files here or click to upload</p>
                 <p className="text-sm text-gray-500">Supports images and videos (Max: 10 files, 50MB each)</p>
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
                   accept="image/*,video/*"
-                  onChange={(e) => handleUploadFiles(e.target.files)}
+                  onChange={(e) => handleFileSelect(e.target.files)}
                   className="hidden"
                 />
+              </div>
+
+              {/* Selected Files */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Selected Files ({selectedFiles.length})</Label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          {file.type.startsWith('image/') ? (
+                            <ImageIcon className="w-4 h-4 text-blue-500" />
+                          ) : (
+                            <VideoIcon className="w-4 h-4 text-purple-500" />
+                          )}
+                          <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {formatFileSize(file.size)}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Media Details Form */}
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-medium text-gray-900">Media Details</h4>
+               
+                {/* Language Tabs */}
+                <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
+
+                {/* Media Title */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Title ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
+                  <Input
+                    value={mediaForm.form.title[selectedLanguage]}
+                    onChange={(e) => mediaForm.updateField('title', selectedLanguage, e.target.value)}
+                    placeholder={`Enter title in ${getLanguageLabel(selectedLanguage)}`}
+                    className="rounded-lg"
+                  />
+                </div>
+
+                {/* Media Description */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Description ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
+                  <Textarea
+                    value={mediaForm.form.description[selectedLanguage]}
+                    onChange={(e) => mediaForm.updateField('description', selectedLanguage, e.target.value)}
+                    placeholder={`Enter description in ${getLanguageLabel(selectedLanguage)}`}
+                    rows={3}
+                    className="rounded-lg"
+                  />
+                </div>
+
+                {/* Media Location */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Location ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
+                  <Input
+                    value={mediaForm.form.location[selectedLanguage]}
+                    onChange={(e) => mediaForm.updateField('location', selectedLanguage, e.target.value)}
+                    placeholder={`Enter location in ${getLanguageLabel(selectedLanguage)}`}
+                    className="rounded-lg"
+                  />
+                </div>
+
+                {/* Capture Date */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Capture Date *</Label>
+                  <Input
+                    type="date"
+                    value={mediaForm.form.captureDate}
+                    onChange={(e) => mediaForm.setCaptureDate(e.target.value)}
+                    className="rounded-lg"
+                  />
+                </div>
               </div>
 
               {/* Upload Progress */}
               {Object.keys(uploadProgress).length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium" style={{ color: 'hsl(var(--primary))' }}>
-                    Upload Progress
-                  </Label>
+                  <Label className="text-sm font-medium">Upload Progress</Label>
                   {Object.entries(uploadProgress).map(([fileName, progress]) => (
                     <div key={fileName} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="truncate" style={{ color: 'hsl(var(--primary))' }}>
-                          {fileName}
-                        </span>
+                        <span className="text-gray-700 truncate">{fileName}</span>
                         <span className="text-gray-500">{Math.round(progress)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${progress}%` }}
                         />
@@ -1624,13 +1776,33 @@ export default function GalleryPage() {
                 </div>
               )}
             </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
+
+            {/* Alert Messages */}
+            {message && (
+              <div className="flex-shrink-0">
+                <AlertMessage
+                  type={message.type}
+                  title={message.title}
+                  message={message.message}
+                />
+              </div>
+            )}
+
+            <DialogFooter className="flex-shrink-0 pt-4 border-t">
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('uploadMedia')}
                 className="rounded-lg"
               >
                 Cancel
+              </Button>
+              <Button
+                onClick={handleUploadFiles}
+                disabled={selectedFiles.length === 0}
+                className="rounded-lg bg-blue-600 hover:bg-blue-700"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1640,23 +1812,21 @@ export default function GalleryPage() {
         <Dialog open={dialogState.deleteAlbum} onOpenChange={(open) => !open && closeDialog('deleteAlbum')}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
-                Delete Album
-              </DialogTitle>
+              <DialogTitle className="text-xl">Delete Album</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{selectedItems.album?.name[currentLanguage]}"? 
+                Are you sure you want to delete "{selectedItems.album?.name[currentLanguage]}"?
                 This will also remove all {selectedItems.album?.itemCount} items in this album.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('deleteAlbum')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={handleDeleteAlbum}
                 className="rounded-lg"
@@ -1671,23 +1841,23 @@ export default function GalleryPage() {
         <Dialog open={dialogState.deleteMedia} onOpenChange={(open) => !open && closeDialog('deleteMedia')}>
           <DialogContent className="sm:max-w-md rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>
+              <DialogTitle className="text-xl">
                 Delete Media
               </DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{selectedItems.media?.title[currentLanguage]}"? 
+                Are you sure you want to delete "{selectedItems.media?.title[currentLanguage]}"?
                 This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => closeDialog('deleteMedia')}
                 className="rounded-lg"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={handleDeleteMedia}
                 className="rounded-lg"
@@ -1701,7 +1871,7 @@ export default function GalleryPage() {
         {/* Media Viewer Dialog */}
         <Dialog open={dialogState.mediaViewer} onOpenChange={(open) => !open && closeDialog('mediaViewer')}>
           <DialogContent className="max-w-7xl rounded-2xl p-0 overflow-hidden bg-black">
-            <div 
+            <div
               ref={mediaViewerRef}
               className="relative w-full h-[80vh] bg-black flex items-center justify-center"
             >
@@ -1712,22 +1882,29 @@ export default function GalleryPage() {
                     alt={selectedMedia.title[currentLanguage]}
                     className="max-w-full max-h-full object-contain"
                   />
-                  
+                 
                   {/* Media Info Overlay */}
                   <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                     <div className="text-white">
                       <h3 className="text-xl font-semibold">{selectedMedia.title[currentLanguage]}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-300 mt-1">
+                      <p className="text-gray-300 text-sm mt-1">{selectedMedia.description[currentLanguage]}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-300 mt-2">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {selectedMedia.captureDate}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          {selectedMedia.location[currentLanguage]}
+                        </span>
+                        <span>•</span>
                         <span>{selectedMedia.type}</span>
                         <span>•</span>
                         <span>{selectedMedia.size}</span>
-                        <span>•</span>
-                        <span>{selectedMedia.dimensions}</span>
-                        <span>•</span>
-                        <span>{selectedMedia.uploadDate}</span>
                       </div>
                     </div>
-                    
+                   
                     <div className="flex gap-2">
                       <Button
                         variant="secondary"
