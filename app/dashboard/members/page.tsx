@@ -127,18 +127,6 @@ interface Member {
   email: string;
   enabled: boolean;
   profile: string;
-  tenure: {
-    startDate: {
-      english: string;
-      tamil: string;
-      sinhala: string;
-    };
-    currentTerm: {
-      english: string;
-      tamil: string;
-      sinhala: string;
-    };
-  };
   message: {
     english: string;
     tamil: string;
@@ -391,7 +379,7 @@ const LanguageFormSection = ({
       </div>
 
       {/* Address Field */}
-      <div>
+      {/* <div>
         <Label htmlFor={`address-${language}`} className="text-sm sm:text-base">
           Address in {languageNames[language]}
         </Label>
@@ -402,7 +390,7 @@ const LanguageFormSection = ({
           placeholder={`Enter address in ${languageNames[language]}`}
           className="mt-1 text-sm sm:text-base"
         />
-      </div>
+      </div> */}
     </div>
   );
 };
@@ -425,18 +413,6 @@ const initialMembers: Member[] = [
     email: "john@example.com",
     enabled: true,
     profile: "https://i.pravatar.cc/150?img=1",
-    tenure: {
-      startDate: {
-        english: "January 2023",
-        tamil: "ஜனவரி 2023",
-        sinhala: "2023 ජනවාරි"
-      },
-      currentTerm: {
-        english: "2023-2027",
-        tamil: "2023-2027",
-        sinhala: "2023-2027"
-      }
-    },
     message: {
       english: "Dedicated to serving our community with integrity and commitment.",
       tamil: "ஒருமைப்பாடு மற்றும் அர்ப்பணிப்புடன் எங்கள் சமூகத்திற்கு சேவை செய்ய அர்ப்பணிக்கப்பட்டுள்ளேன்.",
@@ -567,10 +543,6 @@ export default function CouncilMemberPage() {
     phone: "",
     email: "",
     profile: "",
-    tenure: {
-      startDate: { english: "", tamil: "", sinhala: "" },
-      currentTerm: { english: "", tamil: "", sinhala: "" }
-    },
     address: { english: "", tamil: "", sinhala: "" },
     message: { english: "", tamil: "", sinhala: "" }
   });
@@ -624,21 +596,6 @@ export default function CouncilMemberPage() {
       errors.push({
         field: 'email',
         message: 'Please enter a valid email address'
-      });
-    }
-
-    // Validate tenure dates format (optional but helpful)
-    if (data.tenure.startDate.english && !/^[a-zA-Z]+\s\d{4}$/.test(data.tenure.startDate.english)) {
-      errors.push({
-        field: 'tenure',
-        message: 'Start date should be in format "Month Year" (e.g., January 2023)'
-      });
-    }
-
-    if (data.tenure.currentTerm.english && !/^\d{4}-\d{4}$/.test(data.tenure.currentTerm.english)) {
-      errors.push({
-        field: 'tenure',
-        message: 'Current term should be in format "YYYY-YYYY" (e.g., 2023-2027)'
       });
     }
 
@@ -709,22 +666,6 @@ export default function CouncilMemberPage() {
     setFormData(prev => ({...prev, profile: ""}));
   };
 
-  // ✅ Auto-fill handlers
-  const handleTenureChange = (field: 'startDate' | 'currentTerm', value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tenure: {
-        ...prev.tenure,
-        [field]: {
-          english: value,
-          tamil: value,
-          sinhala: value
-        }
-      }
-    }));
-    clearFieldErrors('tenure');
-  };
-
   const handleRoleChange = (englishRole: string) => {
     const selectedRole = ROLES.find(r => r.english === englishRole) || ROLES[0];
     setFormData(prev => ({
@@ -773,7 +714,6 @@ export default function CouncilMemberPage() {
       email: formData.email,
       enabled: true,
       profile: formData.profile || "https://i.pravatar.cc/150?img=10",
-      tenure: formData.tenure,
       message: formData.message,
       address: formData.address
     };
@@ -804,7 +744,6 @@ export default function CouncilMemberPage() {
                 phone: formData.phone,
                 email: formData.email,
                 profile: formData.profile || m.profile,
-                tenure: formData.tenure,
                 message: formData.message,
                 address: formData.address
               }
@@ -839,7 +778,6 @@ export default function CouncilMemberPage() {
       phone: member.phone,
       email: member.email,
       profile: member.profile,
-      tenure: member.tenure,
       message: member.message,
       address: member.address
     });
@@ -859,10 +797,6 @@ export default function CouncilMemberPage() {
       phone: "",
       email: "",
       profile: "",
-      tenure: {
-        startDate: { english: "", tamil: "", sinhala: "" },
-        currentTerm: { english: "", tamil: "", sinhala: "" }
-      },
       address: { english: "", tamil: "", sinhala: "" },
       message: { english: "", tamil: "", sinhala: "" }
     });
@@ -873,7 +807,6 @@ export default function CouncilMemberPage() {
   const CommonFormFields = () => {
     const phoneError = getFieldError('phone');
     const emailError = getFieldError('email');
-    const tenureError = getFieldError('tenure');
 
     return (
       <div className="space-y-6 border-t pt-6">
@@ -915,40 +848,6 @@ export default function CouncilMemberPage() {
           </div>
         </div>
 
-        {/* Tenure Information */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg">Tenure Information</h3>
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm sm:text-base">Start Date</Label>
-              <Input
-                value={formData.tenure.startDate.english}
-                onChange={(e) => handleTenureChange('startDate', e.target.value)}
-                placeholder="e.g., January 2023"
-                className={`text-sm sm:text-base ${tenureError ? "border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500" : ""}`}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm sm:text-base">Current Term</Label>
-              <Input
-                value={formData.tenure.currentTerm.english}
-                onChange={(e) => handleTenureChange('currentTerm', e.target.value)}
-                placeholder="e.g., 2023-2027"
-                className={`text-sm sm:text-base ${tenureError ? "border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500" : ""}`}
-              />
-            </div>
-          </div>
-          {tenureError && (
-            <p className="text-yellow-700 text-xs sm:text-sm mt-1 flex items-center gap-1 bg-yellow-50 p-2 rounded">
-              <AlertCircle className="w-3 h-3 flex-shrink-0" />
-              {tenureError.message}
-            </p>
-          )}
-          <p className="text-xs sm:text-sm text-gray-500">
-            Note: Tenure information will be automatically applied to all languages
-          </p>
-        </div>
-
         {/* Role & Profile */}
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">Role & Profile</h3>
@@ -984,33 +883,7 @@ export default function CouncilMemberPage() {
         </div>
 
         {/* Auto-fill Message and Address */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg">Additional Information (Auto-fill)</h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm sm:text-base">Message (English)</Label>
-              <Textarea
-                value={formData.message.english}
-                onChange={(e) => handleEnglishFieldChange('message', e.target.value)}
-                placeholder="Enter message in English (will auto-fill other languages)"
-                rows={3}
-                className="text-sm sm:text-base"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm sm:text-base">Address (English)</Label>
-              <Input
-                value={formData.address.english}
-                onChange={(e) => handleEnglishFieldChange('address', e.target.value)}
-                placeholder="Enter address in English (will auto-fill other languages)"
-                className="text-sm sm:text-base"
-              />
-            </div>
-          </div>
-          <p className="text-xs sm:text-sm text-gray-500">
-            Note: Message and Address entered in English will be automatically applied to all languages
-          </p>
-        </div>
+
       </div>
     );
   };
@@ -1329,15 +1202,7 @@ export default function CouncilMemberPage() {
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                          <span className="text-sm sm:text-base">Term: {selectedMember.tenure.currentTerm[code]}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
                           <User className="w-4 h-4 text-orange-600 flex-shrink-0" />
-                          <span className="text-sm sm:text-base">Since: {selectedMember.tenure.startDate[code]}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <ToggleRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
                           <span className="text-sm sm:text-base">Status: {selectedMember.enabled ? "Enabled" : "Disabled"}</span>
                         </div>
                       </div>

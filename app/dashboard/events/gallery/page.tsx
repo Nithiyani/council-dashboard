@@ -48,7 +48,9 @@ import {
   AlertCircle,
   CheckCircle,
   Languages,
-  Eye
+  Eye,
+  Calendar,
+  MapPin
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -82,10 +84,13 @@ interface Album {
 interface MediaItem {
   id: number;
   title: LocalizedText;
+  description: LocalizedText;
+  location: LocalizedText;
   url: string;
   type: MediaType;
   albumId: number;
   uploadDate: string;
+  captureDate: string;
   size?: string;
   duration?: string;
   dimensions?: string;
@@ -120,6 +125,8 @@ interface AlbumFormData {
 interface MediaFormData {
   title: LocalizedText;
   description: LocalizedText;
+  location: LocalizedText;
+  captureDate: string;
 }
 
 interface MessageState {
@@ -185,10 +192,21 @@ const INITIAL_GALLERY_DATA: Gallery = {
         ta: "கடற்கரை சூரிய அஸ்தமனம்",
         si: "වෙරළ සූර්යාස්තමයන්"
       },
+      description: {
+        en: "Beautiful sunset at the beach",
+        ta: "கடற்கரையில் அழகான சூரிய அஸ்தமனம்",
+        si: "වෙරළේ ලස්සන සූර්යාස්තමයන්"
+      },
+      location: {
+        en: "Bentota Beach",
+        ta: "பெண்டோட்டா கடற்கரை",
+        si: "බෙන්තොට වෙරළ"
+      },
       url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop",
       type: 'image',
       albumId: 1,
       uploadDate: "2024-06-15",
+      captureDate: "2024-06-15",
       size: "4.2 MB",
       dimensions: "1920x1080"
     },
@@ -199,53 +217,22 @@ const INITIAL_GALLERY_DATA: Gallery = {
         ta: "மலை ஹைக்கிங்",
         si: "පර්වත ගමන්"
       },
+      description: {
+        en: "Hiking through beautiful mountains",
+        ta: "அழகான மலைகள் வழியாக நடைப்பயணம்",
+        si: "ලස්සන පර්වත හරහා ගමන් කිරීම"
+      },
+      location: {
+        en: "Ella, Sri Lanka",
+        ta: "எல்லா, இலங்கை",
+        si: "ඇල්ල, ශ්‍රී ලංකාව"
+      },
       url: "https://images.unsplash.com/photo-1464822759844-b28c9536c9b4?w=800&h=600&fit=crop",
       type: 'image',
       albumId: 1,
       uploadDate: "2024-06-16",
+      captureDate: "2024-06-16",
       size: "3.8 MB",
-      dimensions: "1920x1080"
-    },
-    {
-      id: 3,
-      title: {
-        en: "Forest Adventure",
-        ta: "காட்டு சாகசம்",
-        si: "වන සාරය"
-      },
-      url: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop",
-      type: 'image',
-      albumId: 1,
-      uploadDate: "2024-06-17",
-      size: "5.1 MB",
-      dimensions: "1920x1080"
-    },
-    {
-      id: 4,
-      title: {
-        en: "Birthday Celebration",
-        ta: "பிறந்தநாள் கொண்டாட்டம்",
-        si: "උපන්දින උත්සවය"
-      },
-      url: "https://images.unsplash.com/photo-1511988617509-a57c8a288659?w=800&h=600&fit=crop",
-      type: 'image',
-      albumId: 2,
-      uploadDate: "2024-05-20",
-      size: "4.5 MB",
-      dimensions: "1920x1080"
-    },
-    {
-      id: 5,
-      title: {
-        en: "Family Gathering",
-        ta: "குடும்ப கூட்டம்",
-        si: "පවුල් රැස්වීම"
-      },
-      url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&h=600&fit=crop",
-      type: 'image',
-      albumId: 2,
-      uploadDate: "2024-05-21",
-      size: "4.8 MB",
       dimensions: "1920x1080"
     }
   ],
@@ -365,7 +352,7 @@ const useMediaForm = (initialState: MediaFormData) => {
   const [form, setForm] = useState<MediaFormData>(initialState);
 
   const updateField = useCallback((
-    field: 'title' | 'description',
+    field: 'title' | 'description' | 'location',
     language: Language,
     value: string
   ) => {
@@ -375,13 +362,17 @@ const useMediaForm = (initialState: MediaFormData) => {
     }));
   }, []);
 
+  const setCaptureDate = useCallback((date: string) => {
+    setForm(prev => ({ ...prev, captureDate: date }));
+  }, []);
+
   const setFormData = useCallback((data: MediaFormData) => {
     setForm(data);
   }, []);
 
   const reset = useCallback(() => setForm(initialState), [initialState]);
 
-  return { form, updateField, setFormData, reset };
+  return { form, updateField, setCaptureDate, setFormData, reset };
 };
 
 // Utility Functions
@@ -417,8 +408,15 @@ const validateForm = (form: AlbumFormData | MediaFormData, type: 'album' | 'medi
       if (!(form as MediaFormData).description?.[value]?.trim()) {
         missingFields.push(`${label} description`);
       }
+      if (!(form as MediaFormData).location?.[value]?.trim()) {
+        missingFields.push(`${label} location`);
+      }
     }
   });
+
+  if (type === 'media' && !(form as MediaFormData).captureDate) {
+    missingFields.push('capture date');
+  }
 
   if (missingFields.length > 0) {
     return `Please fill in: ${missingFields.join(', ')}`;
@@ -626,12 +624,13 @@ const MediaCard: React.FC<{
             <div className="text-white">
               <p className="font-semibold text-sm line-clamp-1">{media.title[currentLanguage]}</p>
               <div className="flex items-center gap-2 text-xs text-white/80 mt-1">
-                <span>{media.uploadDate}</span>
+                <span>{media.captureDate}</span>
                 <span>•</span>
-                <span>{media.size}</span>
-                <span>•</span>
-                <span>{media.dimensions}</span>
+                <span>{media.location[currentLanguage]}</span>
               </div>
+              <p className="text-xs text-white/70 line-clamp-2 mt-1">
+                {media.description[currentLanguage]}
+              </p>
             </div>
           </div>
         </div>
@@ -660,12 +659,19 @@ const MediaCard: React.FC<{
                 {media.type}
               </Badge>
             </div>
+            <p className="text-sm text-gray-600 line-clamp-1 mb-1">
+              {media.description[currentLanguage]}
+            </p>
             <div className="flex items-center gap-3 text-sm text-gray-500">
-              <span>{media.uploadDate}</span>
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {media.captureDate}
+              </span>
               <span>•</span>
-              <span>{media.size}</span>
-              <span>•</span>
-              <span>{media.dimensions}</span>
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {media.location[currentLanguage]}
+              </span>
             </div>
           </div>
           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -717,6 +723,7 @@ export default function GalleryPage() {
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [message, setMessage] = useState<MessageState | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   
   // Unified Dialog State
   const [dialogState, setDialogState] = useState({
@@ -764,7 +771,9 @@ export default function GalleryPage() {
 
   const mediaForm = useMediaForm({
     title: { en: '', ta: '', si: '' },
-    description: { en: '', ta: '', si: '' }
+    description: { en: '', ta: '', si: '' },
+    location: { en: '', ta: '', si: '' },
+    captureDate: new Date().toISOString().split('T')[0]
   });
 
   // Selected items state
@@ -843,7 +852,9 @@ export default function GalleryPage() {
         if (dialog === 'editMedia') {
           mediaForm.setFormData({
             title: item.title,
-            description: { en: '', ta: '', si: '' } // Add description field if needed
+            description: item.description,
+            location: item.location,
+            captureDate: item.captureDate
           });
         }
       } else {
@@ -866,6 +877,7 @@ export default function GalleryPage() {
     albumForm.reset();
     mediaForm.reset();
     setSelectedItems({ album: null, media: null });
+    setSelectedFiles([]);
   }, [albumForm, mediaForm]);
 
   // Album operations
@@ -923,7 +935,10 @@ export default function GalleryPage() {
     }
 
     updateMedia(selectedItems.media.id, {
-      title: mediaForm.form.title
+      title: mediaForm.form.title,
+      description: mediaForm.form.description,
+      location: mediaForm.form.location,
+      captureDate: mediaForm.form.captureDate
     });
     setMessage({ type: 'success', title: 'Success!', message: 'Media updated successfully!' });
     
@@ -964,25 +979,58 @@ export default function GalleryPage() {
     }, 200);
   }, []);
 
-  const handleUploadFiles = useCallback((files: FileList | null) => {
-    if (!currentAlbum || !files) return;
+  const handleFileSelect = useCallback((files: FileList | null) => {
+    if (!files) return;
+    
+    const fileArray = Array.from(files);
+    if (fileArray.length > 10) {
+      setMessage({ 
+        type: 'error', 
+        title: 'Too many files', 
+        message: 'Maximum 10 files allowed per upload' 
+      });
+      return;
+    }
+
+    // Check file sizes
+    const oversizedFiles = fileArray.filter(file => file.size > 50 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      setMessage({ 
+        type: 'error', 
+        title: 'File too large', 
+        message: 'Maximum file size is 50MB' 
+      });
+      return;
+    }
+
+    setSelectedFiles(fileArray);
+    setMessage(null);
+  }, []);
+
+  const handleUploadFiles = useCallback(() => {
+    if (!currentAlbum || selectedFiles.length === 0) return;
+
+    const error = validateForm(mediaForm.form, 'media');
+    if (error) {
+      setMessage({ type: 'error', title: 'Validation Error', message: error });
+      return;
+    }
 
     const newMediaItems: Omit<MediaItem, 'id'>[] = [];
     
-    Array.from(files).forEach((file) => {
+    selectedFiles.forEach((file) => {
       const fileType = getFileType(file);
       const fileName = file.name.replace(/\.[^/.]+$/, "");
       
       const newItem: Omit<MediaItem, 'id'> = {
-        title: {
-          en: fileName,
-          ta: fileName,
-          si: fileName
-        },
+        title: mediaForm.form.title,
+        description: mediaForm.form.description,
+        location: mediaForm.form.location,
         url: URL.createObjectURL(file),
         type: fileType,
         albumId: currentAlbum.id,
         uploadDate: new Date().toISOString().split('T')[0],
+        captureDate: mediaForm.form.captureDate,
         size: formatFileSize(file.size),
         dimensions: fileType === 'image' ? '1920x1080' : '1280x720'
       };
@@ -992,11 +1040,15 @@ export default function GalleryPage() {
     });
 
     addMedia(newMediaItems);
-    closeDialog('uploadMedia');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  }, [currentAlbum, simulateUploadProgress, addMedia, closeDialog]);
+    setMessage({ type: 'success', title: 'Success!', message: 'Media uploaded successfully!' });
+    
+    setTimeout(() => {
+      closeDialog('uploadMedia');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }, 2000);
+  }, [currentAlbum, selectedFiles, mediaForm.form, simulateUploadProgress, addMedia, closeDialog]);
 
   // Video control functions
   const togglePlayPause = useCallback(() => {
@@ -1217,13 +1269,13 @@ export default function GalleryPage() {
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-              <Button 
+              {/* <Button 
                 onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Media
-              </Button>
+              </Button> */}
             </div>
           </div>
         </CardContent>
@@ -1290,20 +1342,20 @@ export default function GalleryPage() {
       ) : (
         <Card className="bg-white/80 backdrop-blur-sm border-2 border-gray-100/50 rounded-3xl text-center py-16">
           <CardContent>
-            <div className="w-20 h-20 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+            {/* <div className="w-20 h-20 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
               <Upload className="w-10 h-10 text-blue-600" />
             </div>
             <h3 className="text-xl font-semibold text-gray-700 mb-2">No media yet</h3>
             <p className="text-gray-500 mb-6 max-w-sm mx-auto">
               Start by uploading photos and videos to your album
-            </p>
-            <Button 
+            </p> */}
+            {/* <Button 
               onClick={() => openDialog('uploadMedia')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full shadow-lg"
             >
               <Upload className="w-4 h-4 mr-2" />
               Upload Media
-            </Button>
+            </Button> */}
           </CardContent>
         </Card>
       )}
@@ -1511,6 +1563,44 @@ export default function GalleryPage() {
                 />
               </div>
 
+              {/* Media Description */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Description ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
+                <Textarea
+                  value={mediaForm.form.description[selectedLanguage]}
+                  onChange={(e) => mediaForm.updateField('description', selectedLanguage, e.target.value)}
+                  placeholder={`Enter description in ${getLanguageLabel(selectedLanguage)}`}
+                  rows={3}
+                  className="rounded-lg"
+                />
+              </div>
+
+              {/* Media Location */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Location ({getLanguageLabel(selectedLanguage)}) *
+                </Label>
+                <Input
+                  value={mediaForm.form.location[selectedLanguage]}
+                  onChange={(e) => mediaForm.updateField('location', selectedLanguage, e.target.value)}
+                  placeholder={`Enter location in ${getLanguageLabel(selectedLanguage)}`}
+                  className="rounded-lg"
+                />
+              </div>
+
+              {/* Capture Date */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Capture Date *</Label>
+                <Input
+                  type="date"
+                  value={mediaForm.form.captureDate}
+                  onChange={(e) => mediaForm.setCaptureDate(e.target.value)}
+                  className="rounded-lg"
+                />
+              </div>
+
               {/* Media Preview */}
               {selectedItems.media && (
                 <div className="space-y-2">
@@ -1553,16 +1643,18 @@ export default function GalleryPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Upload Media Dialog */}
+        {/* Upload Media Dialog - UPDATED WITH SCROLL */}
         <Dialog open={dialogState.uploadMedia} onOpenChange={(open) => !open && closeDialog('uploadMedia')}>
-          <DialogContent className="sm:max-w-lg rounded-2xl">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] rounded-2xl flex flex-col">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle className="text-xl">Add Media to Album</DialogTitle>
               <DialogDescription>
                 Upload photos and videos to "{currentAlbum?.name[currentLanguage]}"
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            
+            <div className="flex-1 overflow-y-auto space-y-6 py-4 pr-2">
+              {/* File Upload Area */}
               <div 
                 className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:border-blue-400 transition-colors duration-200 cursor-pointer bg-gray-50/50"
                 onClick={triggerFileInput}
@@ -1575,9 +1667,92 @@ export default function GalleryPage() {
                   type="file"
                   multiple
                   accept="image/*,video/*"
-                  onChange={(e) => handleUploadFiles(e.target.files)}
+                  onChange={(e) => handleFileSelect(e.target.files)}
                   className="hidden"
                 />
+              </div>
+
+              {/* Selected Files */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Selected Files ({selectedFiles.length})</Label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          {file.type.startsWith('image/') ? (
+                            <ImageIcon className="w-4 h-4 text-blue-500" />
+                          ) : (
+                            <VideoIcon className="w-4 h-4 text-purple-500" />
+                          )}
+                          <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {formatFileSize(file.size)}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Media Details Form */}
+              <div className="space-y-4 border-t pt-4">
+                <h4 className="font-medium text-gray-900">Media Details</h4>
+                
+                {/* Language Tabs */}
+                <LanguageTabs value={selectedLanguage} onChange={setSelectedLanguage} />
+
+                {/* Media Title */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Title ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
+                  <Input
+                    value={mediaForm.form.title[selectedLanguage]}
+                    onChange={(e) => mediaForm.updateField('title', selectedLanguage, e.target.value)}
+                    placeholder={`Enter title in ${getLanguageLabel(selectedLanguage)}`}
+                    className="rounded-lg"
+                  />
+                </div>
+
+                {/* Media Description */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Description ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
+                  <Textarea
+                    value={mediaForm.form.description[selectedLanguage]}
+                    onChange={(e) => mediaForm.updateField('description', selectedLanguage, e.target.value)}
+                    placeholder={`Enter description in ${getLanguageLabel(selectedLanguage)}`}
+                    rows={3}
+                    className="rounded-lg"
+                  />
+                </div>
+
+                {/* Media Location */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    Location ({getLanguageLabel(selectedLanguage)}) *
+                  </Label>
+                  <Input
+                    value={mediaForm.form.location[selectedLanguage]}
+                    onChange={(e) => mediaForm.updateField('location', selectedLanguage, e.target.value)}
+                    placeholder={`Enter location in ${getLanguageLabel(selectedLanguage)}`}
+                    className="rounded-lg"
+                  />
+                </div>
+
+                {/* Capture Date */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Capture Date *</Label>
+                  <Input
+                    type="date"
+                    value={mediaForm.form.captureDate}
+                    onChange={(e) => mediaForm.setCaptureDate(e.target.value)}
+                    className="rounded-lg"
+                  />
+                </div>
               </div>
 
               {/* Upload Progress */}
@@ -1601,13 +1776,33 @@ export default function GalleryPage() {
                 </div>
               )}
             </div>
-            <DialogFooter>
+
+            {/* Alert Messages */}
+            {message && (
+              <div className="flex-shrink-0">
+                <AlertMessage 
+                  type={message.type} 
+                  title={message.title} 
+                  message={message.message} 
+                />
+              </div>
+            )}
+
+            <DialogFooter className="flex-shrink-0 pt-4 border-t">
               <Button 
                 variant="outline" 
                 onClick={() => closeDialog('uploadMedia')}
                 className="rounded-lg"
               >
                 Cancel
+              </Button>
+              <Button 
+                onClick={handleUploadFiles}
+                disabled={selectedFiles.length === 0}
+                className="rounded-lg bg-blue-600 hover:bg-blue-700"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload {selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1692,14 +1887,21 @@ export default function GalleryPage() {
                   <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                     <div className="text-white">
                       <h3 className="text-xl font-semibold">{selectedMedia.title[currentLanguage]}</h3>
-                      <div className="flex items-center gap-4 text-sm text-gray-300 mt-1">
+                      <p className="text-gray-300 text-sm mt-1">{selectedMedia.description[currentLanguage]}</p>
+                      <div className="flex items-center gap-4 text-sm text-gray-300 mt-2">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {selectedMedia.captureDate}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          {selectedMedia.location[currentLanguage]}
+                        </span>
+                        <span>•</span>
                         <span>{selectedMedia.type}</span>
                         <span>•</span>
                         <span>{selectedMedia.size}</span>
-                        <span>•</span>
-                        <span>{selectedMedia.dimensions}</span>
-                        <span>•</span>
-                        <span>{selectedMedia.uploadDate}</span>
                       </div>
                     </div>
                     
