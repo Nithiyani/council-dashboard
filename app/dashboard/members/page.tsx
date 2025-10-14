@@ -1111,13 +1111,13 @@ export default function CouncilMemberPage() {
                 )}
 
                 {/* Success/Error Alert */}
-                {alert && (
+                {/* {alert && (
                   <Alert
                     type={alert.type}
                     message={alert.message}
                     onClose={() => setAlert(null)}
                   />
-                )}
+                )} */}
               </div>
               
               <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -1141,13 +1141,13 @@ export default function CouncilMemberPage() {
       </div>
 
       {/* Global Alert */}
-      {alert && (
+      {/* {alert && (
         <Alert
           type={alert.type}
           message={alert.message}
           onClose={() => setAlert(null)}
         />
-      )}
+      )} */}
 
       {/* Search */}
       <div className="relative">

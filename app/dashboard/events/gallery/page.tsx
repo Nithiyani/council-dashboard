@@ -1223,13 +1223,13 @@ export default function GalleryPage() {
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-              <Button 
+              {/* <Button 
                 onClick={() => openDialog('uploadMedia')}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Media
-              </Button>
+              </Button> */}
             </div>
           </div>
         </CardContent>
