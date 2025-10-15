@@ -42,7 +42,6 @@ interface Service {
     gallery: string[];
   };
   status: "active" | "inactive";
-  // isFeatured: boolean;
   dateCreated: string;
   serviceDate?: string;
 }
@@ -75,7 +74,6 @@ interface ServiceFormData {
     gallery: File[];
   };
   status: "active" | "inactive";
-  // isFeatured: boolean;
   serviceDate?: string;
 }
 
@@ -186,7 +184,7 @@ const ImageUploadField = ({
         {isRequired && <span className="text-red-500">*</span>}
       </Label>
       
-      <div className={`border-2 border-dashed rounded-lg p-6 text-center ${
+      <div className={`border-2 border-dashed rounded-lg p-4 sm:p-6 text-center ${
         hasError ? "border-red-300 bg-red-50" : "border-gray-300"
       }`}>
         <Input 
@@ -201,7 +199,7 @@ const ImageUploadField = ({
           htmlFor={`image-${type}`}
           className="cursor-pointer flex flex-col items-center gap-2"
         >
-          <Upload className="w-8 h-8 text-gray-400" />
+          <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
           <span className="text-sm text-gray-600">
             {isMultiple ? "Choose Images" : "Choose Image"}
           </span>
@@ -219,18 +217,18 @@ const ImageUploadField = ({
       )}
 
       {/* Image Previews */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
         {!isMultiple && image && (
           <div className="relative group">
             <img 
               src={getPreviewUrl(image as File)} 
               alt="Preview" 
-              className="w-full h-24 object-cover rounded-lg border"
+              className="w-full h-20 sm:h-24 object-cover rounded-lg border"
             />
             <Button
               variant="destructive"
               size="icon"
-              className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => removeImage()}
             >
               <X className="w-3 h-3" />
@@ -243,12 +241,12 @@ const ImageUploadField = ({
             <img 
               src={getPreviewUrl(file)} 
               alt={`Gallery ${index + 1}`} 
-              className="w-full h-24 object-cover rounded-lg border"
+              className="w-full h-20 sm:h-24 object-cover rounded-lg border"
             />
             <Button
               variant="destructive"
               size="icon"
-              className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
               onClick={() => removeImage(index)}
             >
               <X className="w-3 h-3" />
@@ -289,7 +287,7 @@ const LocationSelection = ({
         <span>Step 1: Select Location</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* District Selection - Fixed as Mannar */}
         <div>
           <Label htmlFor="district" className="flex items-center gap-2">
@@ -420,7 +418,7 @@ const LanguageInputSection = ({
   validationErrors: { [key: string]: boolean };
 }) => {
   return (
-    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+    <div className="space-y-4 p-3 sm:p-4 border rounded-lg bg-gray-50">
       <div className="flex items-center gap-2 mb-4">
         <Badge variant="secondary" className="text-sm">
           {LANGUAGE_NAMES[language]}
@@ -518,12 +516,11 @@ const LanguageInputSection = ({
 };
 
 // Service Card Component
-const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, language }: {
+const ServiceCard = ({ service, onView, onEdit, onDelete, language }: {
   service: Service;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onToggleFeature: () => void;
   language: Language;
 }) => {
   const formatDate = (dateString: string) => {
@@ -536,26 +533,18 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            {/* <div className="flex items-center gap-2 mb-2">
-              <CardTitle className="text-lg font-semibold">
-                {service.serviceName[language]}
-              </CardTitle>
-              {service.isFeatured && (
-                <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">Featured</Badge>
-              )}
-              <Badge className={service.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
-                {service.status.toUpperCase()}
-              </Badge>
-            </div> */}
+            <CardTitle className="text-lg font-semibold mb-2">
+              {service.serviceName[language]}
+            </CardTitle>
             
             <CardDescription className="text-sm text-gray-600 mb-3 line-clamp-2">
               {service.serviceDesc[language]}
             </CardDescription>
 
-            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500 mb-3">
               <div className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
                 <span>{service.location.district} / {service.location.division}</span>
@@ -571,16 +560,19 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">GS: {service.location.gsDivision}</Badge>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary" className="text-xs">GS: {service.location.gsDivision}</Badge>
+              <Badge className={service.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                {service.status.toUpperCase()}
+              </Badge>
               {service.images.main && (
-                <Badge variant="outline" className="flex items-center gap-1">
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
                   <ImageIcon className="w-3 h-3" />
                   Main
                 </Badge>
               )}
               {service.images.gallery.length > 0 && (
-                <Badge variant="outline" className="flex items-center gap-1">
+                <Badge variant="outline" className="flex items-center gap-1 text-xs">
                   <ImageIcon className="w-3 h-3" />
                   {service.images.gallery.length} gallery
                 </Badge>
@@ -589,7 +581,7 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
           </div>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div className="flex gap-1">
             {LANGUAGES.map(lang => (
               <Badge key={lang} variant="outline" className="text-xs">
@@ -597,18 +589,15 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
               </Badge>
             ))}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={onView}>
-              <Eye className="w-4 h-4" />
+          <div className="flex gap-2 self-end">
+            <Button variant="outline" size="icon" onClick={onView} className="h-8 w-8 sm:h-10 sm:w-10">
+              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={onEdit}>
-              <Edit className="w-4 h-4" />
+            <Button variant="outline" size="icon" onClick={onEdit} className="h-8 w-8 sm:h-10 sm:w-10">
+              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
-            {/* <Button variant="outline" size="icon" onClick={onToggleFeature}>
-              <Star className={`w-4 h-4 ${service.isFeatured ? "fill-yellow-400 text-yellow-400" : ""}`} />
-            </Button> */}
-            <Button variant="destructive" size="icon" onClick={onDelete}>
-              <Trash2 className="w-4 h-4" />
+            <Button variant="destructive" size="icon" onClick={onDelete} className="h-8 w-8 sm:h-10 sm:w-10">
+              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
             </Button>
           </div>
         </div>
@@ -619,7 +608,7 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
 
 // Validation Alert Component
 const ValidationAlert = ({ errors, currentStep }: { errors: { [key: string]: boolean }; currentStep: number }) => {
-  const errorFields = [];
+  const errorFields: string[] = [];
   
   if (Object.keys(errors).length === 0) return null;
 
@@ -641,8 +630,6 @@ const ValidationAlert = ({ errors, currentStep }: { errors: { [key: string]: boo
   // Step 4 errors
   if (currentStep === 4) {
     if (errors.mainImage) errorFields.push("Main Service Image");
-    // if (errors.beforeImage) errorFields.push("Before Image");
-    // if (errors.afterImage) errorFields.push("After Image");
   }
 
   if (errorFields.length === 0) return null;
@@ -670,7 +657,7 @@ const ValidationAlert = ({ errors, currentStep }: { errors: { [key: string]: boo
   );
 };
 
-// Date Input Component (Simple alternative to Calendar)
+// Date Input Component
 const DateInputField = ({ 
   label, 
   date, 
@@ -743,7 +730,6 @@ export default function ServicesManagementPage() {
         gallery: ["/images/health-1.jpg", "/images/health-2.jpg"]
       },
       status: "active",
-      // isFeatured: true,
       dateCreated: "2024-01-15",
       serviceDate: "2024-02-01"
     },
@@ -776,7 +762,6 @@ export default function ServicesManagementPage() {
         gallery: []
       },
       status: "active",
-      // isFeatured: false,
       dateCreated: "2024-01-10",
       serviceDate: "2024-02-15"
     }
@@ -808,7 +793,6 @@ export default function ServicesManagementPage() {
       gallery: []
     },
     status: "active",
-    // isFeatured: false,
     serviceDate: ""
   };
 
@@ -841,7 +825,7 @@ export default function ServicesManagementPage() {
     }));
   };
 
-  // Validation function - FIXED VERSION
+  // Validation function
   const validateForm = (step: number): boolean => {
     const errors: { [key: string]: boolean } = {};
 
@@ -850,12 +834,6 @@ export default function ServicesManagementPage() {
       if (!formData.location.district) errors.district = true;
       if (!formData.location.division) errors.division = true;
       if (!formData.location.gsDivision) errors.gsDivision = true;
-    }
-
-    // Step 2: Service details validation
-    if (step === 2) {
-      // Step 2 doesn't have required fields currently, only optional service date
-      // No validation needed for step 2
     }
 
     // Step 3: Service content validation
@@ -873,8 +851,6 @@ export default function ServicesManagementPage() {
     // Step 4: Image validation
     if (step === 4) {
       if (!formData.images.main) errors.mainImage = true;
-      // if (!formData.images.before) errors.beforeImage = true;
-      // if (!formData.images.after) errors.afterImage = true;
     }
 
     setValidationErrors(errors);
@@ -904,8 +880,6 @@ export default function ServicesManagementPage() {
 
     // Validate step 4
     if (!formData.images.main) { allErrors.mainImage = true; allValid = false; }
-    // if (!formData.images.before) { allErrors.beforeImage = true; allValid = false; }
-    // if (!formData.images.after) { allErrors.afterImage = true; allValid = false; }
 
     setValidationErrors(allErrors);
 
@@ -930,7 +904,6 @@ export default function ServicesManagementPage() {
         gallery: formData.images.gallery.map(file => URL.createObjectURL(file))
       },
       status: formData.status,
-      // isFeatured: formData.isFeatured,
       dateCreated: new Date().toISOString().split('T')[0],
       serviceDate: formData.serviceDate || undefined
     };
@@ -988,7 +961,6 @@ export default function ServicesManagementPage() {
         serviceNote: formData.serviceNote,
         location: formData.location,
         status: formData.status,
-        // isFeatured: formData.isFeatured,
         serviceDate: formData.serviceDate || undefined
       } : service
     ));
@@ -1016,13 +988,7 @@ export default function ServicesManagementPage() {
     setTimeout(() => setAlert(null), 3000);
   };
 
-  // const handleToggleFeature = (id: string) => {
-  //   setServices(prev => prev.map(service =>
-  //     service.id === id ? { ...service, isFeatured: !service.isFeatured } : service
-  //   ));
-  // };
-
-  // Navigation between steps - FIXED VERSION
+  // Navigation between steps
   const nextStep = () => {
     if (validateForm(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, 5));
@@ -1058,10 +1024,10 @@ export default function ServicesManagementPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Global Alert */}
       {alert && (
-        <div className="fixed top-4 right-4 z-50 max-w-md">
+        <div className="fixed top-4 right-4 z-50 max-w-md w-[calc(100%-2rem)]">
           <Alert
             type={alert.type}
             message={alert.message}
@@ -1073,8 +1039,8 @@ export default function ServicesManagementPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Community Services Management</h1>
-          <p className="text-gray-600 mt-1">Manage and organize community services efficiently</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Community Services Management</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage and organize community services efficiently</p>
         </div>
         <Dialog open={dialog === "create"} onOpenChange={(open) => {
           if (!open) {
@@ -1086,18 +1052,18 @@ export default function ServicesManagementPage() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto">
               <Plus className="w-4 h-4 mr-2" /> Add New Service
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw]">
             <DialogHeader>
               <DialogTitle>Add New Service</DialogTitle>
               <DialogDescription>Follow the steps to add a new community service</DialogDescription>
             </DialogHeader>
 
             {/* Progress Steps */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6 px-2">
               {[1, 2, 3, 4, 5].map(step => (
                 <div key={step} className="flex flex-col items-center flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -1109,7 +1075,7 @@ export default function ServicesManagementPage() {
                   }`}>
                     {step < currentStep ? "✓" : step}
                   </div>
-                  <span className="text-xs mt-1 text-gray-600 text-center">
+                  <span className="text-xs mt-1 text-gray-600 text-center hidden sm:block">
                     {step === 1 && "Location"}
                     {step === 2 && "Details"}
                     {step === 3 && "Content"}
@@ -1145,42 +1111,26 @@ export default function ServicesManagementPage() {
                   onDateChange={(date) => setFormData(prev => ({ ...prev, serviceDate: date }))}
                 />
 
-                {/* Status and Featured */}
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-                  <div>
-                    <Label htmlFor="status" className="flex items-center gap-2">
-                      Status
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={formData.status} 
-                      onValueChange={(value: "active" | "inactive") => 
-                        setFormData(prev => ({ ...prev, status: value }))
-                      }
-                    >
-                      <SelectTrigger id="status">
-                        <SelectValue placeholder="Select Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isFeatured"
-                      checked={formData.isFeatured}
-                      onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
-                      className="rounded border-gray-300"
-                    />
-                    <Label htmlFor="isFeatured" className="flex items-center gap-2 cursor-pointer">
-                      <Star className="w-4 h-4 text-yellow-500" />
-                      Feature this service
-                    </Label>
-                  </div> */}
+                {/* Status */}
+                <div>
+                  <Label htmlFor="status" className="flex items-center gap-2">
+                    Status
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(value: "active" | "inactive") => 
+                      setFormData(prev => ({ ...prev, status: value }))
+                    }
+                  >
+                    <SelectTrigger id="status">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
@@ -1241,16 +1191,12 @@ export default function ServicesManagementPage() {
                       type="before"
                       image={formData.images.before}
                       onImageChange={handleImageChange}
-                      // isRequired={true}
-                      // hasError={validationErrors.beforeImage}
                     />
                     <ImageUploadField
                       label="After Image"
                       type="after"
                       image={formData.images.after}
                       onImageChange={handleImageChange}
-                      // isRequired={true}
-                      // hasError={validationErrors.afterImage}
                     />
                   </div>
 
@@ -1310,7 +1256,13 @@ export default function ServicesManagementPage() {
                       ))}
                     </div>
 
-                    
+                    {/* Status */}
+                    <div>
+                      <Label className="font-semibold">Status</Label>
+                      <Badge className={formData.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                        {formData.status.toUpperCase()}
+                      </Badge>
+                    </div>
 
                     {/* Images Summary */}
                     <div>
@@ -1366,7 +1318,7 @@ export default function ServicesManagementPage() {
               <Button 
                 variant="outline" 
                 onClick={handleCancel}
-                className="sm:w-auto"
+                className="sm:w-auto w-full"
               >
                 Cancel
               </Button>
@@ -1409,8 +1361,8 @@ export default function ServicesManagementPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Language:</span>
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <span className="text-sm text-gray-600 whitespace-nowrap">Language:</span>
               <Select value={currentLanguage} onValueChange={(val: Language) => setCurrentLanguage(val)}>
                 <SelectTrigger className="w-28">
                   <SelectValue />
@@ -1438,14 +1390,11 @@ export default function ServicesManagementPage() {
       </Card>
 
       {/* Results Count */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <p className="text-sm text-gray-600">
           Showing {filteredServices.length} of {services.length} services
         </p>
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-            {services.filter(s => s.isFeatured).length} Featured
-          </Badge>
           <Badge variant="secondary" className="bg-green-100 text-green-700">
             {services.filter(s => s.status === "active").length} Active
           </Badge>
@@ -1453,7 +1402,7 @@ export default function ServicesManagementPage() {
       </div>
 
       {/* Services Grid */}
-      <div className="grid gap-6">
+      <div className="grid gap-4 sm:gap-6">
         {filteredServices.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -1491,7 +1440,6 @@ export default function ServicesManagementPage() {
                     gallery: []
                   },
                   status: service.status,
-                  // isFeatured: service.isFeatured,
                   serviceDate: service.serviceDate || ""
                 });
                 setDialog("edit");
@@ -1502,7 +1450,6 @@ export default function ServicesManagementPage() {
                 setSelectedService(service);
                 setDialog("delete");
               }}
-              onToggleFeature={() => handleToggleFeature(service.id)}
             />
           ))
         )}
@@ -1511,13 +1458,10 @@ export default function ServicesManagementPage() {
       {/* View Dialog */}
       {dialog === "view" && selectedService && (
         <Dialog open onOpenChange={() => setDialog(null)}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw]">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {selectedService.serviceName[currentLanguage]}
-                {/* {selectedService.isFeatured && (
-                  <Badge className="bg-yellow-100 text-yellow-700">Featured</Badge>
-                )} */}
               </DialogTitle>
               <DialogDescription>
                 {selectedService.location.district} • Created on {formatDate(selectedService.dateCreated)}
@@ -1526,7 +1470,7 @@ export default function ServicesManagementPage() {
 
             <div className="space-y-6">
               {/* Language Selector */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {LANGUAGES.map(lang => (
                   <Button
                     key={lang}
@@ -1543,15 +1487,15 @@ export default function ServicesManagementPage() {
               {(selectedService.images.main || selectedService.images.before || selectedService.images.after || selectedService.images.gallery.length > 0) && (
                 <div>
                   <h4 className="font-semibold mb-3">Service Images</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {selectedService.images.main && (
                       <div className="relative">
                         <img
                           src={selectedService.images.main}
                           alt="Main service"
-                          className="w-full h-32 object-cover rounded-lg border"
+                          className="w-full h-24 sm:h-32 object-cover rounded-lg border"
                         />
-                        <Badge className="absolute top-2 left-2 bg-blue-600">Main</Badge>
+                        <Badge className="absolute top-2 left-2 bg-blue-600 text-xs">Main</Badge>
                       </div>
                     )}
                     {selectedService.images.before && (
@@ -1559,9 +1503,9 @@ export default function ServicesManagementPage() {
                         <img
                           src={selectedService.images.before}
                           alt="Before service"
-                          className="w-full h-32 object-cover rounded-lg border"
+                          className="w-full h-24 sm:h-32 object-cover rounded-lg border"
                         />
-                        <Badge className="absolute top-2 left-2 bg-orange-600">Before</Badge>
+                        <Badge className="absolute top-2 left-2 bg-orange-600 text-xs">Before</Badge>
                       </div>
                     )}
                     {selectedService.images.after && (
@@ -1569,9 +1513,9 @@ export default function ServicesManagementPage() {
                         <img
                           src={selectedService.images.after}
                           alt="After service"
-                          className="w-full h-32 object-cover rounded-lg border"
+                          className="w-full h-24 sm:h-32 object-cover rounded-lg border"
                         />
-                        <Badge className="absolute top-2 left-2 bg-green-600">After</Badge>
+                        <Badge className="absolute top-2 left-2 bg-green-600 text-xs">After</Badge>
                       </div>
                     )}
                     {selectedService.images.gallery.map((image, index) => (
@@ -1579,9 +1523,9 @@ export default function ServicesManagementPage() {
                         <img
                           src={image}
                           alt={`Gallery ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-lg border"
+                          className="w-full h-24 sm:h-32 object-cover rounded-lg border"
                         />
-                        <Badge className="absolute top-2 left-2 bg-gray-600">Gallery {index + 1}</Badge>
+                        <Badge className="absolute top-2 left-2 bg-gray-600 text-xs">Gallery {index + 1}</Badge>
                       </div>
                     ))}
                   </div>
@@ -1642,7 +1586,6 @@ export default function ServicesManagementPage() {
                         <span>{formatDate(selectedService.serviceDate)}</span>
                       </div>
                     )}
-                   
                   </div>
                 </div>
               </div>
@@ -1662,14 +1605,14 @@ export default function ServicesManagementPage() {
             handleCancel();
           }
         }}>
-          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw]">
             <DialogHeader>
               <DialogTitle>Edit Service</DialogTitle>
               <DialogDescription>Update the service details</DialogDescription>
             </DialogHeader>
 
             {/* Progress Steps */}
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6 px-2">
               {[1, 2, 3, 4, 5].map(step => (
                 <div key={step} className="flex flex-col items-center flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -1681,7 +1624,7 @@ export default function ServicesManagementPage() {
                   }`}>
                     {step < currentStep ? "✓" : step}
                   </div>
-                  <span className="text-xs mt-1 text-gray-600 text-center">
+                  <span className="text-xs mt-1 text-gray-600 text-center hidden sm:block">
                     {step === 1 && "Location"}
                     {step === 2 && "Details"}
                     {step === 3 && "Content"}
@@ -1717,42 +1660,26 @@ export default function ServicesManagementPage() {
                   onDateChange={(date) => setFormData(prev => ({ ...prev, serviceDate: date }))}
                 />
 
-                {/* Status and Featured */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="status" className="flex items-center gap-2">
-                      Status
-                      <span className="text-red-500">*</span>
-                    </Label>
-                    <Select 
-                      value={formData.status} 
-                      onValueChange={(value: "active" | "inactive") => 
-                        setFormData(prev => ({ ...prev, status: value }))
-                      }
-                    >
-                      <SelectTrigger id="status">
-                        <SelectValue placeholder="Select Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isFeatured"
-                      checked={formData.isFeatured}
-                      onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
-                      className="rounded border-gray-300"
-                    />
-                    <Label htmlFor="isFeatured" className="flex items-center gap-2 cursor-pointer">
-                      <Star className="w-4 h-4 text-yellow-500" />
-                      Feature this service
-                    </Label>
-                  </div> */}
+                {/* Status */}
+                <div>
+                  <Label htmlFor="status" className="flex items-center gap-2">
+                    Status
+                    <span className="text-red-500">*</span>
+                  </Label>
+                  <Select 
+                    value={formData.status} 
+                    onValueChange={(value: "active" | "inactive") => 
+                      setFormData(prev => ({ ...prev, status: value }))
+                    }
+                  >
+                    <SelectTrigger id="status">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
@@ -1813,16 +1740,12 @@ export default function ServicesManagementPage() {
                       type="before"
                       image={formData.images.before}
                       onImageChange={handleImageChange}
-                      // isRequired={true}
-                      // hasError={validationErrors.beforeImage}
                     />
                     <ImageUploadField
                       label="After Image"
                       type="after"
                       image={formData.images.after}
                       onImageChange={handleImageChange}
-                      isRequired={true}
-                      hasError={validationErrors.afterImage}
                     />
                   </div>
 
@@ -1882,15 +1805,12 @@ export default function ServicesManagementPage() {
                       ))}
                     </div>
 
-                    {/* Status and Featured */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="font-semibold">Status</Label>
-                        <Badge className={formData.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
-                          {formData.status.toUpperCase()}
-                        </Badge>
-                      </div>
-                     
+                    {/* Status */}
+                    <div>
+                      <Label className="font-semibold">Status</Label>
+                      <Badge className={formData.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                        {formData.status.toUpperCase()}
+                      </Badge>
                     </div>
 
                     {/* Images Summary */}
@@ -1947,7 +1867,7 @@ export default function ServicesManagementPage() {
               <Button 
                 variant="outline" 
                 onClick={handleCancel}
-                className="sm:w-auto"
+                className="sm:w-auto w-full"
               >
                 Cancel
               </Button>
@@ -1959,7 +1879,7 @@ export default function ServicesManagementPage() {
       {/* Delete Dialog */}
       {dialog === "delete" && selectedService && (
         <Dialog open onOpenChange={() => setDialog(null)}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md w-[95vw]">
             <DialogHeader>
               <DialogTitle>Confirm Deletion</DialogTitle>
               <DialogDescription>
@@ -1967,8 +1887,8 @@ export default function ServicesManagementPage() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialog(null)}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDeleteService}>Delete Service</Button>
+              <Button variant="outline" onClick={() => setDialog(null)} className="w-full sm:w-auto">Cancel</Button>
+              <Button variant="destructive" onClick={handleDeleteService} className="w-full sm:w-auto">Delete Service</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
