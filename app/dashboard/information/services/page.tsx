@@ -7,75 +7,108 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Plus, Search, Eye, Edit, Trash2, MapPin, Phone, Mail, Calendar, Download, Image as ImageIcon, FileText, X, AlertCircle, CheckCircle, Star } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle, X, Image as ImageIcon, Plus, Upload, MapPin, Search, Eye, Edit, Trash2, Star, CalendarIcon } from "lucide-react";
 
 // Types
 interface Service {
   id: string;
-  title: {
+  serviceName: {
     en: string;
     ta: string;
     si: string;
   };
-  description: {
+  serviceDesc: {
     en: string;
     ta: string;
     si: string;
   };
-  category: string;
-  location: string;
-  phone: string;
-  email: string;
-  dateCreated: string;
+  serviceNote: {
+    en: string;
+    ta: string;
+    si: string;
+  };
+  location: {
+    district: string;
+    division: string;
+    gsDivision: string;
+  };
+  images: {
+    main: string;
+    before: string;
+    after: string;
+    gallery: string[];
+  };
   status: "active" | "inactive";
-  images: string[];
-  documents: string[];
-  isFeatured: boolean;
+  // isFeatured: boolean;
+  dateCreated: string;
+  serviceDate?: string;
 }
 
 interface ServiceFormData {
-  title: {
+  serviceName: {
     en: string;
     ta: string;
     si: string;
   };
-  description: {
+  serviceDesc: {
     en: string;
     ta: string;
     si: string;
   };
-  category: string;
-  location: string;
-  phone: string;
-  email: string;
-  dateCreated: string;
+  serviceNote: {
+    en: string;
+    ta: string;
+    si: string;
+  };
+  location: {
+    district: string;
+    division: string;
+    gsDivision: string;
+  };
+  images: {
+    main: File | null;
+    before: File | null;
+    after: File | null;
+    gallery: File[];
+  };
   status: "active" | "inactive";
-  images: string[];
-  documents: string[];
-  isFeatured: boolean;
+  // isFeatured: boolean;
+  serviceDate?: string;
 }
 
 type Language = "en" | "ta" | "si";
+type ImageType = "main" | "before" | "after" | "gallery";
 
 // Constants
-const SERVICE_CATEGORIES = [
-  "Healthcare",
-  "Education",
-  "Utilities",
-  "Social Welfare",
-  "Employment",
-  "Housing",
-  "Legal Aid",
-  "Transportation",
-  "Environmental",
-  "Cultural"
+const LANGUAGES: Language[] = ["en", "ta", "si"];
+const LANGUAGE_NAMES = { 
+  en: "English", 
+  ta: "Tamil", 
+  si: "Sinhala" 
+};
+
+const DISTRICTS = [
+  "Mannar"
 ];
 
-const LANGUAGES: Language[] = ["en", "ta", "si"];
-const LANGUAGE_NAMES = { en: "English", ta: "Tamil", si: "Sinhala" };
+const MANNAR_DIVISIONS = [
+  "Mannar",
+  "Nanattan", 
+  "Manthai West",
+  "Musali",
+  "Madhu"
+];
+
+const GS_DIVISIONS: Record<string, string[]> = {
+  "Mannar": ["GS Division 1", "GS Division 2", "GS Division 3"],
+  "Nanattan": ["GS Division 4", "GS Division 5", "GS Division 6"],
+  "Manthai West": ["GS Division 7", "GS Division 8", "GS Division 9"],
+  "Musali": ["GS Division 10", "GS Division 11", "GS Division 12"],
+  "Madhu": ["GS Division 13", "GS Division 14", "GS Division 15"]
+};
 
 // Alert Component
 const Alert = ({ type, message, onClose }: { type: "success" | "error"; message: string; onClose: () => void }) => {
@@ -83,7 +116,7 @@ const Alert = ({ type, message, onClose }: { type: "success" | "error"; message:
   const Icon = type === "success" ? CheckCircle : AlertCircle;
 
   return (
-    <div className="mt-4 animate-in slide-in-from-top duration-300 z-50">
+    <div className="mt-4 animate-in slide-in-from-top duration-300">
       <div className={`${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2`}>
         <Icon className="w-5 h-5" />
         <span className="font-medium flex-1">{message}</span>
@@ -100,46 +133,385 @@ const Alert = ({ type, message, onClose }: { type: "success" | "error"; message:
   );
 };
 
-// Validation Alert Component for Dialog (Modified to be placed at bottom)
-const ValidationAlert = ({ errors }: { errors: { [key: string]: boolean } }) => {
-  const errorFields = [];
-  
-  if (Object.keys(errors).length === 0) return null;
+// Image Upload Component with Preview
+const ImageUploadField = ({ 
+  label, 
+  type, 
+  image, 
+  onImageChange, 
+  isMultiple = false,
+  isRequired = false,
+  hasError = false
+}: {
+  label: string;
+  type: ImageType;
+  image: File | File[] | null;
+  onImageChange: (type: ImageType, files: File | File[] | null) => void;
+  isMultiple?: boolean;
+  isRequired?: boolean;
+  hasError?: boolean;
+}) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
 
-  // Check language fields
-  LANGUAGES.forEach(lang => {
-    if (errors[`title-${lang}`]) errorFields.push(`Title in ${LANGUAGE_NAMES[lang]}`);
-    if (errors[`description-${lang}`]) errorFields.push(`Description in ${LANGUAGE_NAMES[lang]}`);
-  });
+    if (isMultiple) {
+      const newFiles = Array.from(files);
+      const currentFiles = Array.isArray(image) ? image : [];
+      onImageChange(type, [...currentFiles, ...newFiles]);
+    } else {
+      onImageChange(type, files[0]);
+    }
+  };
 
-  // Check other fields
-  if (errors.category) errorFields.push("Category");
-  if (errors.location) errorFields.push("Location");
-  if (errors.phone) errorFields.push("Phone");
-  if (errors.email) errorFields.push("Email");
-  if (errors.dateCreated) errorFields.push("Date Created");
-  if (errors.images) errorFields.push("Images");
+  const removeImage = (index?: number) => {
+    if (isMultiple && Array.isArray(image)) {
+      if (index !== undefined) {
+        const newFiles = image.filter((_, i) => i !== index);
+        onImageChange(type, newFiles.length > 0 ? newFiles : null);
+      } else {
+        onImageChange(type, null);
+      }
+    } else {
+      onImageChange(type, null);
+    }
+  };
 
-  if (errorFields.length === 0) return null;
+  const getPreviewUrl = (file: File) => URL.createObjectURL(file);
 
   return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-in fade-in duration-300">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-        <div className="flex-1">
-          <h4 className="font-semibold text-red-800 mb-2">Required Fields Missing</h4>
-          <p className="text-red-700 text-sm mb-2">
-            Please fill in all required fields marked with * before creating the service.
-          </p>
-          <div className="text-red-600 text-sm">
-            <p className="font-medium mb-1">Missing fields:</p>
-            <ul className="list-disc list-inside space-y-1">
-              {errorFields.map((field, index) => (
-                <li key={index}>{field}</li>
+    <div className="space-y-3">
+      <Label className={`flex items-center gap-2 ${hasError ? "text-red-600" : ""}`}>
+        {label}
+        {isRequired && <span className="text-red-500">*</span>}
+      </Label>
+      
+      <div className={`border-2 border-dashed rounded-lg p-6 text-center ${
+        hasError ? "border-red-300 bg-red-50" : "border-gray-300"
+      }`}>
+        <Input 
+          type="file" 
+          multiple={isMultiple}
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+          id={`image-${type}`}
+        />
+        <Label 
+          htmlFor={`image-${type}`}
+          className="cursor-pointer flex flex-col items-center gap-2"
+        >
+          <Upload className="w-8 h-8 text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {isMultiple ? "Choose Images" : "Choose Image"}
+          </span>
+          <span className="text-xs text-gray-500">
+            {isMultiple ? "Multiple images allowed" : "JPG, PNG, WebP"}
+          </span>
+        </Label>
+      </div>
+
+      {hasError && (
+        <p className="text-red-600 text-sm flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          {label} is required
+        </p>
+      )}
+
+      {/* Image Previews */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        {!isMultiple && image && (
+          <div className="relative group">
+            <img 
+              src={getPreviewUrl(image as File)} 
+              alt="Preview" 
+              className="w-full h-24 object-cover rounded-lg border"
+            />
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => removeImage()}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
+        
+        {isMultiple && Array.isArray(image) && image.map((file, index) => (
+          <div key={index} className="relative group">
+            <img 
+              src={getPreviewUrl(file)} 
+              alt={`Gallery ${index + 1}`} 
+              className="w-full h-24 object-cover rounded-lg border"
+            />
+            <Button
+              variant="destructive"
+              size="icon"
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => removeImage(index)}
+            >
+              <X className="w-3 h-3" />
+            </Button>
+            <Badge variant="secondary" className="absolute bottom-1 left-1 text-xs">
+              {index + 1}
+            </Badge>
+          </div>
+        ))}
+      </div>
+
+      {/* Image Count for Gallery */}
+      {isMultiple && Array.isArray(image) && (
+        <p className="text-xs text-gray-500">
+          {image.length} image{image.length !== 1 ? 's' : ''} selected
+        </p>
+      )}
+    </div>
+  );
+};
+
+// Location Selection Component
+const LocationSelection = ({ 
+  location, 
+  onLocationChange,
+  validationErrors
+}: {
+  location: ServiceFormData['location'];
+  onLocationChange: (location: ServiceFormData['location']) => void;
+  validationErrors: { [key: string]: boolean };
+}) => {
+  const availableGSDivisions = location.division ? GS_DIVISIONS[location.division] || [] : [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+        <MapPin className="w-5 h-5" />
+        <span>Step 1: Select Location</span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* District Selection - Fixed as Mannar */}
+        <div>
+          <Label htmlFor="district" className="flex items-center gap-2">
+            District
+            <span className="text-red-500">*</span>
+          </Label>
+          <Select 
+            value={location.district} 
+            onValueChange={(value) => onLocationChange({ 
+              district: value, 
+              division: "", 
+              gsDivision: "" 
+            })}
+          >
+            <SelectTrigger id="district" className={validationErrors.district ? "border-red-500" : ""}>
+              <SelectValue placeholder="Select District" />
+            </SelectTrigger>
+            <SelectContent>
+              {DISTRICTS.map(district => (
+                <SelectItem key={district} value={district}>
+                  {district}
+                </SelectItem>
               ))}
-            </ul>
+            </SelectContent>
+          </Select>
+          {validationErrors.district && (
+            <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              District is required
+            </p>
+          )}
+        </div>
+
+        {/* Division Selection */}
+        <div>
+          <Label htmlFor="division" className="flex items-center gap-2">
+            Division
+            <span className="text-red-500">*</span>
+          </Label>
+          <Select 
+            value={location.division} 
+            onValueChange={(value) => onLocationChange({ 
+              ...location, 
+              division: value, 
+              gsDivision: "" 
+            })}
+            disabled={!location.district}
+          >
+            <SelectTrigger id="division" className={validationErrors.division ? "border-red-500" : ""}>
+              <SelectValue placeholder="Select Division" />
+            </SelectTrigger>
+            <SelectContent>
+              {MANNAR_DIVISIONS.map(division => (
+                <SelectItem key={division} value={division}>
+                  {division}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {validationErrors.division && (
+            <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              Division is required
+            </p>
+          )}
+        </div>
+
+        {/* GS Division Selection */}
+        <div>
+          <Label htmlFor="gsDivision" className="flex items-center gap-2">
+            GS Division
+            <span className="text-red-500">*</span>
+          </Label>
+          <Select 
+            value={location.gsDivision} 
+            onValueChange={(value) => onLocationChange({ 
+              ...location, 
+              gsDivision: value 
+            })}
+            disabled={!location.division}
+          >
+            <SelectTrigger id="gsDivision" className={validationErrors.gsDivision ? "border-red-500" : ""}>
+              <SelectValue placeholder="Select GS Division" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableGSDivisions.map(gsDivision => (
+                <SelectItem key={gsDivision} value={gsDivision}>
+                  {gsDivision}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {validationErrors.gsDivision && (
+            <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              GS Division is required
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Selected Location Summary */}
+      {location.district && location.division && location.gsDivision && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 text-sm text-blue-800">
+            <CheckCircle className="w-4 h-4" />
+            <span>Selected Location:</span>
+            <Badge variant="outline" className="bg-white">
+              {location.district} / {location.division} / {location.gsDivision}
+            </Badge>
           </div>
         </div>
+      )}
+    </div>
+  );
+};
+
+// Language Input Section
+const LanguageInputSection = ({ 
+  language,
+  formData,
+  onFormDataChange,
+  validationErrors
+}: {
+  language: Language;
+  formData: ServiceFormData;
+  onFormDataChange: (data: ServiceFormData) => void;
+  validationErrors: { [key: string]: boolean };
+}) => {
+  return (
+    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+      <div className="flex items-center gap-2 mb-4">
+        <Badge variant="secondary" className="text-sm">
+          {LANGUAGE_NAMES[language]}
+        </Badge>
+        {(validationErrors[`serviceName-${language}`] || validationErrors[`serviceDesc-${language}`]) && (
+          <AlertCircle className="w-4 h-4 text-red-500" />
+        )}
+      </div>
+
+      {/* Service Name */}
+      <div>
+        <Label 
+          htmlFor={`serviceName-${language}`}
+          className="flex items-center gap-2"
+        >
+          Service Name
+          <span className="text-red-500">*</span>
+        </Label>
+        <Input
+          id={`serviceName-${language}`}
+          value={formData.serviceName[language]}
+          onChange={(e) => onFormDataChange({
+            ...formData,
+            serviceName: { ...formData.serviceName, [language]: e.target.value }
+          })}
+          placeholder={`Enter service name in ${LANGUAGE_NAMES[language]}`}
+          className={`mt-1 ${
+            validationErrors[`serviceName-${language}`] 
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
+              : ""
+          }`}
+        />
+        {validationErrors[`serviceName-${language}`] && (
+          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            Service name in {LANGUAGE_NAMES[language]} is required
+          </p>
+        )}
+      </div>
+
+      {/* Service Description */}
+      <div>
+        <Label 
+          htmlFor={`serviceDesc-${language}`}
+          className="flex items-center gap-2"
+        >
+          Service Description
+          <span className="text-red-500">*</span>
+        </Label>
+        <Textarea
+          id={`serviceDesc-${language}`}
+          value={formData.serviceDesc[language]}
+          onChange={(e) => onFormDataChange({
+            ...formData,
+            serviceDesc: { ...formData.serviceDesc, [language]: e.target.value }
+          })}
+          placeholder={`Enter service description in ${LANGUAGE_NAMES[language]}...`}
+          rows={4}
+          className={`mt-1 ${
+            validationErrors[`serviceDesc-${language}`] 
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
+              : ""
+          }`}
+        />
+        {validationErrors[`serviceDesc-${language}`] && (
+          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            Service description in {LANGUAGE_NAMES[language]} is required
+          </p>
+        )}
+      </div>
+
+      {/* Additional Notes */}
+      <div>
+        <Label htmlFor={`serviceNote-${language}`}>
+          Additional Notes (Optional)
+        </Label>
+        <Textarea
+          id={`serviceNote-${language}`}
+          value={formData.serviceNote[language]}
+          onChange={(e) => onFormDataChange({
+            ...formData,
+            serviceNote: { ...formData.serviceNote, [language]: e.target.value }
+          })}
+          placeholder={`Enter additional notes in ${LANGUAGE_NAMES[language]}...`}
+          rows={3}
+          className="mt-1"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Optional information about the service
+        </p>
       </div>
     </div>
   );
@@ -154,18 +526,22 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
   onToggleFeature: () => void;
   language: Language;
 }) => {
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric", month: "short", day: "numeric"
-  });
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'No date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric", month: "short", day: "numeric"
+    });
+  };
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            {/* <div className="flex items-center gap-2 mb-2">
               <CardTitle className="text-lg font-semibold">
-                {service.title[language]}
+                {service.serviceName[language]}
               </CardTitle>
               {service.isFeatured && (
                 <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">Featured</Badge>
@@ -173,39 +549,40 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
               <Badge className={service.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
                 {service.status.toUpperCase()}
               </Badge>
-            </div>
+            </div> */}
             
             <CardDescription className="text-sm text-gray-600 mb-3 line-clamp-2">
-              {service.description[language]}
+              {service.serviceDesc[language]}
             </CardDescription>
 
             <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
               <div className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
-                <span>{service.location}</span>
+                <span>{service.location.district} / {service.location.division}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Phone className="w-3 h-3" />
-                <span>{service.phone}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
                 <span>{formatDate(service.dateCreated)}</span>
               </div>
+              {service.serviceDate && (
+                <div className="flex items-center gap-1">
+                  <CalendarIcon className="w-3 h-3" />
+                  <span>{formatDate(service.serviceDate)}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
-              <Badge variant="secondary">{service.category}</Badge>
-              {service.images.length > 0 && (
+              <Badge variant="secondary">GS: {service.location.gsDivision}</Badge>
+              {service.images.main && (
                 <Badge variant="outline" className="flex items-center gap-1">
                   <ImageIcon className="w-3 h-3" />
-                  {service.images.length}
+                  Main
                 </Badge>
               )}
-              {service.documents.length > 0 && (
+              {service.images.gallery.length > 0 && (
                 <Badge variant="outline" className="flex items-center gap-1">
-                  <FileText className="w-3 h-3" />
-                  {service.documents.length}
+                  <ImageIcon className="w-3 h-3" />
+                  {service.images.gallery.length} gallery
                 </Badge>
               )}
             </div>
@@ -227,9 +604,9 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
             <Button variant="outline" size="icon" onClick={onEdit}>
               <Edit className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={onToggleFeature}>
+            {/* <Button variant="outline" size="icon" onClick={onToggleFeature}>
               <Star className={`w-4 h-4 ${service.isFeatured ? "fill-yellow-400 text-yellow-400" : ""}`} />
-            </Button>
+            </Button> */}
             <Button variant="destructive" size="icon" onClick={onDelete}>
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -240,375 +617,199 @@ const ServiceCard = ({ service, onView, onEdit, onDelete, onToggleFeature, langu
   );
 };
 
-// File Upload Components
-const DocumentUpload = ({ documents, onDocumentsChange }: {
-  documents: string[];
-  onDocumentsChange: (documents: string[]) => void;
-}) => {
-  const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
+// Validation Alert Component
+const ValidationAlert = ({ errors, currentStep }: { errors: { [key: string]: boolean }; currentStep: number }) => {
+  const errorFields = [];
+  
+  if (Object.keys(errors).length === 0) return null;
 
-    Array.from(files).forEach(file => {
-      if (file.type === "application/pdf" || file.type.includes("document")) {
-        const reader = new FileReader();
-        reader.onload = (e) => e.target?.result && onDocumentsChange([...documents, e.target.result as string]);
-        reader.readAsDataURL(file);
-      }
+  // Step 1 errors
+  if (currentStep === 1) {
+    if (errors.district) errorFields.push("District");
+    if (errors.division) errorFields.push("Division");
+    if (errors.gsDivision) errorFields.push("GS Division");
+  }
+
+  // Step 2 & 3 errors
+  if (currentStep === 2 || currentStep === 3) {
+    LANGUAGES.forEach(lang => {
+      if (errors[`serviceName-${lang}`]) errorFields.push(`Service Name in ${LANGUAGE_NAMES[lang]}`);
+      if (errors[`serviceDesc-${lang}`]) errorFields.push(`Service Description in ${LANGUAGE_NAMES[lang]}`);
     });
-  };
+  }
 
-  const removeDocument = (index: number) => {
-    onDocumentsChange(documents.filter((_, i) => i !== index));
-  };
+  // Step 4 errors
+  if (currentStep === 4) {
+    if (errors.mainImage) errorFields.push("Main Service Image");
+    // if (errors.beforeImage) errorFields.push("Before Image");
+    // if (errors.afterImage) errorFields.push("After Image");
+  }
+
+  if (errorFields.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      <Label>Upload Documents (PDF, DOC, DOCX)</Label>
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-        <Input type="file" multiple accept=".pdf,.doc,.docx" onChange={handleDocumentUpload} className="hidden" id="documents" />
-        <Label htmlFor="documents" className="cursor-pointer flex flex-col items-center gap-2">
-          <FileText className="w-8 h-8 text-gray-400" />
-          <span className="text-sm text-gray-600">Choose Document</span>
-          <span className="text-xs text-gray-500">PDF, DOC, or DOCX files</span>
-        </Label>
-      </div>
-
-      {documents.length > 0 && (
-        <div className="space-y-2">
-          {documents.map((doc, index) => (
-            <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-500" />
-                <span className="text-sm">Document {index + 1}</span>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => removeDocument(index)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
+    <div className="bg-red-50 border border-red-200 rounded-lg p-4 animate-in fade-in duration-300">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <h4 className="font-semibold text-red-800 mb-2">Required Fields Missing</h4>
+          <p className="text-red-700 text-sm mb-2">
+            Please fill in all required fields marked with * before proceeding.
+          </p>
+          <div className="text-red-600 text-sm">
+            <p className="font-medium mb-1">Missing fields:</p>
+            <ul className="list-disc list-inside space-y-1">
+              {errorFields.map((field, index) => (
+                <li key={index}>{field}</li>
+              ))}
+            </ul>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-const ImageUpload = ({ images, onImagesChange, hasError }: {
-  images: string[];
-  onImagesChange: (images: string[]) => void;
+// Date Input Component (Simple alternative to Calendar)
+const DateInputField = ({ 
+  label, 
+  date, 
+  onDateChange,
+  isRequired = false,
+  hasError = false
+}: {
+  label: string;
+  date: string;
+  onDateChange: (date: string) => void;
+  isRequired?: boolean;
   hasError?: boolean;
 }) => {
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    const newImages: string[] = [];
-    Array.from(files).slice(0, 6 - images.length).forEach(file => {
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            newImages.push(e.target.result as string);
-            if (newImages.length === Math.min(files.length, 6 - images.length)) {
-              onImagesChange([...images, ...newImages]);
-            }
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  };
-
-  const removeImage = (index: number) => {
-    onImagesChange(images.filter((_, i) => i !== index));
-  };
-
   return (
-    <div className="space-y-4">
-      <Label className={hasError ? "text-red-600" : ""}>
-        Upload Service Images (JPG, PNG) *
+    <div className="space-y-3">
+      <Label className={`flex items-center gap-2 ${hasError ? "text-red-600" : ""}`}>
+        {label}
+        {isRequired && <span className="text-red-500">*</span>}
       </Label>
-      <div className={`border-2 border-dashed rounded-lg p-6 text-center ${
-        hasError ? "border-red-300 bg-red-50" : "border-gray-300"
-      }`}>
-        <Input 
-          type="file" 
-          multiple 
-          accept="image/*" 
-          onChange={handleImageUpload} 
-          className="hidden" 
-          id="images" 
-          disabled={images.length >= 6}
-        />
-        <Label 
-          htmlFor="images" 
-          className={`cursor-pointer flex flex-col items-center gap-2 ${images.length >= 6 ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <ImageIcon className="w-8 h-8 text-gray-400" />
-          <span className="text-sm text-gray-600">Choose Images</span>
-          <span className="text-xs text-gray-500">Minimum 1, Maximum 6 images</span>
-        </Label>
-      </div>
-
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {images.map((image, index) => (
-            <div key={index} className="relative group">
-              <img src={image} alt={`Upload ${index + 1}`} className="w-full h-24 object-cover rounded-lg border" />
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => removeImage(index)}
-              >
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
-      {images.length > 0 && (
-        <p className="text-xs text-gray-500">
-          {images.length}/6 images uploaded
-        </p>
-      )}
-      {hasError && (
-        <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-          <AlertCircle className="w-3 h-3" />
-          At least one image is required
-        </p>
-      )}
-    </div>
-  );
-};
-
-// Language Form Section with Validation
-const LanguageFormSection = ({ 
-  language, 
-  isActive, 
-  formData, 
-  onFormDataChange, 
-  validationErrors 
-}: {
-  language: Language;
-  isActive: boolean;
-  formData: ServiceFormData;
-  onFormDataChange: (data: ServiceFormData) => void;
-  validationErrors: { [key: string]: boolean };
-}) => {
-  if (!isActive) return null;
-
-  const hasError = validationErrors[`title-${language}`] || validationErrors[`description-${language}`];
-
-  return (
-    <div className="space-y-4 animate-in fade-in duration-300">
-      <div className={`flex items-center gap-2 mb-4 p-3 rounded-lg ${
-        hasError ? "bg-red-50 border border-red-200" : "bg-blue-50"
-      }`}>
-        {hasError ? (
-          <AlertCircle className="w-4 h-4 text-red-600" />
-        ) : (
-          <CheckCircle className="w-4 h-4 text-blue-600" />
-        )}
-        <span className={`font-medium ${hasError ? "text-red-800" : "text-blue-800"}`}>
-          Editing in {LANGUAGE_NAMES[language]} {hasError && "- Required fields missing"}
-        </span>
-      </div>
-
-      <div>
-        <Label 
-          htmlFor={`title-${language}`}
-          className={validationErrors[`title-${language}`] ? "text-red-600" : ""}
-        >
-          Service Title in {LANGUAGE_NAMES[language]} *
-        </Label>
+      
+      <div className="flex items-center gap-3">
         <Input
-          id={`title-${language}`}
-          value={formData.title[language]}
-          onChange={(e) => onFormDataChange({
-            ...formData,
-            title: { ...formData.title, [language]: e.target.value }
-          })}
-          placeholder={`Enter service title in ${LANGUAGE_NAMES[language]}`}
-          className={`mt-1 ${
-            validationErrors[`title-${language}`] 
-              ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-              : ""
-          }`}
+          type="date"
+          value={date}
+          onChange={(e) => onDateChange(e.target.value)}
+          className={`flex-1 ${hasError ? "border-red-500" : ""}`}
         />
-        {validationErrors[`title-${language}`] && (
-          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            Title in {LANGUAGE_NAMES[language]} is required
-          </p>
-        )}
+        <CalendarIcon className="w-5 h-5 text-gray-400" />
       </div>
 
-      <div>
-        <Label 
-          htmlFor={`description-${language}`}
-          className={validationErrors[`description-${language}`] ? "text-red-600" : ""}
-        >
-          Service Description in {LANGUAGE_NAMES[language]} *
-        </Label>
-        <Textarea
-          id={`description-${language}`}
-          value={formData.description[language]}
-          onChange={(e) => onFormDataChange({
-            ...formData,
-            description: { ...formData.description, [language]: e.target.value }
-          })}
-          placeholder={`Enter detailed service description in ${LANGUAGE_NAMES[language]}...`}
-          rows={4}
-          className={`mt-1 ${
-            validationErrors[`description-${language}`] 
-              ? "border-red-500 focus:border-red-500 focus:ring-red-500" 
-              : ""
-          }`}
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          {formData.description[language].length} characters
+      {hasError && (
+        <p className="text-red-600 text-sm flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          {label} is required
         </p>
-        {validationErrors[`description-${language}`] && (
-          <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            Description in {LANGUAGE_NAMES[language]} is required
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 };
 
-// Validation Helper
-const validateServiceForm = (formData: ServiceFormData): { isValid: boolean; errors: { [key: string]: boolean } } => {
-  const errors: { [key: string]: boolean } = {};
-  let isValid = true;
-
-  // Validate all three languages
-  LANGUAGES.forEach(lang => {
-    if (!formData.title[lang]?.trim()) {
-      errors[`title-${lang}`] = true;
-      isValid = false;
-    }
-    if (!formData.description[lang]?.trim()) {
-      errors[`description-${lang}`] = true;
-      isValid = false;
-    }
-  });
-
-  // Validate category
-  if (!formData.category.trim()) {
-    errors.category = true;
-    isValid = false;
-  }
-
-  // Validate location
-  if (!formData.location.trim()) {
-    errors.location = true;
-    isValid = false;
-  }
-
-  // Validate phone
-  if (!formData.phone.trim()) {
-    errors.phone = true;
-    isValid = false;
-  }
-
-  // Validate email
-  if (!formData.email.trim()) {
-    errors.email = true;
-    isValid = false;
-  } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-    errors.email = true;
-    isValid = false;
-  }
-
-  // Validate date
-  if (!formData.dateCreated.trim()) {
-    errors.dateCreated = true;
-    isValid = false;
-  }
-
-  // Validate images (minimum 1)
-  if (formData.images.length === 0) {
-    errors.images = true;
-    isValid = false;
-  }
-
-  return { isValid, errors };
-};
-
-// Main Component
+// Main Services Management Page
 export default function ServicesManagementPage() {
   const [services, setServices] = useState<Service[]>([
     {
       id: "1",
-      title: {
+      serviceName: {
         en: "Community Health Center",
         ta: "சமூக சுகாதார மையம்",
         si: "සමුදාය සෞඛ්ය මධ්යස්ථානය"
       },
-      description: {
-        en: "Free medical checkups and basic healthcare services for community members. We provide comprehensive healthcare services including consultations, basic treatments, and health education programs.",
-        ta: "சமூக உறுப்பினர்களுக்கு இலவச மருத்துவ பரிசோதனைகள் மற்றும் அடிப்படை சுகாதார சேவைகள். ஆலோசனைகள், அடிப்படை சிகிச்சைகள் மற்றும் சுகாதார கல்வி திட்டங்கள் உட்பட விரிவான சுகாதார சேவைகளை நாங்கள் வழங்குகிறோம்.",
-        si: "ප්‍රජා සාමාජිකයින් සඳහා නොමිලේ වෛද්‍ය පරීක්ෂණ සහ මූලික සෞඛ්ය සේවා. අපි සැලසුම්කරණ, මූලික ප්‍රතිකර්ම සහ සෞඛ්ය අධ්‍යාපන වැඩසටහන් ඇතුළත් සවිස්තරාත්මක සෞඛ්ය සේවා ලබා දෙන්නෙමු."
+      serviceDesc: {
+        en: "Free medical checkups and basic healthcare services for community members.",
+        ta: "சமூக உறுப்பினர்களுக்கு இலவச மருத்துவ பரிசோதனைகள் மற்றும் அடிப்படை சுகாதார சேவைகள்.",
+        si: "ප්‍රජා සාමාජිකයින් සඳහා නොමිලේ වෛද්‍ය පරීක්ෂණ සහ මූලික සෞඛ්ය සේවා."
       },
-      category: "Healthcare",
-      location: "123 Main Street, City Center",
-      phone: "+94 11 234 5678",
-      email: "health@community.org",
-      dateCreated: "2024-01-15",
+      serviceNote: {
+        en: "Open Monday to Friday, 8 AM to 5 PM",
+        ta: "திங்கள் முதல் வெள்ளி வரை, காலை 8 மணி முதல் மாலை 5 மணி வரை திறந்திருக்கும்",
+        si: "සඳුදා සිට සිකුරාදා දක්වා, උදේ 8 සිට 5 දක්වා විවෘතයි"
+      },
+      location: {
+        district: "Mannar",
+        division: "Mannar",
+        gsDivision: "GS Division 1"
+      },
+      images: {
+        main: "/images/health-center.jpg",
+        before: "/images/before-health.jpg",
+        after: "/images/after-health.jpg",
+        gallery: ["/images/health-1.jpg", "/images/health-2.jpg"]
+      },
       status: "active",
-      images: ["https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=300&h=200&fit=crop"],
-      documents: [],
-      isFeatured: true
+      // isFeatured: true,
+      dateCreated: "2024-01-15",
+      serviceDate: "2024-02-01"
     },
     {
       id: "2",
-      title: {
+      serviceName: {
         en: "Adult Education Program",
         ta: "முதியோர் கல்வி திட்டம்",
         si: "වැඩිහිටි අධ්‍යාපන වැඩසටහන"
       },
-      description: {
-        en: "Free adult education classes including literacy, computer skills, and vocational training for community members above 18 years.",
-        ta: "18 வயதுக்கு மேற்பட்ட சமூக உறுப்பினர்களுக்கு எழுத்தறிவு, கணினி திறன்கள் மற்றும் தொழில் பயிற்சி உட்பட இலவச முதியோர் கல்வி வகுப்புகள்.",
-        si: "18 ට වැඩි ප්‍රජා සාමාජිකයින් සඳහා සාක්ෂරතාවය, පරිගණක කුසලතා සහ වෘත්තීය පුහුණුව ඇතුළත් නොමිලේ වැඩිහිටි අධ්‍යාපන පන්ති."
+      serviceDesc: {
+        en: "Free adult education classes including literacy and vocational training.",
+        ta: "எழுத்தறிவு மற்றும் தொழில் பயிற்சி உட்பட இலவச முதியோர் கல்வி வகுப்புகள்.",
+        si: "සාක්ෂරතාවය සහ වෘත්තීය පුහුණුව ඇතුළත් නොමිලේ වැඩිහිටි අධ්‍යාපන පන්ති."
       },
-      category: "Education",
-      location: "456 Learning Avenue, Education Zone",
-      phone: "+94 11 345 6789",
-      email: "education@community.org",
-      dateCreated: "2024-01-10",
+      serviceNote: {
+        en: "Weekend classes available",
+        ta: "வார இறுதி வகுப்புகள் கிடைக்கின்றன",
+        si: "සති අන්ත පන්ති ලබා ගත හැක"
+      },
+      location: {
+        district: "Mannar",
+        division: "Nanattan",
+        gsDivision: "GS Division 4"
+      },
+      images: {
+        main: "/images/education-program.jpg",
+        before: "/images/before-education.jpg",
+        after: "/images/after-education.jpg",
+        gallery: []
+      },
       status: "active",
-      images: ["https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=300&h=200&fit=crop"],
-      documents: [],
-      isFeatured: false
+      // isFeatured: false,
+      dateCreated: "2024-01-10",
+      serviceDate: "2024-02-15"
     }
   ]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterDivision, setFilterDivision] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [currentLanguage, setCurrentLanguage] = useState<Language>("en");
   const [dialog, setDialog] = useState<"view" | "create" | "edit" | "delete" | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [validationErrors, setValidationErrors] = useState<{ [key: string]: boolean }>({});
   const [alert, setAlert] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const initialFormData: ServiceFormData = {
-    title: { en: "", ta: "", si: "" },
-    description: { en: "", ta: "", si: "" },
-    category: "",
-    location: "",
-    phone: "",
-    email: "",
-    dateCreated: new Date().toISOString().split('T')[0],
+    serviceName: { en: "", ta: "", si: "" },
+    serviceDesc: { en: "", ta: "", si: "" },
+    serviceNote: { en: "", ta: "", si: "" },
+    location: {
+      district: "Mannar",
+      division: "",
+      gsDivision: ""
+    },
+    images: {
+      main: null,
+      before: null,
+      after: null,
+      gallery: []
+    },
     status: "active",
-    images: [],
-    documents: [],
-    isFeatured: false
+    // isFeatured: false,
+    serviceDate: ""
   };
 
   const [formData, setFormData] = useState<ServiceFormData>(initialFormData);
@@ -620,32 +821,124 @@ export default function ServicesManagementPage() {
 
   // Filter services
   const filteredServices = services.filter(service => {
-    const matchesSearch = Object.values(service.title).some(title =>
-      title.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = Object.values(service.serviceName).some(name =>
+      name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    const matchesCategory = filterCategory === "all" || service.category === filterCategory;
+    const matchesDivision = filterDivision === "all" || service.location.division === filterDivision;
     const matchesStatus = filterStatus === "all" || service.status === filterStatus;
     
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesDivision && matchesStatus;
   });
 
-  // Handlers
+  // Handle image uploads
+  const handleImageChange = (type: ImageType, files: File | File[] | null) => {
+    setFormData(prev => ({
+      ...prev,
+      images: {
+        ...prev.images,
+        [type]: files
+      }
+    }));
+  };
+
+  // Validation function - FIXED VERSION
+  const validateForm = (step: number): boolean => {
+    const errors: { [key: string]: boolean } = {};
+
+    // Step 1: Location validation
+    if (step === 1) {
+      if (!formData.location.district) errors.district = true;
+      if (!formData.location.division) errors.division = true;
+      if (!formData.location.gsDivision) errors.gsDivision = true;
+    }
+
+    // Step 2: Service details validation
+    if (step === 2) {
+      // Step 2 doesn't have required fields currently, only optional service date
+      // No validation needed for step 2
+    }
+
+    // Step 3: Service content validation
+    if (step === 3) {
+      LANGUAGES.forEach(lang => {
+        if (!formData.serviceName[lang]?.trim()) {
+          errors[`serviceName-${lang}`] = true;
+        }
+        if (!formData.serviceDesc[lang]?.trim()) {
+          errors[`serviceDesc-${lang}`] = true;
+        }
+      });
+    }
+
+    // Step 4: Image validation
+    if (step === 4) {
+      if (!formData.images.main) errors.mainImage = true;
+      // if (!formData.images.before) errors.beforeImage = true;
+      // if (!formData.images.after) errors.afterImage = true;
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle form submission
   const handleCreateService = () => {
-    const { isValid, errors } = validateServiceForm(formData);
-    
-    if (!isValid) {
-      setValidationErrors(errors);
+    // Validate all steps before final submission
+    let allValid = true;
+    const allErrors: { [key: string]: boolean } = {};
+
+    // Validate step 1
+    if (!formData.location.district) { allErrors.district = true; allValid = false; }
+    if (!formData.location.division) { allErrors.division = true; allValid = false; }
+    if (!formData.location.gsDivision) { allErrors.gsDivision = true; allValid = false; }
+
+    // Validate step 3
+    LANGUAGES.forEach(lang => {
+      if (!formData.serviceName[lang]?.trim()) { 
+        allErrors[`serviceName-${lang}`] = true; allValid = false; 
+      }
+      if (!formData.serviceDesc[lang]?.trim()) { 
+        allErrors[`serviceDesc-${lang}`] = true; allValid = false; 
+      }
+    });
+
+    // Validate step 4
+    if (!formData.images.main) { allErrors.mainImage = true; allValid = false; }
+    // if (!formData.images.before) { allErrors.beforeImage = true; allValid = false; }
+    // if (!formData.images.after) { allErrors.afterImage = true; allValid = false; }
+
+    setValidationErrors(allErrors);
+
+    if (!allValid) {
+      setAlert({
+        type: "error",
+        message: "Please fill in all required fields before submitting."
+      });
       return;
     }
 
     const newService: Service = {
       id: (services.length + 1).toString(),
-      ...formData
+      serviceName: formData.serviceName,
+      serviceDesc: formData.serviceDesc,
+      serviceNote: formData.serviceNote,
+      location: formData.location,
+      images: {
+        main: formData.images.main ? URL.createObjectURL(formData.images.main) : "",
+        before: formData.images.before ? URL.createObjectURL(formData.images.before) : "",
+        after: formData.images.after ? URL.createObjectURL(formData.images.after) : "",
+        gallery: formData.images.gallery.map(file => URL.createObjectURL(file))
+      },
+      status: formData.status,
+      // isFeatured: formData.isFeatured,
+      dateCreated: new Date().toISOString().split('T')[0],
+      serviceDate: formData.serviceDate || undefined
     };
     
     setServices([newService, ...services]);
     setDialog(null);
     setFormData(initialFormData);
+    setCurrentStep(1);
     clearValidationErrors();
     
     setAlert({
@@ -658,18 +951,50 @@ export default function ServicesManagementPage() {
   const handleEditService = () => {
     if (!selectedService) return;
 
-    const { isValid, errors } = validateServiceForm(formData);
-    
-    if (!isValid) {
-      setValidationErrors(errors);
+    // Validate all steps before final submission for edit
+    let allValid = true;
+    const allErrors: { [key: string]: boolean } = {};
+
+    // Validate step 1
+    if (!formData.location.district) { allErrors.district = true; allValid = false; }
+    if (!formData.location.division) { allErrors.division = true; allValid = false; }
+    if (!formData.location.gsDivision) { allErrors.gsDivision = true; allValid = false; }
+
+    // Validate step 3
+    LANGUAGES.forEach(lang => {
+      if (!formData.serviceName[lang]?.trim()) { 
+        allErrors[`serviceName-${lang}`] = true; allValid = false; 
+      }
+      if (!formData.serviceDesc[lang]?.trim()) { 
+        allErrors[`serviceDesc-${lang}`] = true; allValid = false; 
+      }
+    });
+
+    setValidationErrors(allErrors);
+
+    if (!allValid) {
+      setAlert({
+        type: "error",
+        message: "Please fill in all required fields before updating."
+      });
       return;
     }
 
     setServices(prev => prev.map(service => 
-      service.id === selectedService.id ? { ...selectedService, ...formData } : service
+      service.id === selectedService.id ? { 
+        ...service,
+        serviceName: formData.serviceName,
+        serviceDesc: formData.serviceDesc,
+        serviceNote: formData.serviceNote,
+        location: formData.location,
+        status: formData.status,
+        // isFeatured: formData.isFeatured,
+        serviceDate: formData.serviceDate || undefined
+      } : service
     ));
     
     setDialog(null);
+    setCurrentStep(1);
     clearValidationErrors();
     
     setAlert({
@@ -691,21 +1016,45 @@ export default function ServicesManagementPage() {
     setTimeout(() => setAlert(null), 3000);
   };
 
-  const handleToggleFeature = (id: string) => {
-    setServices(prev => prev.map(service =>
-      service.id === id ? { ...service, isFeatured: !service.isFeatured } : service
-    ));
+  // const handleToggleFeature = (id: string) => {
+  //   setServices(prev => prev.map(service =>
+  //     service.id === id ? { ...service, isFeatured: !service.isFeatured } : service
+  //   ));
+  // };
+
+  // Navigation between steps - FIXED VERSION
+  const nextStep = () => {
+    if (validateForm(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 5));
+      clearValidationErrors();
+    } else {
+      setAlert({
+        type: "error",
+        message: "Please fill in all required fields before proceeding."
+      });
+      setTimeout(() => setAlert(null), 3000);
+    }
   };
 
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric", month: "short", day: "numeric"
-  });
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+    clearValidationErrors();
+  };
 
   // Reset form and close dialog
   const handleCancel = () => {
     setDialog(null);
     setFormData(initialFormData);
+    setCurrentStep(1);
     clearValidationErrors();
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'No date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric", month: "short", day: "numeric"
+    });
   };
 
   return (
@@ -744,211 +1093,283 @@ export default function ServicesManagementPage() {
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Service</DialogTitle>
-              <DialogDescription>Fill in the details for the new service</DialogDescription>
+              <DialogDescription>Follow the steps to add a new community service</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
-              {/* Language Tabs */}
-              <div className="flex gap-2">
-                {LANGUAGES.map(lang => (
-                  <Button
-                    key={lang}
-                    type="button"
-                    variant={currentLanguage === lang ? "default" : "outline"}
-                    onClick={() => setCurrentLanguage(lang)}
-                    className="flex-1"
-                  >
-                    {LANGUAGE_NAMES[lang]}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Language-specific Fields */}
-              {LANGUAGES.map(lang => (
-                <LanguageFormSection
-                  key={lang}
-                  language={lang}
-                  isActive={currentLanguage === lang}
-                  formData={formData}
-                  onFormDataChange={setFormData}
-                  validationErrors={validationErrors}
-                />
+            {/* Progress Steps */}
+            <div className="flex justify-between items-center mb-6">
+              {[1, 2, 3, 4, 5].map(step => (
+                <div key={step} className="flex flex-col items-center flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    step === currentStep 
+                      ? "bg-blue-600 text-white" 
+                      : step < currentStep 
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-200 text-gray-600"
+                  }`}>
+                    {step < currentStep ? "✓" : step}
+                  </div>
+                  <span className="text-xs mt-1 text-gray-600 text-center">
+                    {step === 1 && "Location"}
+                    {step === 2 && "Details"}
+                    {step === 3 && "Content"}
+                    {step === 4 && "Images"}
+                    {step === 5 && "Submit"}
+                  </span>
+                </div>
               ))}
-
-              {/* Service Category */}
-              <div>
-                <Label 
-                  htmlFor="category"
-                  className={validationErrors.category ? "text-red-600" : ""}
-                >
-                  Service Category *
-                </Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger 
-                    id="category"
-                    className={validationErrors.category ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SERVICE_CATEGORIES.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {validationErrors.category && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    Category is required
-                  </p>
-                )}
-              </div>
-
-              {/* Contact Information */}
-              <div className="space-y-4 border-t pt-4">
-                <h3 className="font-semibold">Contact Information</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label 
-                      htmlFor="location"
-                      className={validationErrors.location ? "text-red-600" : ""}
-                    >
-                      Location *
-                    </Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      placeholder="Enter location"
-                      className={validationErrors.location ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.location && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Location is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label 
-                      htmlFor="phone"
-                      className={validationErrors.phone ? "text-red-600" : ""}
-                    >
-                      Phone *
-                    </Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="Enter phone"
-                      className={validationErrors.phone ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.phone && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Phone is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label 
-                      htmlFor="email"
-                      className={validationErrors.email ? "text-red-600" : ""}
-                    >
-                      Email *
-                    </Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="Enter email"
-                      className={validationErrors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.email && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Valid email is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label 
-                      htmlFor="dateCreated"
-                      className={validationErrors.dateCreated ? "text-red-600" : ""}
-                    >
-                      Date Created *
-                    </Label>
-                    <Input
-                      id="dateCreated"
-                      type="date"
-                      value={formData.dateCreated}
-                      onChange={(e) => setFormData({ ...formData, dateCreated: e.target.value })}
-                      className={validationErrors.dateCreated ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.dateCreated && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Date is required
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Document Upload */}
-              <div className="border-t pt-4">
-                <DocumentUpload
-                  documents={formData.documents}
-                  onDocumentsChange={(documents) => setFormData({ ...formData, documents })}
-                />
-              </div>
-
-              {/* Image Upload */}
-              <div className="border-t pt-4">
-                <ImageUpload
-                  images={formData.images}
-                  onImagesChange={(images) => setFormData({ ...formData, images })}
-                  hasError={validationErrors.images}
-                />
-              </div>
-
-              {/* Status Section */}
-              <div className="border-t pt-4 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="featured"
-                    checked={formData.isFeatured}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
-                  />
-                  <Label htmlFor="featured">Feature this service</Label>
-                </div>
-
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
-                    <SelectTrigger id="status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
             </div>
 
-            {/* Validation Alert moved to bottom near buttons */}
-            {Object.keys(validationErrors).length > 0 && (
-              <div className="mt-4">
-                <ValidationAlert errors={validationErrors} />
+            {/* Step 1: Location Selection */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <LocationSelection
+                  location={formData.location}
+                  onLocationChange={(location) => setFormData(prev => ({ ...prev, location }))}
+                  validationErrors={validationErrors}
+                />
               </div>
             )}
 
-            <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-4">
-              <Button variant="outline" onClick={handleCancel} className="sm:flex-1">Cancel</Button>
-              <Button onClick={handleCreateService} className="sm:flex-1">Create Service</Button>
+            {/* Step 2: Service Details */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <span>Step 2: Service Details</span>
+                </div>
+                
+                {/* Service Date */}
+                <DateInputField
+                  label="Service Date"
+                  date={formData.serviceDate || ""}
+                  onDateChange={(date) => setFormData(prev => ({ ...prev, serviceDate: date }))}
+                />
+
+                {/* Status and Featured */}
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+                  <div>
+                    <Label htmlFor="status" className="flex items-center gap-2">
+                      Status
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Select 
+                      value={formData.status} 
+                      onValueChange={(value: "active" | "inactive") => 
+                        setFormData(prev => ({ ...prev, status: value }))
+                      }
+                    >
+                      <SelectTrigger id="status">
+                        <SelectValue placeholder="Select Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isFeatured"
+                      checked={formData.isFeatured}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
+                      className="rounded border-gray-300"
+                    />
+                    <Label htmlFor="isFeatured" className="flex items-center gap-2 cursor-pointer">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      Feature this service
+                    </Label>
+                  </div> */}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Service Content in 3 languages */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <span>Step 3: Service Content</span>
+                </div>
+                
+                <Tabs defaultValue="en" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    {LANGUAGES.map(lang => (
+                      <TabsTrigger key={lang} value={lang}>
+                        {LANGUAGE_NAMES[lang]}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  
+                  {LANGUAGES.map(lang => (
+                    <TabsContent key={lang} value={lang}>
+                      <LanguageInputSection
+                        language={lang}
+                        formData={formData}
+                        onFormDataChange={setFormData}
+                        validationErrors={validationErrors}
+                      />
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+            )}
+
+            {/* Step 4: Image Uploads */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <ImageIcon className="w-5 h-5" />
+                  <span>Step 4: Upload Images</span>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Main Service Image */}
+                  <ImageUploadField
+                    label="Main Service Image"
+                    type="main"
+                    image={formData.images.main}
+                    onImageChange={handleImageChange}
+                    isRequired={true}
+                    hasError={validationErrors.mainImage}
+                  />
+
+                  {/* Before and After Images */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <ImageUploadField
+                      label="Before Image"
+                      type="before"
+                      image={formData.images.before}
+                      onImageChange={handleImageChange}
+                      // isRequired={true}
+                      // hasError={validationErrors.beforeImage}
+                    />
+                    <ImageUploadField
+                      label="After Image"
+                      type="after"
+                      image={formData.images.after}
+                      onImageChange={handleImageChange}
+                      // isRequired={true}
+                      // hasError={validationErrors.afterImage}
+                    />
+                  </div>
+
+                  {/* Gallery Images */}
+                  <ImageUploadField
+                    label="Gallery Images (Multiple)"
+                    type="gallery"
+                    image={formData.images.gallery}
+                    onImageChange={handleImageChange}
+                    isMultiple={true}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Review and Submit */}
+            {currentStep === 5 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <span>Step 5: Review and Submit</span>
+                </div>
+
+                {/* Service Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Service Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Location */}
+                    <div>
+                      <Label className="font-semibold">Location</Label>
+                      <p className="text-sm text-gray-600">
+                        {formData.location.district} / {formData.location.division} / {formData.location.gsDivision}
+                      </p>
+                    </div>
+
+                    {/* Service Date */}
+                    {formData.serviceDate && (
+                      <div>
+                        <Label className="font-semibold">Service Date</Label>
+                        <p className="text-sm text-gray-600">
+                          {formatDate(formData.serviceDate)}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Service Names */}
+                    <div>
+                      <Label className="font-semibold">Service Names</Label>
+                      {LANGUAGES.map(lang => (
+                        <div key={lang} className="flex items-center gap-2 text-sm text-gray-600">
+                          <Badge variant="outline" className="text-xs">
+                            {LANGUAGE_NAMES[lang]}
+                          </Badge>
+                          <span>{formData.serviceName[lang]}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    
+
+                    {/* Images Summary */}
+                    <div>
+                      <Label className="font-semibold">Images</Label>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>Main Image: {formData.images.main ? "✓ Uploaded" : "None"}</p>
+                        <p>Before Image: {formData.images.before ? "✓ Uploaded" : "None"}</p>
+                        <p>After Image: {formData.images.after ? "✓ Uploaded" : "None"}</p>
+                        <p>Gallery Images: {formData.images.gallery.length} uploaded</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-blue-800 mb-1">Ready to Submit</h4>
+                      <p className="text-blue-700 text-sm">
+                        Review all the information above. Click "Submit Service" to create the new service.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Validation Alert */}
+            {Object.keys(validationErrors).length > 0 && (
+              <ValidationAlert errors={validationErrors} currentStep={currentStep} />
+            )}
+
+            {/* Navigation Buttons */}
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-6">
+              <div className="flex-1 flex gap-3">
+                {currentStep > 1 && (
+                  <Button variant="outline" onClick={prevStep} className="flex-1">
+                    Previous
+                  </Button>
+                )}
+                {currentStep < 5 && (
+                  <Button onClick={nextStep} className="flex-1">
+                    Next
+                  </Button>
+                )}
+                {currentStep === 5 && (
+                  <Button onClick={handleCreateService} className="flex-1 bg-green-600 hover:bg-green-700">
+                    Submit Service
+                  </Button>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleCancel}
+                className="sm:w-auto"
+              >
+                Cancel
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -961,20 +1382,20 @@ export default function ServicesManagementPage() {
             <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
               <Input
-                placeholder="Search services by title..."
+                placeholder="Search services by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <Select value={filterDivision} onValueChange={setFilterDivision}>
               <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder="All Divisions" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {SERVICE_CATEGORIES.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                <SelectItem value="all">All Divisions</SelectItem>
+                {MANNAR_DIVISIONS.map(division => (
+                  <SelectItem key={division} value={division}>{division}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -1005,7 +1426,7 @@ export default function ServicesManagementPage() {
               variant="outline"
               onClick={() => {
                 setSearchTerm("");
-                setFilterCategory("all");
+                setFilterDivision("all");
                 setFilterStatus("all");
               }}
               className="w-full md:w-auto"
@@ -1039,7 +1460,7 @@ export default function ServicesManagementPage() {
               <p className="text-gray-500">No services found matching your criteria.</p>
               <Button variant="outline" className="mt-4" onClick={() => {
                 setSearchTerm("");
-                setFilterCategory("all");
+                setFilterDivision("all");
                 setFilterStatus("all");
               }}>
                 Clear filters
@@ -1058,8 +1479,23 @@ export default function ServicesManagementPage() {
               }}
               onEdit={() => {
                 setSelectedService(service);
-                setFormData(service);
+                setFormData({
+                  serviceName: service.serviceName,
+                  serviceDesc: service.serviceDesc,
+                  serviceNote: service.serviceNote,
+                  location: service.location,
+                  images: {
+                    main: null,
+                    before: null,
+                    after: null,
+                    gallery: []
+                  },
+                  status: service.status,
+                  // isFeatured: service.isFeatured,
+                  serviceDate: service.serviceDate || ""
+                });
                 setDialog("edit");
+                setCurrentStep(1);
                 clearValidationErrors();
               }}
               onDelete={() => {
@@ -1078,13 +1514,13 @@ export default function ServicesManagementPage() {
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                {selectedService.title[currentLanguage]}
-                {selectedService.isFeatured && (
+                {selectedService.serviceName[currentLanguage]}
+                {/* {selectedService.isFeatured && (
                   <Badge className="bg-yellow-100 text-yellow-700">Featured</Badge>
-                )}
+                )} */}
               </DialogTitle>
               <DialogDescription>
-                {selectedService.category} • Created on {formatDate(selectedService.dateCreated)}
+                {selectedService.location.district} • Created on {formatDate(selectedService.dateCreated)}
               </DialogDescription>
             </DialogHeader>
 
@@ -1104,16 +1540,51 @@ export default function ServicesManagementPage() {
               </div>
 
               {/* Images */}
-              {selectedService.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {selectedService.images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image}
-                      alt={`Service image ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
-                    />
-                  ))}
+              {(selectedService.images.main || selectedService.images.before || selectedService.images.after || selectedService.images.gallery.length > 0) && (
+                <div>
+                  <h4 className="font-semibold mb-3">Service Images</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {selectedService.images.main && (
+                      <div className="relative">
+                        <img
+                          src={selectedService.images.main}
+                          alt="Main service"
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                        <Badge className="absolute top-2 left-2 bg-blue-600">Main</Badge>
+                      </div>
+                    )}
+                    {selectedService.images.before && (
+                      <div className="relative">
+                        <img
+                          src={selectedService.images.before}
+                          alt="Before service"
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                        <Badge className="absolute top-2 left-2 bg-orange-600">Before</Badge>
+                      </div>
+                    )}
+                    {selectedService.images.after && (
+                      <div className="relative">
+                        <img
+                          src={selectedService.images.after}
+                          alt="After service"
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                        <Badge className="absolute top-2 left-2 bg-green-600">After</Badge>
+                      </div>
+                    )}
+                    {selectedService.images.gallery.map((image, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={image}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+                        <Badge className="absolute top-2 left-2 bg-gray-600">Gallery {index + 1}</Badge>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1121,26 +1592,36 @@ export default function ServicesManagementPage() {
               <div>
                 <h4 className="font-semibold mb-2">Service Description</h4>
                 <p className="text-gray-700 whitespace-pre-wrap">
-                  {selectedService.description[currentLanguage]}
+                  {selectedService.serviceDesc[currentLanguage]}
                 </p>
               </div>
 
-              {/* Contact Information */}
+              {/* Additional Notes */}
+              {selectedService.serviceNote[currentLanguage] && (
+                <div>
+                  <h4 className="font-semibold mb-2">Additional Notes</h4>
+                  <p className="text-gray-700 whitespace-pre-wrap">
+                    {selectedService.serviceNote[currentLanguage]}
+                  </p>
+                </div>
+              )}
+
+              {/* Location Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold mb-3">Contact Information</h4>
+                  <h4 className="font-semibold mb-3">Location Information</h4>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-500" />
-                      <span>{selectedService.location}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">District:</span>
+                      <span>{selectedService.location.district}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      <span>{selectedService.phone}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Division:</span>
+                      <span>{selectedService.location.division}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-gray-500" />
-                      <span>{selectedService.email}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">GS Division:</span>
+                      <span>{selectedService.location.gsDivision}</span>
                     </div>
                   </div>
                 </div>
@@ -1149,47 +1630,22 @@ export default function ServicesManagementPage() {
                   <h4 className="font-semibold mb-3">Service Details</h4>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Category:</span>
-                      <Badge variant="secondary">{selectedService.category}</Badge>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-gray-600">Status:</span>
                       <Badge className={selectedService.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
                         {selectedService.status.toUpperCase()}
                       </Badge>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Date Created:</span>
-                      <span>{formatDate(selectedService.dateCreated)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Featured:</span>
-                      <span>{selectedService.isFeatured ? "Yes" : "No"}</span>
-                    </div>
+                    
+                    {selectedService.serviceDate && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Service Date:</span>
+                        <span>{formatDate(selectedService.serviceDate)}</span>
+                      </div>
+                    )}
+                   
                   </div>
                 </div>
               </div>
-
-              {/* Documents */}
-              {selectedService.documents.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-3">Documents</h4>
-                  <div className="space-y-2">
-                    {selectedService.documents.map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm">Document {index + 1}</span>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             <DialogFooter>
@@ -1212,205 +1668,289 @@ export default function ServicesManagementPage() {
               <DialogDescription>Update the service details</DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6">
-              {/* Language Tabs */}
-              <div className="flex gap-2">
-                {LANGUAGES.map(lang => (
-                  <Button
-                    key={lang}
-                    type="button"
-                    variant={currentLanguage === lang ? "default" : "outline"}
-                    onClick={() => setCurrentLanguage(lang)}
-                    className="flex-1"
-                  >
-                    {LANGUAGE_NAMES[lang]}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Language-specific Fields */}
-              {LANGUAGES.map(lang => (
-                <LanguageFormSection
-                  key={lang}
-                  language={lang}
-                  isActive={currentLanguage === lang}
-                  formData={formData}
-                  onFormDataChange={setFormData}
-                  validationErrors={validationErrors}
-                />
+            {/* Progress Steps */}
+            <div className="flex justify-between items-center mb-6">
+              {[1, 2, 3, 4, 5].map(step => (
+                <div key={step} className="flex flex-col items-center flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    step === currentStep 
+                      ? "bg-blue-600 text-white" 
+                      : step < currentStep 
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-200 text-gray-600"
+                  }`}>
+                    {step < currentStep ? "✓" : step}
+                  </div>
+                  <span className="text-xs mt-1 text-gray-600 text-center">
+                    {step === 1 && "Location"}
+                    {step === 2 && "Details"}
+                    {step === 3 && "Content"}
+                    {step === 4 && "Images"}
+                    {step === 5 && "Submit"}
+                  </span>
+                </div>
               ))}
-
-              {/* Service Category */}
-              <div>
-                <Label 
-                  htmlFor="edit-category"
-                  className={validationErrors.category ? "text-red-600" : ""}
-                >
-                  Service Category *
-                </Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger 
-                    id="edit-category"
-                    className={validationErrors.category ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SERVICE_CATEGORIES.map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {validationErrors.category && (
-                  <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    Category is required
-                  </p>
-                )}
-              </div>
-
-              {/* Contact Information */}
-              <div className="space-y-4 border-t pt-4">
-                <h3 className="font-semibold">Contact Information</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label 
-                      htmlFor="edit-location"
-                      className={validationErrors.location ? "text-red-600" : ""}
-                    >
-                      Location *
-                    </Label>
-                    <Input
-                      id="edit-location"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className={validationErrors.location ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.location && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Location is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label 
-                      htmlFor="edit-phone"
-                      className={validationErrors.phone ? "text-red-600" : ""}
-                    >
-                      Phone *
-                    </Label>
-                    <Input
-                      id="edit-phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className={validationErrors.phone ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.phone && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Phone is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label 
-                      htmlFor="edit-email"
-                      className={validationErrors.email ? "text-red-600" : ""}
-                    >
-                      Email *
-                    </Label>
-                    <Input
-                      id="edit-email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className={validationErrors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.email && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Valid email is required
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label 
-                      htmlFor="edit-date"
-                      className={validationErrors.dateCreated ? "text-red-600" : ""}
-                    >
-                      Date Created *
-                    </Label>
-                    <Input
-                      id="edit-date"
-                      type="date"
-                      value={formData.dateCreated}
-                      onChange={(e) => setFormData({ ...formData, dateCreated: e.target.value })}
-                      className={validationErrors.dateCreated ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-                    />
-                    {validationErrors.dateCreated && (
-                      <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Date is required
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Document Upload */}
-              <div className="border-t pt-4">
-                <DocumentUpload
-                  documents={formData.documents}
-                  onDocumentsChange={(documents) => setFormData({ ...formData, documents })}
-                />
-              </div>
-
-              {/* Image Upload */}
-              <div className="border-t pt-4">
-                <ImageUpload
-                  images={formData.images}
-                  onImagesChange={(images) => setFormData({ ...formData, images })}
-                  hasError={validationErrors.images}
-                />
-              </div>
-
-              {/* Status Section */}
-              <div className="border-t pt-4 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="edit-featured"
-                    checked={formData.isFeatured}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
-                  />
-                  <Label htmlFor="edit-featured">Feature this service</Label>
-                </div>
-
-                <div>
-                  <Label htmlFor="edit-status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value: "active" | "inactive") => setFormData({ ...formData, status: value })}>
-                    <SelectTrigger id="edit-status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
             </div>
 
-            {/* Validation Alert moved to bottom near buttons */}
-            {Object.keys(validationErrors).length > 0 && (
-              <div className="mt-4">
-                <ValidationAlert errors={validationErrors} />
+            {/* Step 1: Location Selection */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                <LocationSelection
+                  location={formData.location}
+                  onLocationChange={(location) => setFormData(prev => ({ ...prev, location }))}
+                  validationErrors={validationErrors}
+                />
               </div>
             )}
 
-            <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-4">
-              <Button variant="outline" onClick={handleCancel} className="sm:flex-1">Cancel</Button>
-              <Button onClick={handleEditService} className="sm:flex-1">Save Changes</Button>
+            {/* Step 2: Service Details */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <span>Step 2: Service Details</span>
+                </div>
+                
+                {/* Service Date */}
+                <DateInputField
+                  label="Service Date"
+                  date={formData.serviceDate || ""}
+                  onDateChange={(date) => setFormData(prev => ({ ...prev, serviceDate: date }))}
+                />
+
+                {/* Status and Featured */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label htmlFor="status" className="flex items-center gap-2">
+                      Status
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Select 
+                      value={formData.status} 
+                      onValueChange={(value: "active" | "inactive") => 
+                        setFormData(prev => ({ ...prev, status: value }))
+                      }
+                    >
+                      <SelectTrigger id="status">
+                        <SelectValue placeholder="Select Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isFeatured"
+                      checked={formData.isFeatured}
+                      onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
+                      className="rounded border-gray-300"
+                    />
+                    <Label htmlFor="isFeatured" className="flex items-center gap-2 cursor-pointer">
+                      <Star className="w-4 h-4 text-yellow-500" />
+                      Feature this service
+                    </Label>
+                  </div> */}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Service Content in 3 languages */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <span>Step 3: Service Content</span>
+                </div>
+                
+                <Tabs defaultValue="en" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    {LANGUAGES.map(lang => (
+                      <TabsTrigger key={lang} value={lang}>
+                        {LANGUAGE_NAMES[lang]}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  
+                  {LANGUAGES.map(lang => (
+                    <TabsContent key={lang} value={lang}>
+                      <LanguageInputSection
+                        language={lang}
+                        formData={formData}
+                        onFormDataChange={setFormData}
+                        validationErrors={validationErrors}
+                      />
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+            )}
+
+            {/* Step 4: Image Uploads */}
+            {currentStep === 4 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <ImageIcon className="w-5 h-5" />
+                  <span>Step 4: Upload Images</span>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Main Service Image */}
+                  <ImageUploadField
+                    label="Main Service Image"
+                    type="main"
+                    image={formData.images.main}
+                    onImageChange={handleImageChange}
+                    isRequired={true}
+                    hasError={validationErrors.mainImage}
+                  />
+
+                  {/* Before and After Images */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <ImageUploadField
+                      label="Before Image"
+                      type="before"
+                      image={formData.images.before}
+                      onImageChange={handleImageChange}
+                      // isRequired={true}
+                      // hasError={validationErrors.beforeImage}
+                    />
+                    <ImageUploadField
+                      label="After Image"
+                      type="after"
+                      image={formData.images.after}
+                      onImageChange={handleImageChange}
+                      isRequired={true}
+                      hasError={validationErrors.afterImage}
+                    />
+                  </div>
+
+                  {/* Gallery Images */}
+                  <ImageUploadField
+                    label="Gallery Images (Multiple)"
+                    type="gallery"
+                    image={formData.images.gallery}
+                    onImageChange={handleImageChange}
+                    isMultiple={true}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Review and Submit */}
+            {currentStep === 5 && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                  <span>Step 5: Review and Submit</span>
+                </div>
+
+                {/* Service Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Service Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Location */}
+                    <div>
+                      <Label className="font-semibold">Location</Label>
+                      <p className="text-sm text-gray-600">
+                        {formData.location.district} / {formData.location.division} / {formData.location.gsDivision}
+                      </p>
+                    </div>
+
+                    {/* Service Date */}
+                    {formData.serviceDate && (
+                      <div>
+                        <Label className="font-semibold">Service Date</Label>
+                        <p className="text-sm text-gray-600">
+                          {formatDate(formData.serviceDate)}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Service Names */}
+                    <div>
+                      <Label className="font-semibold">Service Names</Label>
+                      {LANGUAGES.map(lang => (
+                        <div key={lang} className="flex items-center gap-2 text-sm text-gray-600">
+                          <Badge variant="outline" className="text-xs">
+                            {LANGUAGE_NAMES[lang]}
+                          </Badge>
+                          <span>{formData.serviceName[lang]}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Status and Featured */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="font-semibold">Status</Label>
+                        <Badge className={formData.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                          {formData.status.toUpperCase()}
+                        </Badge>
+                      </div>
+                     
+                    </div>
+
+                    {/* Images Summary */}
+                    <div>
+                      <Label className="font-semibold">Images</Label>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p>Main Image: {formData.images.main ? "✓ Uploaded" : "None"}</p>
+                        <p>Before Image: {formData.images.before ? "✓ Uploaded" : "None"}</p>
+                        <p>After Image: {formData.images.after ? "✓ Uploaded" : "None"}</p>
+                        <p>Gallery Images: {formData.images.gallery.length} uploaded</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-blue-800 mb-1">Ready to Update</h4>
+                      <p className="text-blue-700 text-sm">
+                        Review all the information above. Click "Save Changes" to update the service.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Validation Alert */}
+            {Object.keys(validationErrors).length > 0 && (
+              <ValidationAlert errors={validationErrors} currentStep={currentStep} />
+            )}
+
+            {/* Navigation Buttons */}
+            <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-6">
+              <div className="flex-1 flex gap-3">
+                {currentStep > 1 && (
+                  <Button variant="outline" onClick={prevStep} className="flex-1">
+                    Previous
+                  </Button>
+                )}
+                {currentStep < 5 && (
+                  <Button onClick={nextStep} className="flex-1">
+                    Next
+                  </Button>
+                )}
+                {currentStep === 5 && (
+                  <Button onClick={handleEditService} className="flex-1 bg-green-600 hover:bg-green-700">
+                    Save Changes
+                  </Button>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={handleCancel}
+                className="sm:w-auto"
+              >
+                Cancel
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1423,7 +1963,7 @@ export default function ServicesManagementPage() {
             <DialogHeader>
               <DialogTitle>Confirm Deletion</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete "{selectedService.title.en}"? This action cannot be undone.
+                Are you sure you want to delete "{selectedService.serviceName.en}"? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
