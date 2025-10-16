@@ -17,7 +17,9 @@ import {
   UserCog,
   BarChart3,
   Settings,
+  AlertCircle,
   Menu,
+  Lightbulb,
   X,
   Crown,
   ChevronDown,
@@ -67,7 +69,7 @@ export default function DashboardLayout({
     { 
       name: 'Information', 
       href: '/dashboard/information', 
-      icon: Info,
+      icon:Lightbulb,
       children: [
         { name: 'services', href: '/dashboard/information/services', icon: FolderTree },
         { name: 'tourism', href: '/dashboard/information/tourism', icon: Globe },
@@ -75,6 +77,7 @@ export default function DashboardLayout({
         { name: 'social work', href: '/dashboard/information/social_work', icon: HeartHandshake },
       ]
     },
+    { name: 'complaint', href: '/dashboard/form', icon: AlertCircle },
     { name: 'User Management', href: '/dashboard/users', icon: UserCog },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
