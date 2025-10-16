@@ -224,7 +224,7 @@ export default function MunicipalDashboard() {
     return Array.from(new Set(submissions.map(s => s.gramaNiladhariDivision)));
   }, [submissions]);
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: FormSubmission["status"]) => {
     const variants = {
       "Verified": "bg-blue-100 text-blue-800 border-blue-200",
       "In Progress": "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -479,18 +479,28 @@ export default function MunicipalDashboard() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Mannar Municipal Council</h1>
-          <p className="text-gray-600">Public Requests & Complaints Dashboard</p>
+          <h1 className="text-2xl md:text-3xl font-bold">Mannar Municipal Council</h1>
+          <p className="text-gray-600 text-sm md:text-base">Public Requests & Complaints Dashboard</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setView("table")} variant={view === "table" ? "default" : "outline"}>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            onClick={() => setView("table")} 
+            variant={view === "table" ? "default" : "outline"}
+            className="flex-1 sm:flex-none"
+            size="sm"
+          >
             Table View
           </Button>
-          <Button onClick={() => setView("cards")} variant={view === "cards" ? "default" : "outline"}>
+          <Button 
+            onClick={() => setView("cards")} 
+            variant={view === "cards" ? "default" : "outline"}
+            className="flex-1 sm:flex-none"
+            size="sm"
+          >
             Card View
           </Button>
         </div>
@@ -499,9 +509,9 @@ export default function MunicipalDashboard() {
       {/* Filters and Search */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label>Search by Name, NIC or ID</Label>
+              <Label className="text-sm">Search by Name, NIC or ID</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -514,7 +524,7 @@ export default function MunicipalDashboard() {
             </div>
             
             <div className="space-y-2">
-              <Label>Status Filter</Label>
+              <Label className="text-sm">Status Filter</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Status" />
@@ -530,7 +540,7 @@ export default function MunicipalDashboard() {
             </div>
 
             <div className="space-y-2">
-              <Label>GS Division Filter</Label>
+              <Label className="text-sm">GS Division Filter</Label>
               <Select value={divisionFilter} onValueChange={setDivisionFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Divisions" />
@@ -546,19 +556,18 @@ export default function MunicipalDashboard() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              {/* <Label>Actions</Label> */}
-              {/* <Button variant="outline" className="w-full" onClick={exportAllToPDF}>
+            <div className="space-y-2 flex items-end">
+              <Button variant="outline" className="w-full" onClick={exportAllToPDF} size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 Export All
-              </Button> */}
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Results Count and Pagination */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <p className="text-sm text-gray-600">
           Showing {filteredSubmissions.length} results
         </p>
@@ -619,7 +628,7 @@ function TableCardView({
   onStatusUpdate: (id: string, status: FormSubmission["status"]) => void;
   onAddComment: (id: string, comment: string) => void;
   onExportPDF: (submission: FormSubmission) => void;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: FormSubmission["status"]) => JSX.Element;
 }) {
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [comment, setComment] = useState("");
@@ -627,97 +636,99 @@ function TableCardView({
   return (
     <>
       <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>GS Division</TableHead>
-              <TableHead>Div No.</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Updated</TableHead>
-              {/* <TableHead>Actions</TableHead> */}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {submissions.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                  No submissions found matching your filters.
-                </TableCell>
+                <TableHead className="whitespace-nowrap">ID</TableHead>
+                <TableHead className="whitespace-nowrap">Name</TableHead>
+                <TableHead className="whitespace-nowrap hidden sm:table-cell">GS Division</TableHead>
+                <TableHead className="whitespace-nowrap hidden md:table-cell">Div No.</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
+                <TableHead className="whitespace-nowrap hidden lg:table-cell">Last Updated</TableHead>
+                <TableHead className="whitespace-nowrap">Actions</TableHead>
               </TableRow>
-            ) : (
-              submissions.map((submission) => (
-                <TableRow key={submission.id} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">{submission.id}</TableCell>
-                  <TableCell className="font-medium">{submission.name}</TableCell>
-                  <TableCell>{submission.gramaNiladhariDivision}</TableCell>
-                  <TableCell>{submission.divisionNumber}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 px-2">
-                          {getStatusBadge(submission.status)}
-                          <ChevronDown className="h-3 w-3 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem 
-                          onClick={() => onStatusUpdate(submission.id, "Verified")}
-                          className="flex items-center gap-2"
-                        >
-                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                          Verified
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => onStatusUpdate(submission.id, "In Progress")}
-                          className="flex items-center gap-2"
-                        >
-                          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                          In Progress
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => onStatusUpdate(submission.id, "Accepted")}
-                          className="flex items-center gap-2"
-                        >
-                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                          Accepted
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => onStatusUpdate(submission.id, "Rejected")}
-                          className="flex items-center gap-2"
-                        >
-                          <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                          Rejected
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  <TableCell>{new Date(submission.lastUpdated).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setSelectedSubmission(submission)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onExportPDF(submission)}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Download PDF
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            </TableHeader>
+            <TableBody>
+              {submissions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                    No submissions found matching your filters.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                submissions.map((submission) => (
+                  <TableRow key={submission.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium whitespace-nowrap">{submission.id}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{submission.name}</TableCell>
+                    <TableCell className="whitespace-nowrap hidden sm:table-cell">{submission.gramaNiladhariDivision}</TableCell>
+                    <TableCell className="whitespace-nowrap hidden md:table-cell">{submission.divisionNumber}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 px-2">
+                            {getStatusBadge(submission.status)}
+                            <ChevronDown className="h-3 w-3 ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem 
+                            onClick={() => onStatusUpdate(submission.id, "Verified")}
+                            className="flex items-center gap-2"
+                          >
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            Verified
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => onStatusUpdate(submission.id, "In Progress")}
+                            className="flex items-center gap-2"
+                          >
+                            <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            In Progress
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => onStatusUpdate(submission.id, "Accepted")}
+                            className="flex items-center gap-2"
+                          >
+                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                            Accepted
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => onStatusUpdate(submission.id, "Rejected")}
+                            className="flex items-center gap-2"
+                          >
+                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                            Rejected
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap hidden lg:table-cell">{new Date(submission.lastUpdated).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelectedSubmission(submission)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onExportPDF(submission)}>
+                            <Download className="h-4 w-4 mr-2" />
+                            Download PDF
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
       {/* Detail Modal */}
@@ -748,14 +759,14 @@ function GridCardView({
   onStatusUpdate: (id: string, status: FormSubmission["status"]) => void;
   onAddComment: (id: string, comment: string) => void;
   onExportPDF: (submission: FormSubmission) => void;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: FormSubmission["status"]) => JSX.Element;
 }) {
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
   const [comment, setComment] = useState("");
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {submissions.length === 0 ? (
           <div className="col-span-full text-center py-12 text-gray-500">
             No submissions found matching your filters.
@@ -766,8 +777,8 @@ function GridCardView({
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg">{submission.name}</CardTitle>
-                    <CardDescription>{submission.id}</CardDescription>
+                    <CardTitle className="text-base md:text-lg">{submission.name}</CardTitle>
+                    <CardDescription className="text-xs md:text-sm">{submission.id}</CardDescription>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -813,21 +824,21 @@ function GridCardView({
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <Label className="text-xs font-semibold">GS Division</Label>
-                    <p className="text-sm">{submission.gramaNiladhariDivision}</p>
+                    <p className="text-xs md:text-sm truncate">{submission.gramaNiladhariDivision}</p>
                   </div>
                   <div>
                     <Label className="text-xs font-semibold">Division No.</Label>
-                    <p className="text-sm">{submission.divisionNumber}</p>
+                    <p className="text-xs md:text-sm">{submission.divisionNumber}</p>
                   </div>
-                  <div>
+                  <div className="col-span-2">
                     <Label className="text-xs font-semibold">NIC</Label>
-                    <p className="text-sm">{submission.nic}</p>
+                    <p className="text-xs md:text-sm">{submission.nic}</p>
                   </div>
                 </div>
                 
                 <div>
                   <Label className="text-xs font-semibold">Details</Label>
-                  <p className="text-sm line-clamp-2 text-gray-600">{submission.details}</p>
+                  <p className="text-xs md:text-sm line-clamp-2 text-gray-600">{submission.details}</p>
                 </div>
 
                 <div className="flex justify-between pt-2">
@@ -835,16 +846,18 @@ function GridCardView({
                     variant="outline"
                     size="sm"
                     onClick={() => setSelectedSubmission(submission)}
+                    className="text-xs"
                   >
-                    <Eye className="h-4 w-4 mr-1" />
+                    <Eye className="h-3 w-3 mr-1" />
                     View
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => onExportPDF(submission)}
+                    className="text-xs"
                   >
-                    <Download className="h-4 w-4 mr-1" />
+                    <Download className="h-3 w-3 mr-1" />
                     PDF
                   </Button>
                 </div>
@@ -886,16 +899,16 @@ function SubmissionDetailModal({
   onAddComment: (id: string, comment: string) => void;
   comment: string;
   setComment: (comment: string) => void;
-  getStatusBadge: (status: string) => JSX.Element;
+  getStatusBadge: (status: FormSubmission["status"]) => JSX.Element;
 }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 md:p-4 z-50">
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle>{submission.name} - {submission.id}</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg md:text-xl">{submission.name} - {submission.id}</CardTitle>
+              <CardDescription className="text-sm">
                 Submitted: {new Date(submission.timestamp).toLocaleString()}
               </CardDescription>
             </div>
@@ -906,68 +919,54 @@ function SubmissionDetailModal({
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="font-semibold">Address</Label>
-              <p className="mt-1">{submission.address}</p>
+              <Label className="font-semibold text-sm">Address</Label>
+              <p className="mt-1 text-sm">{submission.address}</p>
             </div>
             <div>
-              <Label className="font-semibold">Phone Number</Label>
-              <p className="mt-1">{submission.phone}</p>
+              <Label className="font-semibold text-sm">Phone Number</Label>
+              <p className="mt-1 text-sm">{submission.phone}</p>
             </div>
             <div>
-              <Label className="font-semibold">NIC Number</Label>
-              <p className="mt-1">{submission.nic}</p>
+              <Label className="font-semibold text-sm">NIC Number</Label>
+              <p className="mt-1 text-sm">{submission.nic}</p>
             </div>
             <div>
-              <Label className="font-semibold">GS Division</Label>
-              <p className="mt-1">{submission.gramaNiladhariDivision}</p>
+              <Label className="font-semibold text-sm">GS Division</Label>
+              <p className="mt-1 text-sm">{submission.gramaNiladhariDivision}</p>
             </div>
             <div>
-              <Label className="font-semibold">Division Number</Label>
-              <p className="mt-1">{submission.divisionNumber}</p>
+              <Label className="font-semibold text-sm">Division Number</Label>
+              <p className="mt-1 text-sm">{submission.divisionNumber}</p>
             </div>
           </div>
 
           {/* Request Details */}
           <div>
-            <Label className="font-semibold">Their needs</Label>
-            <p className="mt-1 p-3 bg-gray-50 rounded-md border">{submission.requestType}</p>
+            <Label className="font-semibold text-sm">Their needs</Label>
+            <p className="mt-1 p-3 bg-gray-50 rounded-md border text-sm">{submission.requestType}</p>
           </div>
 
           <div>
-            <Label className="font-semibold">The right to</Label>
-            <p className="mt-1 p-3 bg-gray-50 rounded-md border">{submission.subCategory}</p>
+            <Label className="font-semibold text-sm">The right to</Label>
+            <p className="mt-1 p-3 bg-gray-50 rounded-md border text-sm">{submission.subCategory}</p>
           </div>
 
           <div>
-            <Label className="font-semibold">Detailed Description</Label>
-            <p className="mt-1 p-3 bg-gray-50 rounded-md">{submission.details}</p>
+            <Label className="font-semibold text-sm">Detailed Description</Label>
+            <p className="mt-1 p-3 bg-gray-50 rounded-md text-sm">{submission.details}</p>
           </div>
 
           {/* Status Section */}
           <div className="border-t pt-4">
             <div className="flex items-center gap-4 mb-4">
-              <Label className="font-semibold text-base">Current Status:</Label>
+              <Label className="font-semibold text-sm md:text-base">Current Status:</Label>
               {getStatusBadge(submission.status)}
             </div>
-            
-            {/* <Label className="font-semibold">Update Status</Label> */}
-            {/* <div className="flex gap-2 mt-2 flex-wrap">
-              {(["Verified", "In Progress", "Accepted", "Rejected"] as const).map((status) => (
-                <Button
-                  key={status}
-                  variant={submission.status === status ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => onStatusUpdate(submission.id, status)}
-                >
-                  {status}
-                </Button>
-              ))}
-            </div> */}
           </div>
 
           {/* Comments Section */}
           <div className="border-t pt-4">
-            <Label className="font-semibold">Comments & History</Label>
+            <Label className="font-semibold text-sm md:text-base">Comments & History</Label>
             <div className="space-y-3 mt-3 max-h-48 overflow-y-auto p-2 border rounded-md">
               {submission.comments.length === 0 ? (
                 <p className="text-gray-500 text-sm">No comments yet.</p>
@@ -985,7 +984,7 @@ function SubmissionDetailModal({
                 placeholder="Add a comment or remark..."
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                className="flex-1"
+                className="flex-1 text-sm"
                 rows={3}
               />
             </div>
@@ -996,6 +995,7 @@ function SubmissionDetailModal({
               }}
               className="mt-2"
               disabled={!comment.trim()}
+              size="sm"
             >
               Add Comment
             </Button>
@@ -1003,160 +1003,22 @@ function SubmissionDetailModal({
 
           {/* Administrative Information */}
           <div className="border-t pt-4">
-            <Label className="font-semibold">Administrative Information</Label>
+            <Label className="font-semibold text-sm md:text-base">Administrative Information</Label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
               <div>
-                <Label>Last Updated</Label>
-                <p>{new Date(submission.lastUpdated).toLocaleString()}</p>
+                <Label className="text-sm">Last Updated</Label>
+                <p className="text-sm">{new Date(submission.lastUpdated).toLocaleString()}</p>
               </div>
               {submission.assignedTo && (
                 <div>
-                  <Label>Assigned To</Label>
-                  <p>{submission.assignedTo}</p>
+                  <Label className="text-sm">Assigned To</Label>
+                  <p className="text-sm">{submission.assignedTo}</p>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Action Buttons */}
-          {/* <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
-              Close
-            </Button>
-            <Button onClick={() => exportToPDF(submission)}>
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </Button>
-          </div> */}
         </CardContent>
       </Card>
     </div>
   );
-}
-
-// Export function for PDF
-function exportToPDF(submission: FormSubmission) {
-  const doc = new jsPDF();
-  
-  // Set document properties
-  doc.setProperties({
-    title: `Request Details - ${submission.id}`,
-    subject: 'Mannar Municipal Council Request',
-    author: 'Mannar Municipal Council'
-  });
-
-  let yPosition = 20;
-  const lineHeight = 7;
-  const margin = 20;
-  const pageWidth = doc.internal.pageSize.width;
-  
-  // Title
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("Mannar Municipal Council - Request Details", margin, yPosition);
-  yPosition += lineHeight * 2;
-  
-  // Horizontal line
-  doc.setLineWidth(0.5);
-  doc.line(margin, yPosition, pageWidth - margin, yPosition);
-  yPosition += lineHeight * 1.5;
-  
-  // Basic Information
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text("Request Information:", margin, yPosition);
-  yPosition += lineHeight;
-  
-  doc.setFont("helvetica", "normal");
-  doc.text(`Request ID: ${submission.id}`, margin, yPosition);
-  yPosition += lineHeight;
-  doc.text(`Submission Date: ${submission.timestamp}`, margin, yPosition);
-  yPosition += lineHeight;
-  doc.text(`Status: ${submission.status}`, margin, yPosition);
-  yPosition += lineHeight * 1.5;
-  
-  // Personal Information
-  doc.setFont("helvetica", "bold");
-  doc.text("Personal Information:", margin, yPosition);
-  yPosition += lineHeight;
-  
-  doc.setFont("helvetica", "normal");
-  doc.text(`Name: ${submission.name}`, margin, yPosition);
-  yPosition += lineHeight;
-  doc.text(`NIC: ${submission.nic}`, margin, yPosition);
-  yPosition += lineHeight;
-  
-  // Handle address wrapping
-  const addressLines = doc.splitTextToSize(`Address: ${submission.address}`, pageWidth - margin * 2);
-  doc.text(addressLines, margin, yPosition);
-  yPosition += lineHeight * addressLines.length;
-  
-  doc.text(`Phone: ${submission.phone}`, margin, yPosition);
-  yPosition += lineHeight;
-  doc.text(`GS Division: ${submission.gramaNiladhariDivision}`, margin, yPosition);
-  yPosition += lineHeight;
-  doc.text(`Division Number: ${submission.divisionNumber}`, margin, yPosition);
-  yPosition += lineHeight * 1.5;
-  
-  // Request Details
-  doc.setFont("helvetica", "bold");
-  doc.text("Request Details:", margin, yPosition);
-  yPosition += lineHeight;
-  
-  doc.setFont("helvetica", "normal");
-  doc.text(`Their needs: ${submission.requestType}`, margin, yPosition);
-  yPosition += lineHeight;
-  doc.text(`The right to: ${submission.subCategory}`, margin, yPosition);
-  yPosition += lineHeight;
-  
-  // Handle details wrapping
-  const detailLines = doc.splitTextToSize(`Details: ${submission.details}`, pageWidth - margin * 2);
-  doc.text(detailLines, margin, yPosition);
-  yPosition += lineHeight * detailLines.length;
-  yPosition += lineHeight;
-  
-  // Administrative Information
-  doc.setFont("helvetica", "bold");
-  doc.text("Administrative Information:", margin, yPosition);
-  yPosition += lineHeight;
-  
-  doc.setFont("helvetica", "normal");
-  doc.text(`Last Updated: ${submission.lastUpdated}`, margin, yPosition);
-  yPosition += lineHeight;
-  
-  if (submission.assignedTo) {
-    doc.text(`Assigned To: ${submission.assignedTo}`, margin, yPosition);
-    yPosition += lineHeight;
-  }
-  
-  // Comments (new page if needed)
-  if (yPosition > 250) {
-    doc.addPage();
-    yPosition = 20;
-  }
-  
-  doc.setFont("helvetica", "bold");
-  doc.text("Comments History:", margin, yPosition);
-  yPosition += lineHeight;
-  
-  doc.setFont("helvetica", "normal");
-  if (submission.comments.length === 0) {
-    doc.text("No comments yet.", margin, yPosition);
-  } else {
-    submission.comments.forEach(comment => {
-      const commentLines = doc.splitTextToSize(`• ${comment}`, pageWidth - margin * 2);
-      
-      // Check if we need a new page
-      if (yPosition + (lineHeight * commentLines.length) > 280) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      
-      doc.text(commentLines, margin, yPosition);
-      yPosition += lineHeight * commentLines.length;
-    });
-  }
-  
-  // Save the PDF
-  doc.save(`request-${submission.id}.pdf`);
 }
