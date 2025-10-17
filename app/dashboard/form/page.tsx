@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -34,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, MoreVertical, Download, Eye, ChevronDown } from "lucide-react";
+import { Search, MoreVertical, Download, Eye, ChevronDown, User, MapPin, Phone, IdCard, Calendar, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 
 interface FormSubmission {
@@ -55,31 +54,6 @@ interface FormSubmission {
   assignedTo?: string;
 }
 
-// Their needs options
-const THEIR_NEEDS_OPTIONS = [
-  "Submitting a complaint",
-  "Request",
-  "Recommendation",
-  "Development-related request",
-  "Requesting further information",
-  "Other"
-] as const;
-
-// The right to options
-const THE_RIGHT_TO_OPTIONS = [
-  "Property title deed",
-  "Property name change",
-  "Land Subdivision / Land Consolidation",
-  "Private land size allowed",
-  "Building permit application",
-  "Extension of time for building permit",
-  "Occupancy Certificate / Establishment Certificate / Composition Certificate",
-  "Road boundary certificate",
-  "Certificate of Acceptance",
-  "Permission to cut roads",
-  "Other"
-] as const;
-
 export default function MunicipalDashboard() {
   const [view, setView] = useState<"table" | "cards">("table");
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,7 +62,7 @@ export default function MunicipalDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Dummy data with new status flow
+  // Dummy data
   const dummyData: FormSubmission[] = [
     {
       id: "MNC-001",
@@ -101,9 +75,9 @@ export default function MunicipalDashboard() {
       divisionNumber: "MN-01",
       requestType: "Request",
       subCategory: "Building permit application",
-      details: "Request for building permit for new residential house construction",
+      details: "Request for building permit for new residential house construction. The proposed construction is a two-story building with 3 bedrooms, living area, and kitchen. Total area: 1500 sq ft. Required documents including land survey plans and architectural drawings have been submitted.",
       status: "In Progress",
-      comments: ["Documents under review", "Site inspection scheduled"],
+      comments: ["Documents under review", "Site inspection scheduled for next week", "Waiting for environmental clearance"],
       lastUpdated: "2024-01-16 14:20:00",
       assignedTo: "John Doe"
     },
@@ -118,9 +92,9 @@ export default function MunicipalDashboard() {
       divisionNumber: "PS-01",
       requestType: "Submitting a complaint",
       subCategory: "Property title deed",
-      details: "Request for new street light near the temple area - dark spot causing safety concerns",
+      details: "Request for new street light near the temple area - dark spot causing safety concerns for pedestrians and children returning from tuition classes in the evening. Multiple incidents of theft reported in the area.",
       status: "Accepted",
-      comments: ["Awaiting budget approval"],
+      comments: ["Awaiting budget approval", "Technical survey completed", "Approved by municipal engineer"],
       lastUpdated: "2024-01-14 15:45:00",
       assignedTo: "Jane Smith"
     },
@@ -135,9 +109,9 @@ export default function MunicipalDashboard() {
       divisionNumber: "MN-02",
       requestType: "Requesting further information",
       subCategory: "Property name change",
-      details: "Need clarification on property tax calculation for commercial property",
+      details: "Need clarification on property tax calculation for commercial property. The current assessment seems higher than expected based on the property size and location. Request detailed breakdown of tax components.",
       status: "Rejected",
-      comments: ["Incomplete documentation provided", "Please resubmit with proper documents"],
+      comments: ["Incomplete documentation provided", "Please resubmit with proper documents", "Missing property valuation certificate"],
       lastUpdated: "2024-01-15 11:30:00",
       assignedTo: "Robert Brown"
     },
@@ -152,9 +126,9 @@ export default function MunicipalDashboard() {
       divisionNumber: "MN-03",
       requestType: "Development-related request",
       subCategory: "Land Subdivision / Land Consolidation",
-      details: "Application for new water connection for residential property at the above address",
+      details: "Application for new water connection for residential property at the above address. The existing well has dried up due to seasonal changes. Required for domestic use and small-scale gardening.",
       status: "Verified",
-      comments: ["Application received and verified", "Technical inspection pending"],
+      comments: ["Application received and verified", "Technical inspection pending", "Water department notified"],
       lastUpdated: "2024-01-16 11:20:00",
       assignedTo: "Sarah Johnson"
     },
@@ -169,9 +143,9 @@ export default function MunicipalDashboard() {
       divisionNumber: "PS-02",
       requestType: "Recommendation",
       subCategory: "Private land size allowed",
-      details: "Regular garbage collection missed in our area for the past 3 weeks",
+      details: "Regular garbage collection missed in our area for the past 3 weeks. Accumulated waste causing health hazards and unpleasant odors. Request immediate action and regular schedule maintenance.",
       status: "Accepted",
-      comments: ["Collection schedule updated", "Additional truck assigned"],
+      comments: ["Collection schedule updated", "Additional truck assigned", "Area supervisor notified"],
       lastUpdated: "2024-01-14 09:45:00",
       assignedTo: "Mike Wilson"
     },
@@ -186,9 +160,9 @@ export default function MunicipalDashboard() {
       divisionNumber: "MN-04",
       requestType: "Request",
       subCategory: "Occupancy Certificate / Establishment Certificate / Composition Certificate",
-      details: "Application for occupancy certificate for completed commercial building",
+      details: "Application for occupancy certificate for completed commercial building. Construction completed as per approved plans. All safety measures implemented. Ready for final inspection and certification.",
       status: "In Progress",
-      comments: ["Final inspection required"],
+      comments: ["Final inspection required", "Fire safety check scheduled", "Document verification in progress"],
       lastUpdated: "2024-01-17 08:45:00",
       assignedTo: "David Wilson"
     }
@@ -247,22 +221,6 @@ export default function MunicipalDashboard() {
           : sub
       )
     );
-  };
-
-  const handleAddComment = (id: string, comment: string) => {
-    if (comment.trim()) {
-      setSubmissions(prev =>
-        prev.map(sub =>
-          sub.id === id
-            ? {
-                ...sub,
-                comments: [...sub.comments, `${new Date().toLocaleString()}: ${comment}`],
-                lastUpdated: new Date().toLocaleString()
-              }
-            : sub
-        )
-      );
-    }
   };
 
   const exportToPDF = (submission: FormSubmission) => {
@@ -391,99 +349,12 @@ export default function MunicipalDashboard() {
     doc.save(`request-${submission.id}.pdf`);
   };
 
-  const exportAllToPDF = () => {
-    const doc = new jsPDF();
-    
-    doc.setProperties({
-      title: "All Requests - Mannar Municipal Council",
-      subject: 'Mannar Municipal Council Requests Export',
-      author: 'Mannar Municipal Council'
-    });
-
-    let yPosition = 20;
-    const lineHeight = 7;
-    const margin = 20;
-    const pageWidth = doc.internal.pageSize.width;
-
-    // Title
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Mannar Municipal Council - All Requests", margin, yPosition);
-    yPosition += lineHeight * 2;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, yPosition);
-    yPosition += lineHeight * 2;
-
-    // Table headers
-    const headers = ["ID", "Name", "GS Division", "Div No.", "Status", "Last Updated"];
-    const colWidths = [25, 35, 35, 20, 25, 30];
-    let xPosition = margin;
-
-    doc.setFont("helvetica", "bold");
-    headers.forEach((header, index) => {
-      doc.text(header, xPosition, yPosition);
-      xPosition += colWidths[index];
-    });
-    
-    yPosition += lineHeight;
-    doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += lineHeight;
-
-    // Table rows
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    
-    filteredSubmissions.forEach((submission, index) => {
-      // Check if we need a new page
-      if (yPosition > 270) {
-        doc.addPage();
-        yPosition = 20;
-        
-        // Redraw headers on new page
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        xPosition = margin;
-        headers.forEach((header, idx) => {
-          doc.text(header, xPosition, yPosition);
-          xPosition += colWidths[idx];
-        });
-        yPosition += lineHeight;
-        doc.line(margin, yPosition, pageWidth - margin, yPosition);
-        yPosition += lineHeight;
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-      }
-
-      const rowData = [
-        submission.id,
-        submission.name,
-        submission.gramaNiladhariDivision,
-        submission.divisionNumber,
-        submission.status,
-        new Date(submission.lastUpdated).toLocaleDateString()
-      ];
-
-      xPosition = margin;
-      rowData.forEach((data, colIndex) => {
-        const text = doc.splitTextToSize(data, colWidths[colIndex] - 2);
-        doc.text(text, xPosition, yPosition);
-        xPosition += colWidths[colIndex];
-      });
-
-      yPosition += lineHeight * 2;
-    });
-
-    doc.save(`all-requests-${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Mannar Municipal Council</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Mannar Municipal Council</h1>
           <p className="text-gray-600 text-sm md:text-base">Public Requests & Complaints Dashboard</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -509,9 +380,9 @@ export default function MunicipalDashboard() {
       {/* Filters and Search */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label className="text-sm">Search by Name, NIC or ID</Label>
+              <Label className="text-sm font-medium">Search by Name, NIC or ID</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -524,7 +395,7 @@ export default function MunicipalDashboard() {
             </div>
             
             <div className="space-y-2">
-              <Label className="text-sm">Status Filter</Label>
+              <Label className="text-sm font-medium">Status Filter</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Status" />
@@ -540,7 +411,7 @@ export default function MunicipalDashboard() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm">GS Division Filter</Label>
+              <Label className="text-sm font-medium">GS Division Filter</Label>
               <Select value={divisionFilter} onValueChange={setDivisionFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Divisions" />
@@ -554,13 +425,6 @@ export default function MunicipalDashboard() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2 flex items-end">
-              <Button variant="outline" className="w-full" onClick={exportAllToPDF} size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export All
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -580,7 +444,7 @@ export default function MunicipalDashboard() {
           >
             Previous
           </Button>
-          <span className="flex items-center px-3 text-sm">
+          <span className="flex items-center px-3 text-sm text-gray-600">
             Page {currentPage} of {totalPages}
           </span>
           <Button
@@ -599,7 +463,6 @@ export default function MunicipalDashboard() {
         <TableCardView 
           submissions={paginatedSubmissions}
           onStatusUpdate={handleStatusUpdate}
-          onAddComment={handleAddComment}
           onExportPDF={exportToPDF}
           getStatusBadge={getStatusBadge}
         />
@@ -607,7 +470,6 @@ export default function MunicipalDashboard() {
         <GridCardView
           submissions={paginatedSubmissions}
           onStatusUpdate={handleStatusUpdate}
-          onAddComment={handleAddComment}
           onExportPDF={exportToPDF}
           getStatusBadge={getStatusBadge}
         />
@@ -619,19 +481,16 @@ export default function MunicipalDashboard() {
 // Table View Component
 function TableCardView({ 
   submissions, 
-  onStatusUpdate, 
-  onAddComment, 
+  onStatusUpdate,
   onExportPDF,
   getStatusBadge,
 }: {
   submissions: FormSubmission[];
   onStatusUpdate: (id: string, status: FormSubmission["status"]) => void;
-  onAddComment: (id: string, comment: string) => void;
   onExportPDF: (submission: FormSubmission) => void;
   getStatusBadge: (status: FormSubmission["status"]) => JSX.Element;
 }) {
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
-  const [comment, setComment] = useState("");
 
   return (
     <>
@@ -736,10 +595,7 @@ function TableCardView({
         <SubmissionDetailModal
           submission={selectedSubmission}
           onClose={() => setSelectedSubmission(null)}
-          onStatusUpdate={onStatusUpdate}
-          onAddComment={onAddComment}
-          comment={comment}
-          setComment={setComment}
+          onExportPDF={onExportPDF}
           getStatusBadge={getStatusBadge}
         />
       )}
@@ -751,18 +607,15 @@ function TableCardView({
 function GridCardView({
   submissions,
   onStatusUpdate,
-  onAddComment,
   onExportPDF,
   getStatusBadge,
 }: {
   submissions: FormSubmission[];
   onStatusUpdate: (id: string, status: FormSubmission["status"]) => void;
-  onAddComment: (id: string, comment: string) => void;
   onExportPDF: (submission: FormSubmission) => void;
   getStatusBadge: (status: FormSubmission["status"]) => JSX.Element;
 }) {
   const [selectedSubmission, setSelectedSubmission] = useState<FormSubmission | null>(null);
-  const [comment, setComment] = useState("");
 
   return (
     <>
@@ -872,10 +725,7 @@ function GridCardView({
         <SubmissionDetailModal
           submission={selectedSubmission}
           onClose={() => setSelectedSubmission(null)}
-          onStatusUpdate={onStatusUpdate}
-          onAddComment={onAddComment}
-          comment={comment}
-          setComment={setComment}
+          onExportPDF={onExportPDF}
           getStatusBadge={getStatusBadge}
         />
       )}
@@ -887,134 +737,185 @@ function GridCardView({
 function SubmissionDetailModal({
   submission,
   onClose,
-  onStatusUpdate,
-  onAddComment,
-  comment,
-  setComment,
+  onExportPDF,
   getStatusBadge,
 }: {
   submission: FormSubmission;
   onClose: () => void;
-  onStatusUpdate: (id: string, status: FormSubmission["status"]) => void;
-  onAddComment: (id: string, comment: string) => void;
-  comment: string;
-  setComment: (comment: string) => void;
+  onExportPDF: (submission: FormSubmission) => void;
   getStatusBadge: (status: FormSubmission["status"]) => JSX.Element;
 }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 md:p-4 z-50">
       <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
+        <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-lg md:text-xl">{submission.name} - {submission.id}</CardTitle>
-              <CardDescription className="text-sm">
-                Submitted: {new Date(submission.timestamp).toLocaleString()}
-              </CardDescription>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <User className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl md:text-2xl text-gray-800">{submission.name}</CardTitle>
+                  <CardDescription className="text-sm md:text-base">Request ID: {submission.id}</CardDescription>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary" className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {new Date(submission.timestamp).toLocaleDateString()}
+                </Badge>
+                {getStatusBadge(submission.status)}
+              </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>×</Button>
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 rounded-full">
+              ×
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="font-semibold text-sm">Address</Label>
-              <p className="mt-1 text-sm">{submission.address}</p>
-            </div>
-            <div>
-              <Label className="font-semibold text-sm">Phone Number</Label>
-              <p className="mt-1 text-sm">{submission.phone}</p>
-            </div>
-            <div>
-              <Label className="font-semibold text-sm">NIC Number</Label>
-              <p className="mt-1 text-sm">{submission.nic}</p>
-            </div>
-            <div>
-              <Label className="font-semibold text-sm">GS Division</Label>
-              <p className="mt-1 text-sm">{submission.gramaNiladhariDivision}</p>
-            </div>
-            <div>
-              <Label className="font-semibold text-sm">Division Number</Label>
-              <p className="mt-1 text-sm">{submission.divisionNumber}</p>
-            </div>
-          </div>
-
-          {/* Request Details */}
-          <div>
-            <Label className="font-semibold text-sm">Their needs</Label>
-            <p className="mt-1 p-3 bg-gray-50 rounded-md border text-sm">{submission.requestType}</p>
-          </div>
-
-          <div>
-            <Label className="font-semibold text-sm">The right to</Label>
-            <p className="mt-1 p-3 bg-gray-50 rounded-md border text-sm">{submission.subCategory}</p>
-          </div>
-
-          <div>
-            <Label className="font-semibold text-sm">Detailed Description</Label>
-            <p className="mt-1 p-3 bg-gray-50 rounded-md text-sm">{submission.details}</p>
-          </div>
-
-          {/* Status Section */}
-          <div className="border-t pt-4">
-            <div className="flex items-center gap-4 mb-4">
-              <Label className="font-semibold text-sm md:text-base">Current Status:</Label>
-              {getStatusBadge(submission.status)}
-            </div>
-          </div>
-
-          {/* Comments Section */}
-          <div className="border-t pt-4">
-            <Label className="font-semibold text-sm md:text-base">Comments & History</Label>
-            <div className="space-y-3 mt-3 max-h-48 overflow-y-auto p-2 border rounded-md">
-              {submission.comments.length === 0 ? (
-                <p className="text-gray-500 text-sm">No comments yet.</p>
-              ) : (
-                submission.comments.map((cmt, index) => (
-                  <div key={index} className="text-sm p-3 bg-gray-50 rounded-md border">
-                    {cmt}
-                  </div>
-                ))
-              )}
+        <CardContent className="space-y-6 p-4 md:p-6">
+          {/* Personal Information Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="bg-green-100 p-2 rounded-lg mt-1">
+                  <IdCard className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <Label className="font-semibold text-sm text-gray-700">NIC Number</Label>
+                  <p className="mt-1 text-sm text-gray-900">{submission.nic}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="bg-purple-100 p-2 rounded-lg mt-1">
+                  <MapPin className="h-4 w-4 text-purple-600" />
+                </div>
+                <div>
+                  <Label className="font-semibold text-sm text-gray-700">Address</Label>
+                  <p className="mt-1 text-sm text-gray-900">{submission.address}</p>
+                </div>
+              </div>
             </div>
             
-            <div className="flex gap-2 mt-3">
-              <Textarea
-                placeholder="Add a comment or remark..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="flex-1 text-sm"
-                rows={3}
-              />
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-100 p-2 rounded-lg mt-1">
+                  <Phone className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <Label className="font-semibold text-sm text-gray-700">Phone Number</Label>
+                  <p className="mt-1 text-sm text-gray-900">{submission.phone}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="bg-orange-100 p-2 rounded-lg mt-1">
+                  <MapPin className="h-4 w-4 text-orange-600" />
+                </div>
+                <div>
+                  <Label className="font-semibold text-sm text-gray-700">GS Division & Number</Label>
+                  <p className="mt-1 text-sm text-gray-900">{submission.gramaNiladhariDivision} - {submission.divisionNumber}</p>
+                </div>
+              </div>
             </div>
-            <Button 
-              onClick={() => {
-                onAddComment(submission.id, comment);
-                setComment("");
-              }}
-              className="mt-2"
-              disabled={!comment.trim()}
-              size="sm"
-            >
-              Add Comment
-            </Button>
+          </div>
+
+          {/* Request Details Section */}
+          <div className="border-t pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-800">Request Details</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+              {/* Their Needs Card */}
+              <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <div className="bg-blue-100 p-1 rounded">
+                      <FileText className="h-4 w-4 text-blue-600" />
+                    </div>
+                    Their Needs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-blue-50 rounded-lg p-3 md:p-4 border border-blue-200">
+                    <p className="text-sm text-blue-900 font-medium">{submission.requestType}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* The Right To Card */}
+              <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <div className="bg-green-100 p-1 rounded">
+                      <FileText className="h-4 w-4 text-green-600" />
+                    </div>
+                    The Right To
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-green-50 rounded-lg p-3 md:p-4 border border-green-200">
+                    <p className="text-sm text-green-900 font-medium">{submission.subCategory}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Detailed Description Card */}
+            <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow mt-4 md:mt-6">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <div className="bg-purple-100 p-1 rounded">
+                    <FileText className="h-4 w-4 text-purple-600" />
+                  </div>
+                  Detailed Description
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-purple-50 rounded-lg p-3 md:p-4 border border-purple-200">
+                  <p className="text-sm text-purple-900 leading-relaxed">{submission.details}</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Administrative Information */}
-          <div className="border-t pt-4">
-            <Label className="font-semibold text-sm md:text-base">Administrative Information</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+          <div className="border-t pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
-                <Label className="text-sm">Last Updated</Label>
-                <p className="text-sm">{new Date(submission.lastUpdated).toLocaleString()}</p>
+                <Label className="text-sm font-semibold text-gray-700">Last Updated</Label>
+                <p className="text-sm text-gray-900 mt-1">{new Date(submission.lastUpdated).toLocaleString()}</p>
               </div>
               {submission.assignedTo && (
                 <div>
-                  <Label className="text-sm">Assigned To</Label>
-                  <p className="text-sm">{submission.assignedTo}</p>
+                  <Label className="text-sm font-semibold text-gray-700">Assigned To</Label>
+                  <p className="text-sm text-gray-900 mt-1">{submission.assignedTo}</p>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="border-t pt-6">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={() => onExportPDF(submission)}
+                className="flex-1"
+                variant="outline"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+              <Button 
+                onClick={onClose}
+                className="flex-1"
+                variant="default"
+              >
+                Close Details
+              </Button>
             </div>
           </div>
         </CardContent>
