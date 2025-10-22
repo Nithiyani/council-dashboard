@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -44,10 +44,11 @@ import {
   Shield,
   Key,
   Calendar,
-  Users,
 } from "lucide-react";
 
-// Types
+/* -------------------------
+   Types
+------------------------- */
 type Role = "Super Admin" | "Admin" | "Editor";
 type Status = "Active" | "Inactive";
 
@@ -76,8 +77,10 @@ interface EditUser {
   status: Status;
 }
 
-// Sample Data
-const usersData: User[] = [
+/* -------------------------
+   Sample data
+------------------------- */
+const initialUsersData: User[] = [
   {
     id: 1,
     name: "John Admin",
@@ -130,7 +133,17 @@ const usersData: User[] = [
   },
 ];
 
+/* -------------------------
+   Constants
+------------------------- */
+const ROLES: Role[] = ["Super Admin", "Admin", "Editor"];
+
+/* -------------------------
+   Component
+------------------------- */
 export default function UsersPage() {
+  // simulate logged-in user role (for demo/testing)
+  const [currentUserRole, setCurrentUserRole] = useState<Role>("Super Admin");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState<Role | "all">("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -138,7 +151,7 @@ export default function UsersPage() {
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(usersData);
+  const [users, setUsers] = useState<User[]>(initialUsersData);
   const [newUser, setNewUser] = useState<NewUser>({
     name: "",
     email: "",
@@ -152,17 +165,19 @@ export default function UsersPage() {
     status: "Active",
   });
 
-  const roles: Role[] = ["Super Admin", "Admin", "Editor"];
+  /* Filter users with useMemo for performance */
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch =
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = selectedRole === "all" || user.role === selectedRole;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchTerm, selectedRole]);
 
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = selectedRole === "all" || user.role === selectedRole;
-    return matchesSearch && matchesRole;
-  });
-
-  const getDefaultPermissions = (role: Role): string[] => {
+  /* Default permissions by role */
+  const getDefaultPermissions = useCallback((role: Role): string[] => {
     switch (role) {
       case "Super Admin":
         return ["All Access"];
@@ -173,31 +188,72 @@ export default function UsersPage() {
       default:
         return ["View Only"];
     }
-  };
+  }, []);
 
+  /* Utility: next id */
+  const getNextId = useCallback(() => {
+    if (users.length === 0) return 1;
+    return Math.max(...users.map((u) => u.id)) + 1;
+  }, [users]);
+
+  /* RBAC helpers */
+  const canCreateUser = useCallback((role: Role) => 
+    role === "Super Admin" || role === "Admin", []);
+
+  const canEditUser = useCallback((role: Role, target?: User) => {
+    if (role === "Super Admin") return true;
+    if (role === "Admin") return target?.role !== "Super Admin";
+    return false;
+  }, []);
+
+  const canDeleteUser = useCallback((role: Role, target?: User) => {
+    if (role === "Super Admin") return true;
+    if (role === "Admin") return target?.role === "Editor";
+    return false;
+  }, []);
+
+  const canAssignRole = useCallback((role: Role) => 
+    role === "Super Admin", []);
+
+  const canResetPassword = useCallback((role: Role, target?: User) => {
+    if (role === "Super Admin") return true;
+    if (role === "Admin") return target?.role !== "Super Admin";
+    return false;
+  }, []);
+
+  /* Add user */
   const handleAddUser = () => {
-    if (!newUser.name || !newUser.email || !newUser.password) {
+    if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
       alert("Please fill all required fields");
+      return;
+    }
+    if (!canCreateUser(currentUserRole)) {
+      alert("You don't have permission to add users.");
       return;
     }
 
     const user: User = {
-      id: Math.max(...users.map(u => u.id)) + 1, // Fixed: Use max ID + 1 instead of length
-      name: newUser.name,
-      email: newUser.email,
+      id: getNextId(),
+      name: newUser.name.trim(),
+      email: newUser.email.trim(),
       role: newUser.role,
       status: "Active",
       lastLogin: "Never",
       createdDate: new Date().toISOString().split("T")[0],
       permissions: getDefaultPermissions(newUser.role),
     };
-    
-    setUsers([...users, user]);
+
+    setUsers((prev) => [...prev, user]);
     setNewUser({ name: "", email: "", role: "Editor", password: "" });
     setIsAddDialogOpen(false);
   };
 
+  /* Edit flow */
   const handleEditUser = (user: User) => {
+    if (!canEditUser(currentUserRole, user)) {
+      alert("You don't have permission to edit this user.");
+      return;
+    }
     setSelectedUser(user);
     setEditUser({
       name: user.name,
@@ -209,18 +265,22 @@ export default function UsersPage() {
   };
 
   const handleUpdateUser = () => {
-    if (!selectedUser || !editUser.name || !editUser.email) {
+    if (!selectedUser || !editUser.name.trim() || !editUser.email.trim()) {
       alert("Please fill all required fields");
       return;
     }
+    if (!canEditUser(currentUserRole, selectedUser)) {
+      alert("You don't have permission to update this user.");
+      return;
+    }
 
-    setUsers(
-      users.map((user) =>
+    setUsers((prev) =>
+      prev.map((user) =>
         user.id === selectedUser.id
           ? {
               ...user,
-              name: editUser.name,
-              email: editUser.email,
+              name: editUser.name.trim(),
+              email: editUser.email.trim(),
               role: editUser.role,
               status: editUser.status,
               permissions: getDefaultPermissions(editUser.role),
@@ -232,87 +292,148 @@ export default function UsersPage() {
     setSelectedUser(null);
   };
 
+  /* Delete */
   const handleDeleteUser = (id: number) => {
+    const target = users.find((u) => u.id === id);
+    if (!target) return;
+    if (!canDeleteUser(currentUserRole, target)) {
+      alert("You don't have permission to delete this user.");
+      return;
+    }
     if (window.confirm("Are you sure you want to delete this user?")) {
-      setUsers(users.filter((user) => user.id !== id));
+      setUsers((prev) => prev.filter((u) => u.id !== id));
     }
   };
 
+  /* Assign role */
   const handleAssignRole = (user: User) => {
+    if (!canAssignRole(currentUserRole)) {
+      alert("You don't have permission to assign roles.");
+      return;
+    }
     setSelectedUser(user);
     setIsRoleDialogOpen(true);
   };
 
-  const handleResetPassword = (user: User) => {
-    setSelectedUser(user);
-    setIsResetPasswordOpen(true);
-  };
-
-  const handleUpdateRole = (newRole: Role) => {
+  const handleUpdateRole = useCallback((newRole: Role) => {
     if (!selectedUser) return;
-    
-    setUsers(
-      users.map((user) =>
+    if (!canAssignRole(currentUserRole)) {
+      alert("You don't have permission to assign roles.");
+      return;
+    }
+    setUsers((prev) =>
+      prev.map((user) =>
         user.id === selectedUser.id
-          ? { 
-              ...user, 
-              role: newRole, 
-              permissions: getDefaultPermissions(newRole) 
-            }
+          ? { ...user, role: newRole, permissions: getDefaultPermissions(newRole) }
           : user
       )
     );
     setIsRoleDialogOpen(false);
+    setSelectedUser(null);
+  }, [selectedUser, currentUserRole, canAssignRole, getDefaultPermissions]);
+
+  /* Reset password */
+  const handleResetPassword = (user: User) => {
+    if (!canResetPassword(currentUserRole, user)) {
+      alert("You don't have permission to reset this user's password.");
+      return;
+    }
+    setSelectedUser(user);
+    setIsResetPasswordOpen(true);
   };
 
-  // Fixed: Handle role selection in role dialog
+  const handlePerformReset = () => {
+    if (!selectedUser) return;
+    alert(`Password reset for ${selectedUser.email}`);
+    setIsResetPasswordOpen(false);
+    setSelectedUser(null);
+  };
+
+  /* role dialog value change handler */
   const handleRoleSelect = (value: string) => {
     handleUpdateRole(value as Role);
+  };
+
+  /* Format date for display */
+  const formatDate = (dateString: string) => {
+    if (dateString === "Never") return "Never";
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
     <div className="space-y-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-4 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600">Manage admin and staff user accounts</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold text-gray-900 truncate">User Management</h1>
+          <p className="text-gray-600 truncate">Manage admin and staff user accounts</p>
         </div>
-        <Button onClick={() => setIsAddDialogOpen(true)} className="sm:w-auto w-full">
-          <Plus className="w-4 h-4 mr-2" />
-          Add User
-        </Button>
+
+        {/* Current user role selector (demo) */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Label htmlFor="current-role" className="whitespace-nowrap text-sm sm:text-base">
+              Current User
+            </Label>
+            <Select
+              value={currentUserRole}
+              onValueChange={(v) => setCurrentUserRole(v as Role)}
+            >
+              <SelectTrigger id="current-role" className="w-full sm:w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="w-full sm:w-auto mt-2 sm:mt-0"
+            disabled={!canCreateUser(currentUserRole)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add User
+          </Button>
+        </div>
       </div>
 
-      {/* Users Table */}
-      <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle>User Directory</CardTitle>
-          <CardDescription>Manage user accounts and permissions</CardDescription>
+      {/* Users Table Card */}
+      <Card className="hover:shadow-lg transition-shadow overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg sm:text-xl">User Directory</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
+            Manage user accounts and permissions
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+
+        <CardContent className="space-y-4 p-0 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-3 p-4 sm:p-0 sm:pb-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm sm:text-base"
               />
             </div>
 
-            {/* Filter by role */}
             <Select
               value={selectedRole}
               onValueChange={(value) => setSelectedRole(value as Role | "all")}
             >
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] text-sm sm:text-base">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                {roles.map((role) => (
+                {ROLES.map((role) => (
                   <SelectItem key={role} value={role}>
                     {role}
                   </SelectItem>
@@ -327,14 +448,15 @@ export default function UsersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[150px]">User</TableHead>
-                    <TableHead className="min-w-[100px]">Role</TableHead>
-                    <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[120px]">Last Login</TableHead>
-                    <TableHead className="min-w-[150px]">Permissions</TableHead>
-                    <TableHead className="min-w-[200px]">Actions</TableHead>
+                    <TableHead className="min-w-[140px] py-3">User</TableHead>
+                    <TableHead className="min-w-[90px] py-3">Role</TableHead>
+                    <TableHead className="min-w-[80px] py-3">Status</TableHead>
+                    <TableHead className="min-w-[100px] py-3">Last Login</TableHead>
+                    <TableHead className="min-w-[120px] py-3">Permissions</TableHead>
+                    <TableHead className="min-w-[160px] py-3 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
@@ -344,14 +466,15 @@ export default function UsersPage() {
                     </TableRow>
                   ) : (
                     filteredUsers.map((user) => (
-                      <TableRow key={user.id} className="hover:bg-gray-50">
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-sm sm:text-base">{user.name}</p>
-                            <p className="text-xs sm:text-sm text-gray-500 break-all">{user.email}</p>
+                      <TableRow key={user.id} className="hover:bg-gray-50 group">
+                        <TableCell className="py-3">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{user.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{user.email}</p>
                           </div>
                         </TableCell>
-                        <TableCell>
+
+                        <TableCell className="py-3">
                           <Badge
                             variant={
                               user.role === "Super Admin"
@@ -360,12 +483,13 @@ export default function UsersPage() {
                                 ? "default"
                                 : "secondary"
                             }
-                            className="text-xs"
+                            className="text-xs whitespace-nowrap"
                           >
                             {user.role}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+
+                        <TableCell className="py-3">
                           <Badge
                             variant={user.status === "Active" ? "default" : "secondary"}
                             className="text-xs"
@@ -373,20 +497,20 @@ export default function UsersPage() {
                             {user.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-1 text-xs sm:text-sm">
-                            <Calendar className="w-3 h-3 flex-shrink-0" />
+
+                        <TableCell className="py-3">
+                          <div className="flex items-center space-x-1 text-xs">
+                            <Calendar className="w-3 h-3 flex-shrink-0 text-gray-400" />
                             <span className="truncate">
-                              {user.lastLogin === "Never"
-                                ? "Never"
-                                : new Date(user.lastLogin).toLocaleDateString()}
+                              {formatDate(user.lastLogin)}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
+
+                        <TableCell className="py-3">
+                          <div className="flex flex-wrap gap-1 max-w-[120px]">
                             {user.permissions.slice(0, 2).map((permission, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
+                              <Badge key={index} variant="outline" className="text-xs truncate">
                                 {permission}
                               </Badge>
                             ))}
@@ -397,37 +521,53 @@ export default function UsersPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1 sm:gap-2">
+
+                        <TableCell className="py-3">
+                          <div className="flex justify-end gap-1 sm:gap-2">
+                            {/* Edit */}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditUser(user)}
                               className="h-8 w-8 p-0"
+                              disabled={!canEditUser(currentUserRole, user)}
+                              title={canEditUser(currentUserRole, user) ? "Edit" : "No permission"}
                             >
                               <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
+
+                            {/* Assign Role */}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleAssignRole(user)}
                               className="h-8 w-8 p-0"
+                              disabled={!canAssignRole(currentUserRole)}
+                              title={canAssignRole(currentUserRole) ? "Assign role" : "No permission"}
                             >
                               <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
+
+                            {/* Reset password */}
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleResetPassword(user)}
                               className="h-8 w-8 p-0"
+                              disabled={!canResetPassword(currentUserRole, user)}
+                              title={canResetPassword(currentUserRole, user) ? "Reset password" : "No permission"}
                             >
                               <Key className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
+
+                            {/* Delete */}
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
                               onClick={() => handleDeleteUser(user.id)}
+                              disabled={!canDeleteUser(currentUserRole, user)}
+                              title={canDeleteUser(currentUserRole, user) ? "Delete" : "No permission"}
                             >
                               <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
@@ -443,58 +583,53 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      {/* Add User Dialog */}
+      {/* -------------------------
+          Add User Dialog
+         ------------------------- */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-w-[95vw]">
+        <DialogContent className="sm:max-w-[500px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Add New User</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               Create a new user account with appropriate permissions.
             </DialogDescription>
           </DialogHeader>
+
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-name" className="sm:text-right">
-                Name *
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="add-name" className="text-sm sm:text-base">Name *</Label>
               <Input
                 id="add-name"
-                className="sm:col-span-3"
                 placeholder="Full name"
                 value={newUser.name}
                 onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                className="text-sm sm:text-base"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-email" className="sm:text-right">
-                Email *
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="add-email" className="text-sm sm:text-base">Email *</Label>
               <Input
                 id="add-email"
                 type="email"
-                className="sm:col-span-3"
                 placeholder="Email address"
                 value={newUser.email}
                 onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                className="text-sm sm:text-base"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-role" className="sm:text-right">
-                Role
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="add-role" className="text-sm sm:text-base">Role</Label>
               <Select
                 value={newUser.role}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, role: value as Role })
-                }
+                onValueChange={(value) => setNewUser({ ...newUser, role: value as Role })}
               >
-                <SelectTrigger className="sm:col-span-3">
+                <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {ROLES.map((role) => (
                     <SelectItem key={role} value={role}>
                       {role}
                     </SelectItem>
@@ -503,83 +638,85 @@ export default function UsersPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="add-password" className="sm:text-right">
-                Password *
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="add-password" className="text-sm sm:text-base">Password *</Label>
               <Input
                 id="add-password"
                 type="password"
-                className="sm:col-span-3"
                 placeholder="Temporary password"
                 value={newUser.password}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, password: e.target.value })
-                }
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                className="text-sm sm:text-base"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsAddDialogOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
               Cancel
             </Button>
-            <Button onClick={handleAddUser}>Add User</Button>
+            <Button 
+              onClick={handleAddUser} 
+              disabled={!canCreateUser(currentUserRole)}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              Add User
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
+      {/* -------------------------
+          Edit User Dialog
+         ------------------------- */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-w-[95vw]">
+        <DialogContent className="sm:max-w-[500px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Edit User</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               Update user information for "{selectedUser?.name}"
             </DialogDescription>
           </DialogHeader>
+
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="sm:text-right">
-                Name *
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="edit-name" className="text-sm sm:text-base">Name *</Label>
               <Input
                 id="edit-name"
-                className="sm:col-span-3"
                 placeholder="Full name"
                 value={editUser.name}
                 onChange={(e) => setEditUser({ ...editUser, name: e.target.value })}
+                className="text-sm sm:text-base"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-email" className="sm:text-right">
-                Email *
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="edit-email" className="text-sm sm:text-base">Email *</Label>
               <Input
                 id="edit-email"
                 type="email"
-                className="sm:col-span-3"
                 placeholder="Email address"
                 value={editUser.email}
                 onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
+                className="text-sm sm:text-base"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-role" className="sm:text-right">
-                Role
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="edit-role" className="text-sm sm:text-base">Role</Label>
               <Select
                 value={editUser.role}
-                onValueChange={(value) =>
-                  setEditUser({ ...editUser, role: value as Role })
-                }
+                onValueChange={(value) => setEditUser({ ...editUser, role: value as Role })}
               >
-                <SelectTrigger className="sm:col-span-3">
+                <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {ROLES.map((role) => (
                     <SelectItem key={role} value={role}>
                       {role}
                     </SelectItem>
@@ -588,17 +725,13 @@ export default function UsersPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-status" className="sm:text-right">
-                Status
-              </Label>
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="edit-status" className="text-sm sm:text-base">Status</Label>
               <Select
                 value={editUser.status}
-                onValueChange={(value) =>
-                  setEditUser({ ...editUser, status: value as Status })
-                }
+                onValueChange={(value) => setEditUser({ ...editUser, status: value as Status })}
               >
-                <SelectTrigger className="sm:col-span-3">
+                <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -608,38 +741,46 @@ export default function UsersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsEditDialogOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
               Cancel
             </Button>
-            <Button onClick={handleUpdateUser}>Update User</Button>
+            <Button 
+              onClick={handleUpdateUser}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              Update User
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Assign Role Dialog */}
+      {/* -------------------------
+          Assign Role Dialog
+         ------------------------- */}
       <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
         <DialogContent className="sm:max-w-[400px] max-w-[95vw]">
           <DialogHeader>
-            <DialogTitle>Assign Role</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Assign Role</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               Change the role for "{selectedUser?.name}"
             </DialogDescription>
           </DialogHeader>
+
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-              <Label htmlFor="role-select" className="sm:text-right">
-                Role
-              </Label>
-              <Select
-                value={selectedUser?.role}
-                onValueChange={handleRoleSelect}
-              >
-                <SelectTrigger className="sm:col-span-3">
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="role-select" className="text-sm sm:text-base">Role</Label>
+              <Select value={selectedUser?.role} onValueChange={handleRoleSelect}>
+                <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {ROLES.map((role) => (
                     <SelectItem key={role} value={role}>
                       {role}
                     </SelectItem>
@@ -648,43 +789,54 @@ export default function UsersPage() {
               </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsRoleDialogOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
               Cancel
             </Button>
-            <Button onClick={() => handleUpdateRole(selectedUser?.role || "Editor")}>
+            <Button 
+              onClick={() => handleUpdateRole(selectedUser?.role || "Editor")}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
               Update Role
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reset Password Dialog */}
+      {/* -------------------------
+          Reset Password Dialog
+         ------------------------- */}
       <Dialog open={isResetPasswordOpen} onOpenChange={setIsResetPasswordOpen}>
         <DialogContent className="sm:max-w-[400px] max-w-[95vw]">
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Reset Password</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               Reset password for "{selectedUser?.name}"
             </DialogDescription>
           </DialogHeader>
+
           <div className="grid gap-4 py-4">
             <p className="text-sm text-gray-600">
               New password will be sent to the user's email.
             </p>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
               onClick={() => setIsResetPasswordOpen(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
             </Button>
-            <Button
-              onClick={() => {
-                alert(`Password reset for ${selectedUser?.email}`);
-                setIsResetPasswordOpen(false);
-              }}
+            <Button 
+              onClick={handlePerformReset}
+              className="w-full sm:w-auto order-1 sm:order-2"
             >
               Reset Password
             </Button>
