@@ -49,13 +49,14 @@ import {
 
 // Types
 type Role = "Super Admin" | "Admin" | "Editor";
+type Status = "Active" | "Inactive";
 
 interface User {
   id: number;
   name: string;
   email: string;
   role: Role;
-  status: "Active" | "Inactive";
+  status: Status;
   lastLogin: string;
   createdDate: string;
   permissions: string[];
@@ -72,7 +73,7 @@ interface EditUser {
   name: string;
   email: string;
   role: Role;
-  status: "Active" | "Inactive";
+  status: Status;
 }
 
 // Sample Data
@@ -161,7 +162,7 @@ export default function UsersPage() {
     return matchesSearch && matchesRole;
   });
 
-  const getDefaultPermissions = (role: Role) => {
+  const getDefaultPermissions = (role: Role): string[] => {
     switch (role) {
       case "Super Admin":
         return ["All Access"];
@@ -181,13 +182,16 @@ export default function UsersPage() {
     }
 
     const user: User = {
-      id: users.length + 1,
-      ...newUser,
+      id: Math.max(...users.map(u => u.id)) + 1, // Fixed: Use max ID + 1 instead of length
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
       status: "Active",
       lastLogin: "Never",
       createdDate: new Date().toISOString().split("T")[0],
       permissions: getDefaultPermissions(newUser.role),
     };
+    
     setUsers([...users, user]);
     setNewUser({ name: "", email: "", role: "Editor", password: "" });
     setIsAddDialogOpen(false);
@@ -246,14 +250,24 @@ export default function UsersPage() {
 
   const handleUpdateRole = (newRole: Role) => {
     if (!selectedUser) return;
+    
     setUsers(
       users.map((user) =>
         user.id === selectedUser.id
-          ? { ...user, role: newRole, permissions: getDefaultPermissions(newRole) }
+          ? { 
+              ...user, 
+              role: newRole, 
+              permissions: getDefaultPermissions(newRole) 
+            }
           : user
       )
     );
     setIsRoleDialogOpen(false);
+  };
+
+  // Fixed: Handle role selection in role dialog
+  const handleRoleSelect = (value: string) => {
+    handleUpdateRole(value as Role);
   };
 
   return (
@@ -322,98 +336,106 @@ export default function UsersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-gray-50">
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-sm sm:text-base">{user.name}</p>
-                          <p className="text-xs sm:text-sm text-gray-500 break-all">{user.email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.role === "Super Admin"
-                              ? "destructive"
-                              : user.role === "Admin"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-xs"
-                        >
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={user.status === "Active" ? "default" : "secondary"}
-                          className="text-xs"
-                        >
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-1 text-xs sm:text-sm">
-                          <Calendar className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">
-                            {user.lastLogin === "Never"
-                              ? "Never"
-                              : new Date(user.lastLogin).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {user.permissions.slice(0, 2).map((permission, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {permission}
-                            </Badge>
-                          ))}
-                          {user.permissions.length > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{user.permissions.length - 2}
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1 sm:gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleAssignRole(user)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleResetPassword(user)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Key className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
-                            onClick={() => handleDeleteUser(user.id)}
-                          >
-                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </Button>
-                        </div>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        No users found
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <TableRow key={user.id} className="hover:bg-gray-50">
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm sm:text-base">{user.name}</p>
+                            <p className="text-xs sm:text-sm text-gray-500 break-all">{user.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              user.role === "Super Admin"
+                                ? "destructive"
+                                : user.role === "Admin"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className="text-xs"
+                          >
+                            {user.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={user.status === "Active" ? "default" : "secondary"}
+                            className="text-xs"
+                          >
+                            {user.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1 text-xs sm:text-sm">
+                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">
+                              {user.lastLogin === "Never"
+                                ? "Never"
+                                : new Date(user.lastLogin).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {user.permissions.slice(0, 2).map((permission, index) => (
+                              <Badge key={index} variant="outline" className="text-xs">
+                                {permission}
+                              </Badge>
+                            ))}
+                            {user.permissions.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{user.permissions.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 sm:gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleAssignRole(user)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleResetPassword(user)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Key className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                              onClick={() => handleDeleteUser(user.id)}
+                            >
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -433,7 +455,7 @@ export default function UsersPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="add-name" className="sm:text-right">
-                Name
+                Name *
               </Label>
               <Input
                 id="add-name"
@@ -446,7 +468,7 @@ export default function UsersPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="add-email" className="sm:text-right">
-                Email
+                Email *
               </Label>
               <Input
                 id="add-email"
@@ -483,7 +505,7 @@ export default function UsersPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="add-password" className="sm:text-right">
-                Password
+                Password *
               </Label>
               <Input
                 id="add-password"
@@ -518,7 +540,7 @@ export default function UsersPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-name" className="sm:text-right">
-                Name
+                Name *
               </Label>
               <Input
                 id="edit-name"
@@ -531,7 +553,7 @@ export default function UsersPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-email" className="sm:text-right">
-                Email
+                Email *
               </Label>
               <Input
                 id="edit-email"
@@ -573,7 +595,7 @@ export default function UsersPage() {
               <Select
                 value={editUser.status}
                 onValueChange={(value) =>
-                  setEditUser({ ...editUser, status: value as "Active" | "Inactive" })
+                  setEditUser({ ...editUser, status: value as Status })
                 }
               >
                 <SelectTrigger className="sm:col-span-3">
@@ -610,8 +632,8 @@ export default function UsersPage() {
                 Role
               </Label>
               <Select
-                value={selectedUser?.role || roles[0]}
-                onValueChange={(value) => handleUpdateRole(value as Role)}
+                value={selectedUser?.role}
+                onValueChange={handleRoleSelect}
               >
                 <SelectTrigger className="sm:col-span-3">
                   <SelectValue placeholder="Select role" />
@@ -629,6 +651,9 @@ export default function UsersPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
               Cancel
+            </Button>
+            <Button onClick={() => handleUpdateRole(selectedUser?.role || "Editor")}>
+              Update Role
             </Button>
           </DialogFooter>
         </DialogContent>

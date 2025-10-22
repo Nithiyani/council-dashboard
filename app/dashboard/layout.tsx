@@ -53,7 +53,7 @@ export default function DashboardLayout({
 
   const navigation: NavigationItem[] = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Chairman', href: '/dashboard/chairman', icon: Crown },
+    // { name: 'Chairman', href: '/dashboard/chairman', icon: Crown },
     { name: 'Council Members', href: '/dashboard/members', icon: Users },
     { 
       name: 'Events', 
@@ -78,7 +78,7 @@ export default function DashboardLayout({
       ]
     },
     { name: 'complaint', href: '/dashboard/form', icon: AlertCircle },
-    { name: 'User Management', href: '/dashboard/users', icon: UserCog },
+    // { name: 'User Management', href: '/dashboard/users', icon: UserCog },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
