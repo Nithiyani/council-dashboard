@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Menu,
   Lightbulb,
+  MessageCircle,
   X,
   Crown,
   ChevronDown,
@@ -78,7 +79,8 @@ export default function DashboardLayout({
       ]
     },
     { name: 'complaint', href: '/dashboard/form', icon: AlertCircle },
-    // { name: 'User Management', href: '/dashboard/users', icon: UserCog },
+     { name: 'User Management', href: '/dashboard/users', icon: UserCog },
+     { name: 'Contact Us', href: '/dashboard/contact_us', icon: MessageCircle},
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
