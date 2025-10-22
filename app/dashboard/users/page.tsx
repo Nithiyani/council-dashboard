@@ -44,7 +44,12 @@ import {
   Shield,
   Key,
   Calendar,
+  AlertCircle,
+  CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /* -------------------------
    Types
@@ -61,6 +66,7 @@ interface User {
   lastLogin: string;
   createdDate: string;
   permissions: string[];
+  password?: string; // For demo purposes only
 }
 
 interface NewUser {
@@ -90,6 +96,7 @@ const initialUsersData: User[] = [
     lastLogin: "2024-12-20",
     createdDate: "2022-01-15",
     permissions: ["All Access"],
+    password: "admin123",
   },
   {
     id: 2,
@@ -100,6 +107,7 @@ const initialUsersData: User[] = [
     lastLogin: "2024-12-19",
     createdDate: "2022-03-10",
     permissions: ["Events", "Notices", "Members"],
+    password: "sarah123",
   },
   {
     id: 3,
@@ -110,6 +118,7 @@ const initialUsersData: User[] = [
     lastLogin: "2024-12-18",
     createdDate: "2023-06-20",
     permissions: ["Events", "Gallery", "Documents"],
+    password: "mike123",
   },
   {
     id: 4,
@@ -120,6 +129,7 @@ const initialUsersData: User[] = [
     lastLogin: "2024-12-10",
     createdDate: "2023-08-12",
     permissions: ["View Only"],
+    password: "lisa123",
   },
   {
     id: 5,
@@ -130,6 +140,7 @@ const initialUsersData: User[] = [
     lastLogin: "2024-12-20",
     createdDate: "2024-01-05",
     permissions: ["Notices", "Documents"],
+    password: "david123",
   },
 ];
 
@@ -150,6 +161,7 @@ export default function UsersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>(initialUsersData);
   const [newUser, setNewUser] = useState<NewUser>({
@@ -164,6 +176,21 @@ export default function UsersPage() {
     role: "Editor",
     status: "Active",
   });
+  const [resetPasswordData, setResetPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  
+  // Password visibility states
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  
+  // New state for reset password validation
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState<string | null>(null);
 
   /* Filter users with useMemo for performance */
   const filteredUsers = useMemo(() => {
@@ -221,6 +248,9 @@ export default function UsersPage() {
     return false;
   }, []);
 
+  const canViewUser = useCallback((role: Role) => 
+    role === "Super Admin" || role === "Admin" || role === "Editor", []);
+
   /* Add user */
   const handleAddUser = () => {
     if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
@@ -241,6 +271,7 @@ export default function UsersPage() {
       lastLogin: "Never",
       createdDate: new Date().toISOString().split("T")[0],
       permissions: getDefaultPermissions(newUser.role),
+      password: newUser.password, // Store password for demo
     };
 
     setUsers((prev) => [...prev, user]);
@@ -305,6 +336,16 @@ export default function UsersPage() {
     }
   };
 
+  /* View user details */
+  const handleViewUser = (user: User) => {
+    if (!canViewUser(currentUserRole)) {
+      alert("You don't have permission to view user details.");
+      return;
+    }
+    setSelectedUser(user);
+    setIsViewDialogOpen(true);
+  };
+
   /* Assign role */
   const handleAssignRole = (user: User) => {
     if (!canAssignRole(currentUserRole)) {
@@ -339,14 +380,75 @@ export default function UsersPage() {
       return;
     }
     setSelectedUser(user);
+    setResetPasswordData({
+      oldPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setResetPasswordError(null);
+    setResetPasswordSuccess(null);
     setIsResetPasswordOpen(true);
   };
 
   const handlePerformReset = () => {
     if (!selectedUser) return;
-    alert(`Password reset for ${selectedUser.email}`);
+    
+    // Reset previous messages
+    setResetPasswordError(null);
+    setResetPasswordSuccess(null);
+    
+    // Validation
+    if (!resetPasswordData.oldPassword || !resetPasswordData.newPassword || !resetPasswordData.confirmPassword) {
+      setResetPasswordError("Please fill all password fields");
+      return;
+    }
+    
+    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      setResetPasswordError("New password and confirm password do not match");
+      return;
+    }
+    
+    if (resetPasswordData.newPassword.length < 6) {
+      setResetPasswordError("New password must be at least 6 characters long");
+      return;
+    }
+
+    // In a real app, you would make an API call here
+    setResetPasswordSuccess(`Password updated successfully for ${selectedUser.email}`);
+    
+    // Update the user's password in local state (for demo)
+    setUsers(prev => prev.map(user => 
+      user.id === selectedUser.id 
+        ? { ...user, password: resetPasswordData.newPassword }
+        : user
+    ));
+    
+    // Clear form after successful reset
+    setTimeout(() => {
+      setIsResetPasswordOpen(false);
+      setSelectedUser(null);
+      setResetPasswordData({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setResetPasswordSuccess(null);
+    }, 2000);
+  };
+
+  const handleResetPasswordClose = () => {
     setIsResetPasswordOpen(false);
-    setSelectedUser(null);
+    setResetPasswordError(null);
+    setResetPasswordSuccess(null);
+    setResetPasswordData({
+      oldPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    // Reset password visibility
+    setShowOldPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
   };
 
   /* role dialog value change handler */
@@ -452,15 +554,14 @@ export default function UsersPage() {
                     <TableHead className="min-w-[90px] py-3">Role</TableHead>
                     <TableHead className="min-w-[80px] py-3">Status</TableHead>
                     <TableHead className="min-w-[100px] py-3">Last Login</TableHead>
-                    <TableHead className="min-w-[120px] py-3">Permissions</TableHead>
-                    <TableHead className="min-w-[160px] py-3 text-right">Actions</TableHead>
+                    <TableHead className="min-w-[180px] py-3 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
 
                 <TableBody>
                   {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                         No users found
                       </TableCell>
                     </TableRow>
@@ -508,22 +609,19 @@ export default function UsersPage() {
                         </TableCell>
 
                         <TableCell className="py-3">
-                          <div className="flex flex-wrap gap-1 max-w-[120px]">
-                            {user.permissions.slice(0, 2).map((permission, index) => (
-                              <Badge key={index} variant="outline" className="text-xs truncate">
-                                {permission}
-                              </Badge>
-                            ))}
-                            {user.permissions.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{user.permissions.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        <TableCell className="py-3">
                           <div className="flex justify-end gap-1 sm:gap-2">
+                            {/* View */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewUser(user)}
+                              className="h-8 w-8 p-0"
+                              disabled={!canViewUser(currentUserRole)}
+                              title={canViewUser(currentUserRole) ? "View details" : "No permission"}
+                            >
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Button>
+
                             {/* Edit */}
                             <Button
                               variant="ghost"
@@ -591,7 +689,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Add New User</DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              Create a new user account with appropriate permissions.
+              Create a new user account with appropriate permissions. Only Admin and Super Admin can add users.
             </DialogDescription>
           </DialogHeader>
 
@@ -640,21 +738,39 @@ export default function UsersPage() {
 
             <div className="grid grid-cols-1 gap-3">
               <Label htmlFor="add-password" className="text-sm sm:text-base">Password *</Label>
-              <Input
-                id="add-password"
-                type="password"
-                placeholder="Temporary password"
-                value={newUser.password}
-                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                className="text-sm sm:text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="add-password"
+                  type={showAddPassword ? "text" : "password"}
+                  placeholder="Temporary password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  className="text-sm sm:text-base pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowAddPassword(!showAddPassword)}
+                >
+                  {showAddPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
-              onClick={() => setIsAddDialogOpen(false)}
+              onClick={() => {
+                setIsAddDialogOpen(false);
+                setShowAddPassword(false);
+              }}
               className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
@@ -761,6 +877,123 @@ export default function UsersPage() {
       </Dialog>
 
       {/* -------------------------
+          View User Dialog
+         ------------------------- */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl">User Details</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
+              Complete information for "{selectedUser?.name}"
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {selectedUser && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Name</Label>
+                    <p className="text-sm mt-1">{selectedUser.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <p className="text-sm mt-1">{selectedUser.email}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Role</Label>
+                    <p className="text-sm mt-1">
+                      <Badge
+                        variant={
+                          selectedUser.role === "Super Admin"
+                            ? "destructive"
+                            : selectedUser.role === "Admin"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
+                        {selectedUser.role}
+                      </Badge>
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Status</Label>
+                    <p className="text-sm mt-1">
+                      <Badge variant={selectedUser.status === "Active" ? "default" : "secondary"}>
+                        {selectedUser.status}
+                      </Badge>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Last Login</Label>
+                    <p className="text-sm mt-1">{formatDate(selectedUser.lastLogin)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Created Date</Label>
+                    <p className="text-sm mt-1">{formatDate(selectedUser.createdDate)}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Permissions</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedUser.permissions.map((permission, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {permission}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Password (for demo only)</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      type="password"
+                      value={selectedUser.password || "N/A"}
+                      readOnly
+                      className="text-sm font-mono"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const input = document.querySelector('input[type="password"]') as HTMLInputElement;
+                        if (input) {
+                          input.type = input.type === 'password' ? 'text' : 'password';
+                        }
+                      }}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Note: Password visibility is for demonstration purposes only
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsViewDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* -------------------------
           Assign Role Dialog
          ------------------------- */}
       <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
@@ -768,7 +1001,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Assign Role</DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              Change the role for "{selectedUser?.name}"
+              Change the role for "{selectedUser?.name}". Only Super Admin can assign roles.
             </DialogDescription>
           </DialogHeader>
 
@@ -811,34 +1044,139 @@ export default function UsersPage() {
       {/* -------------------------
           Reset Password Dialog
          ------------------------- */}
-      <Dialog open={isResetPasswordOpen} onOpenChange={setIsResetPasswordOpen}>
-        <DialogContent className="sm:max-w-[400px] max-w-[95vw]">
+      <Dialog open={isResetPasswordOpen} onOpenChange={handleResetPasswordClose}>
+        <DialogContent className="sm:max-w-[450px] max-w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Reset Password</DialogTitle>
             <DialogDescription className="text-sm sm:text-base">
-              Reset password for "{selectedUser?.name}"
+              Change password for "{selectedUser?.name}"
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <p className="text-sm text-gray-600">
-              New password will be sent to the user's email.
-            </p>
+            {/* Error Alert */}
+            {resetPasswordError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  {resetPasswordError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success Alert */}
+            {resetPasswordSuccess && (
+              <Alert className="mb-4 border-green-500 bg-green-50 text-green-800">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  {resetPasswordSuccess}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="old-password" className="text-sm sm:text-base">Old Password *</Label>
+              <div className="relative">
+                <Input
+                  id="old-password"
+                  type={showOldPassword ? "text" : "password"}
+                  placeholder="Enter old password"
+                  value={resetPasswordData.oldPassword}
+                  onChange={(e) => setResetPasswordData({ ...resetPasswordData, oldPassword: e.target.value })}
+                  className="text-sm sm:text-base pr-10"
+                  disabled={!!resetPasswordSuccess}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  disabled={!!resetPasswordSuccess}
+                >
+                  {showOldPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="new-password" className="text-sm sm:text-base">New Password *</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Enter new password"
+                  value={resetPasswordData.newPassword}
+                  onChange={(e) => setResetPasswordData({ ...resetPasswordData, newPassword: e.target.value })}
+                  className="text-sm sm:text-base pr-10"
+                  disabled={!!resetPasswordSuccess}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  disabled={!!resetPasswordSuccess}
+                >
+                  {showNewPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              <Label htmlFor="confirm-password" className="text-sm sm:text-base">Confirm New Password *</Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm new password"
+                  value={resetPasswordData.confirmPassword}
+                  onChange={(e) => setResetPasswordData({ ...resetPasswordData, confirmPassword: e.target.value })}
+                  className="text-sm sm:text-base pr-10"
+                  disabled={!!resetPasswordSuccess}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={!!resetPasswordSuccess}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
             <Button 
               variant="outline" 
-              onClick={() => setIsResetPasswordOpen(false)}
+              onClick={handleResetPasswordClose}
               className="w-full sm:w-auto order-2 sm:order-1"
+              disabled={!!resetPasswordSuccess}
             >
-              Cancel
+              {resetPasswordSuccess ? "Close" : "Cancel"}
             </Button>
             <Button 
               onClick={handlePerformReset}
               className="w-full sm:w-auto order-1 sm:order-2"
+              disabled={!!resetPasswordSuccess}
             >
-              Reset Password
+              {resetPasswordSuccess ? "Success!" : "Update Password"}
             </Button>
           </DialogFooter>
         </DialogContent>
